@@ -2,3 +2,5 @@ packages:
   - packages/ui
   - packages/admin
   - apps/admin-starter
+allowBuilds:
+  esbuild: true

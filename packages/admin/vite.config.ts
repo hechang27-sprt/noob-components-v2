@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import { resolve } from 'node:path'
 
 export default defineConfig({
@@ -9,7 +9,11 @@ export default defineConfig({
       fileName: 'index'
     },
     rollupOptions: {
-      external: ['naive-ui', 'vue']
+      external: ['naive-ui', 'pinia', 'vue', 'zod']
     }
+  },
+  test: {
+    environment: 'node',
+    include: ['tests/**/*.test.ts']
   }
 })

@@ -10,3 +10,5 @@ export type {
   AdminShellPreferences,
   AdminThemeMode
 } from './runtime-contract'
+
+export { useAdminShellPreferencesStore } from './stores/shell-preferences'

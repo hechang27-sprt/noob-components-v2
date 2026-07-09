@@ -27,12 +27,12 @@
 - [x] Public package boundaries match the contract docs.
 
 ## Phase 2: Admin runtime vertical slice
-- [ ] Task 4: Implement runtime-owned shell preferences store with local persistence.
-  - [ ] Add Pinia-based preferences store in `@noob-naive-ui/admin`.
-  - [ ] Persist theme/locale/sidebar state locally without backend coupling.
-  - [ ] Verify: `pnpm --filter @noob-naive-ui/admin typecheck`
-  - [ ] Verify: targeted store test for shell preferences. [INFERENCE]
-  - [ ] Manual verify: package-level demo harness or targeted runtime test proves shell preferences persist across reload or storage rehydration.
+- [x] Task 4: Implement runtime-owned shell preferences store with local persistence.
+  - [x] Add Pinia-based preferences store in `@noob-naive-ui/admin`.
+  - [x] Persist theme/locale/sidebar state locally without backend coupling.
+  - [x] Verify: `pnpm --filter @noob-naive-ui/admin typecheck`
+  - [x] Verify: targeted store test for shell preferences. [INFERENCE]
+  - [x] Manual verify: package-level demo harness or targeted runtime test proves shell preferences persist across reload or storage rehydration.
 - [ ] Task 5: Implement `AdminLoginPage` and auth-shell primitives.
   - [ ] Build packaged login page using `AdminLoginValues` and `AdminAuthActions`.
   - [ ] Keep login UI replaceable by the starter.
