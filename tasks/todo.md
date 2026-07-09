@@ -1,30 +1,30 @@
 # Phase 0 Todo: Phase 1 implementation preparation
 
 ## Phase 1: Workspace foundation
-- [ ] Task 1: Establish workspace root and toolchain baseline.
-  - [ ] Add root workspace manifest and package globs for `packages/ui`, `packages/admin`, `apps/admin-starter`.
-  - [ ] Add root scripts for `install`, `build`, `typecheck`, and starter `dev` flow.
-  - [ ] Add shared TypeScript baseline and repo hygiene files.
-  - [ ] Verify: `pnpm install`
-  - [ ] Verify: `pnpm build`
-  - [ ] Verify: `pnpm typecheck`
-- [ ] Task 2: Scaffold `@noob/ui` with a narrow Naive bridge/value-add entry.
-  - [ ] Add package manifest, tsconfig, and Vite build config.
-  - [ ] Add typed entrypoint and minimal bridge/helper source.
-  - [ ] Confirm no broad Naive re-exports or wrapper parity.
-  - [ ] Verify: `pnpm --filter @noob/ui build`
-  - [ ] Verify: `pnpm --filter @noob/ui typecheck`
-- [ ] Task 3: Scaffold `@noob/admin` public API and frontend-only contract types.
-  - [ ] Add package manifest, tsconfig, and Vite build config.
-  - [ ] Export the ratified runtime contract types.
-  - [ ] Confirm no backend DTO/session/transport types leak into the public API.
-  - [ ] Verify: `pnpm --filter @noob/admin build`
-  - [ ] Verify: `pnpm --filter @noob/admin typecheck`
+- [x] Task 1: Establish workspace root and toolchain baseline.
+  - [x] Add root workspace manifest and package globs for `packages/ui`, `packages/admin`, `apps/admin-starter`.
+  - [x] Add root scripts for `install`, `build`, `typecheck`, and starter `dev` flow.
+  - [x] Add shared TypeScript baseline and repo hygiene files.
+  - [x] Verify: `pnpm install`
+  - [x] Verify: `pnpm build`
+  - [x] Verify: `pnpm typecheck`
+- [x] Task 2: Scaffold `@noob-naive-ui/ui` with a narrow Naive bridge/value-add entry.
+  - [x] Add package manifest, tsconfig, and Vite build config.
+  - [x] Add typed entrypoint and minimal bridge/helper source.
+  - [x] Confirm no broad Naive re-exports or wrapper parity.
+  - [x] Verify: `pnpm --filter @noob-naive-ui/ui build`
+  - [x] Verify: `pnpm --filter @noob-naive-ui/ui typecheck`
+- [x] Task 3: Scaffold `@noob-naive-ui/admin` public API and frontend-only contract types.
+  - [x] Add package manifest, tsconfig, and Vite build config.
+  - [x] Export the ratified runtime contract types.
+  - [x] Confirm no backend DTO/session/transport types leak into the public API.
+  - [x] Verify: `pnpm --filter @noob-naive-ui/admin build`
+  - [x] Verify: `pnpm --filter @noob-naive-ui/admin typecheck`
 
 ## Checkpoint: Foundation
-- [ ] Workspace install succeeds.
-- [ ] All package builds/typechecks succeed.
-- [ ] Public package boundaries match the contract docs.
+- [x] Workspace install succeeds.
+- [x] All package builds/typechecks succeed.
+- [x] Public package boundaries match the contract docs.
 
 ## Phase 2: Admin runtime vertical slice
 - [ ] Task 4: Implement runtime-owned shell preferences store with local persistence.
