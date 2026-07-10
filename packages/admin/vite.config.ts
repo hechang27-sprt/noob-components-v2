@@ -14,7 +14,7 @@ export default defineConfig({
       cssFileName: "style",
     },
     rollupOptions: {
-      external: ["naive-ui", "pinia", "vue", "zod"],
+      external: ["naive-ui", "pinia", "pro-naive-ui", "vue", "zod"],
     },
   },
   test: {

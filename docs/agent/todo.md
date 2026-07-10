@@ -42,23 +42,23 @@
   - [x] Verify: `pnpm --filter @noob-naive-ui/admin build`
   - [x] Verify: targeted login component test. [INFERENCE]
   - [x] Manual verify: package-level demo harness or targeted component test shows and submits packaged login page.
-- [ ] Task 6: Implement `AdminShell` layout, runtime controls, open tabs, and starter-built sidebar menu.
-  - [ ] Build loading/login/authenticated switching; use `ProLayout` as the authenticated frame with a defined page-height wrapper.
-  - [ ] Keep the default slot router-free and starter-owned; it is where the starter places `<router-view />`. `@noob-naive-ui/admin` must not import or depend on `vue-router`.
-  - [ ] Render the starter-supplied `MenuOption[]` unchanged in ProLayout's internal sidebar. The starter owns visibility, hierarchy, and router-aware label/link content; admin has no navigation/visibility controller or filtering logic.
-  - [ ] Implement browser-like open-tab state/UI inside `AdminShell` through ProLayout's internal `tabbar` slot; expose no `tabbar` slot and use a frontend-only tab controller for starter navigation callbacks.
-  - [ ] Build theme/language/sidebar controls backed by the runtime preferences store and ProLayout's collapsed interface.
-  - [ ] Verify: `pnpm --filter @noob-naive-ui/admin build`
-  - [ ] Verify: `pnpm --filter @noob-naive-ui/admin typecheck`
-  - [ ] Manual verify: targeted component test covers all auth layouts, unchanged sidebar-menu composition, default-slot isolation, open/activate/close tab behavior, tab cleanup across auth/controller transitions, router-free boundary, ProLayout sizing, and preference controls.
+- [x] Task 6: Implement `AdminShell` layout, runtime controls, open tabs, and starter-built sidebar menu.
+  - [x] Build loading/login/authenticated switching; use `ProLayout` as the authenticated frame with a defined page-height wrapper.
+  - [x] Keep the default slot router-free and starter-owned; it is where the starter places `<router-view />`. `@noob-naive-ui/admin` must not import or depend on `vue-router`.
+  - [x] Render the starter-supplied `MenuOption[]` unchanged in ProLayout's internal sidebar. The starter owns visibility, hierarchy, and router-aware label/link content; admin has no navigation/visibility controller or filtering logic.
+  - [x] Implement browser-like open-tab state/UI inside `AdminShell` through ProLayout's internal `tabbar` slot; expose no `tabbar` slot and use a frontend-only tab controller for starter navigation callbacks.
+  - [x] Build theme/language/sidebar controls backed by the runtime preferences store and ProLayout's collapsed interface.
+  - [x] Verify: `pnpm --filter @noob-naive-ui/admin build`
+  - [x] Verify: `pnpm --filter @noob-naive-ui/admin typecheck`
+  - [x] Manual verify: targeted component test covers all auth layouts, unchanged sidebar-menu composition, default-slot isolation, open/activate/close tab behavior, tab cleanup across auth/controller transitions, router-free boundary, ProLayout sizing, and preference controls.
 
 > Task 7 is merged into Task 6. The runtime no longer composes navigation visibility; the starter supplies its final `MenuOption[]` tree directly.
 
 ## Checkpoint: Runtime slice
 
-- [ ] Runtime package builds cleanly.
-- [ ] Package-level runtime tests or demo harnesses cover preferences, login shell, direct starter-menu composition, and open tabs.
-- [ ] No runtime code depends on backend DTOs, transport clients, or business pages.
+- [x] Runtime package builds cleanly.
+- [x] Package-level runtime tests or demo harnesses cover preferences, login shell, direct starter-menu composition, and open tabs.
+- [x] No runtime code depends on backend DTOs, transport clients, or business pages.
 
 ## Phase 3: Starter proof and DX validation
 

@@ -9,7 +9,74 @@
 - `AdminMenuTree` is Naive UI `MenuOption[]`; it remains an existing public alias, while `AdminShell` accepts direct starter-built `MenuOption[]` without a visibility contract.
 - `AdminShellPreferences` contains frontend-local shell settings.
 
-Keep additions frontend-ready and minimal. The public barrel, `packages/admin/src/index.ts`, exports types, the preferences store, and `AdminLoginPage`; add exports there intentionally rather than reaching into internals.
+Keep additions frontend-ready and minimal. The public barrel, `packages/admin/src/index.ts`, exports types, the preferences store, `AdminLoginPage`, and `AdminShell`; add exports there intentionally rather than reaching into internals.
+
+## AdminShell contract
+
+### 1. Scope / trigger
+
+`AdminShell` is the authenticated frontend frame. It owns only presentation, runtime preference controls, and local open-tab membership. The starter owns auth restoration, routing, menu derivation, and the content supplied through the default slot.
+
+### 2. Signatures
+
+```ts
+export type AdminShellTab = {
+  key: string;
+  label: string;
+  closable?: boolean;
+};
+
+export type AdminShellTabController = {
+  current: AdminShellTab | null;
+  activate: (key: string) => Promise<void>;
+  close: (closedKey: string, suggestedNextKey: string | null) => Promise<void>;
+};
+
+export type AdminShellProps = {
+  authStatus: AdminAuthStatus;
+  authActions: AdminAuthActions;
+  menuOptions?: MenuOption[];
+  tabController?: AdminShellTabController;
+};
+```
+
+### 3. Contracts
+
+- Loading and anonymous states render no layout/sidebar/tabbar/default-slot content; anonymous delegates login UX to `AdminLoginPage` with the supplied actions.
+- The authenticated state mounts `ProLayout` in a definite-height `height: 100dvh` container, binds its collapsed state to `useAdminShellPreferencesStore`, and forwards only the default slot as content.
+- `menuOptions` is starter-owned opaque input. Pass the exact array reference directly to internal `NMenu`; do not inspect, clone, filter, re-key, or handle selection.
+- `tabController.current` is authoritative for highlighting. The shell awaits `activate` and `close`; it updates membership only after a resolved close and invalidates pending actions when authentication or the controller changes.
+- Theme, font size, locale, and sidebar controls call the existing preferences-store actions. Locale options remain runtime-only; controls never parse or persist storage.
+
+### 4. Validation and error matrix
+
+| Condition | Shell behavior |
+| --- | --- |
+| No menu options or an empty array | Do not render the sidebar. |
+| No tab controller | Do not render tabbar or retain tabs. |
+| `activate` or `close` rejects | Retain tab membership/highlight; show only generic UI-safe feedback. |
+| Close callback resolves | Remove the closed tab; the starter receives the computed adjacent suggested key. |
+| Auth leaves authenticated or controller changes | Clear local tabs and invalidate prior async tab actions. |
+
+### 5. Good, base, and bad cases
+
+- Good: the starter builds nested `MenuOption[]` with router-aware label content and supplies `<router-view />` in the default slot.
+- Base: the starter reports a current tab and implements async activation/close callbacks; `AdminShell` renders its local tab UI without importing routing code.
+- Bad: passing a router object, backend session, visibility set, menu-selection callback, or storage adapter to `AdminShell`.
+
+### 6. Tests required
+
+`packages/admin/tests/admin-shell.test.ts` must observably cover every auth branch, default-slot isolation, defined-height `ProLayout`, unchanged menu composition and empty-menu absence, store-backed controls, tab deduplication/presentation updates, async success/failure/pending behavior, and auth/controller cleanup.
+
+### 7. Wrong vs correct
+
+```tsx
+// Wrong: the runtime takes ownership of starter navigation.
+<NMenu options={props.menuOptions.filter(isVisible)} onUpdateValue={router.push} />;
+
+// Correct: direct opaque starter composition.
+<NMenu options={props.menuOptions} />;
+```
 
 ## Required separation
 
@@ -19,10 +86,10 @@ The starter derives the final `MenuOption[]`, including visibility, hierarchy, a
 
 ## Dependencies and build
 
-`packages/admin/package.json` declares Vue, Pinia, and Naive UI as peers, while Zod is an implementation dependency. `packages/admin/vite.config.ts` builds `src/index.ts` as an ES library with Vue JSX and Tailwind plugins, and externalizes all four runtime dependencies. Preserve this boundary when adding imports or build features.
+`packages/admin/package.json` declares Vue, Pinia, Naive UI, and Pro Naive UI as peers, while Zod is an implementation dependency. `packages/admin/vite.config.ts` builds `src/index.ts` as an ES library with Vue JSX and Tailwind plugins, and externalizes all five runtime dependencies. Preserve this boundary when adding imports or build features.
 
-Avoid broad Naive re-exports. Import and compose Naive primitives directly inside admin runtime components, as `packages/admin/src/components/admin-login-page.tsx` does.
+Avoid broad Naive/Pro Naive re-exports. Import and compose primitives directly inside admin runtime components, as `packages/admin/src/components/admin-login-page.tsx` and `packages/admin/src/components/admin-shell.tsx` do.
 
 ## Verification
 
-Type-check and build the package after public-contract changes. Add or update an observable test whenever a contract branch changes; `packages/admin/tests/admin-login-page.test.ts` demonstrates testing all auth-status variants rather than only the anonymous happy path.
+Type-check and build the package after public-contract changes. Add or update an observable test whenever a contract branch changes; `packages/admin/tests/admin-login-page.test.ts` and `packages/admin/tests/admin-shell.test.ts` demonstrate testing all auth-status variants rather than only the anonymous happy path.

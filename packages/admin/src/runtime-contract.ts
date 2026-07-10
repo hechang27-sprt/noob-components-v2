@@ -26,10 +26,6 @@ export type AdminAuthActions = {
 
 export type AdminRouteKey = string;
 
-export type AdminRouteVisibility = {
-  visibleRouteKeys: ReadonlySet<AdminRouteKey>;
-};
-
 export type AdminMenuTree = MenuOption[];
 
 export type AdminThemeMode = "light" | "dark" | "system";

@@ -4,3 +4,4 @@ packages:
   - apps/admin-starter
 allowBuilds:
   esbuild: true
+  vue-demi: true

@@ -8,7 +8,6 @@ export type {
   AdminLoginValues,
   AdminMenuTree,
   AdminRouteKey,
-  AdminRouteVisibility,
   AdminShellPreferences,
   AdminThemeMode,
 } from "./runtime-contract";
@@ -19,3 +18,10 @@ export {
   AdminLoginPage,
   type AdminLoginPageProps,
 } from "./components/admin-login-page";
+
+export {
+  AdminShell,
+  type AdminShellProps,
+  type AdminShellTab,
+  type AdminShellTabController,
+} from "./components/admin-shell";
