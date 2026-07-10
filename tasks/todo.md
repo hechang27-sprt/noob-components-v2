@@ -33,12 +33,12 @@
   - [x] Verify: `pnpm --filter @noob-naive-ui/admin typecheck`
   - [x] Verify: targeted store test for shell preferences. [INFERENCE]
   - [x] Manual verify: package-level demo harness or targeted runtime test proves shell preferences persist across reload or storage rehydration.
-- [ ] Task 5: Implement `AdminLoginPage` and auth-shell primitives.
-  - [ ] Build packaged login page using `AdminLoginValues` and `AdminAuthActions`.
-  - [ ] Keep login UI replaceable by the starter.
-  - [ ] Verify: `pnpm --filter @noob-naive-ui/admin build`
-  - [ ] Verify: targeted login component test. [INFERENCE]
-  - [ ] Manual verify: package-level demo harness or targeted component test shows and submits packaged login page.
+- [x] Task 5: Implement `AdminLoginPage` and auth-shell primitives.
+  - [x] Build packaged login page using `AdminLoginValues` and `AdminAuthActions`.
+  - [x] Keep login UI replaceable by the starter.
+  - [x] Verify: `pnpm --filter @noob-naive-ui/admin build`
+  - [x] Verify: targeted login component test. [INFERENCE]
+  - [x] Manual verify: package-level demo harness or targeted component test shows and submits packaged login page.
 - [ ] Task 6: Implement `AdminShell` layout primitives and runtime controls.
   - [ ] Build shell frame, top-level auth-state layout switching, and starter-owned content slot.
   - [ ] Build theme/language/sidebar controls backed by the runtime preferences store.

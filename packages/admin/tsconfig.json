@@ -5,10 +5,12 @@
     "outDir": "dist",
     "lib": ["ESNext", "DOM"],
     "types": ["node"],
+    "jsx": "preserve",
+    "jsxImportSource": "vue",
     "noEmit": false,
     "declaration": true,
     "declarationMap": true,
     "emitDeclarationOnly": false
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }
