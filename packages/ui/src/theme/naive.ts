@@ -1,23 +1,23 @@
-import type { GlobalThemeOverrides } from 'naive-ui'
+import type { GlobalThemeOverrides } from "naive-ui";
 
 export type NoobNaiveThemeBridge = {
-  common?: GlobalThemeOverrides['common']
+  common?: GlobalThemeOverrides["common"];
   layout?: {
-    pageMaxWidth?: string
-    contentPadding?: string
-  }
-}
+    pageMaxWidth?: string;
+    contentPadding?: string;
+  };
+};
 
 export function defineNoobNaiveThemeBridge(
-  bridge: NoobNaiveThemeBridge = {}
+  bridge: NoobNaiveThemeBridge = {},
 ): NoobNaiveThemeBridge {
-  return bridge
+  return bridge;
 }
 
 export function toNoobNaiveThemeOverrides(
-  bridge: NoobNaiveThemeBridge = {}
+  bridge: NoobNaiveThemeBridge = {},
 ): GlobalThemeOverrides {
   return {
-    common: bridge.common
-  }
+    common: bridge.common,
+  };
 }

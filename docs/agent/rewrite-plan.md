@@ -27,6 +27,7 @@ This file turns the audit and brainstorm notes into an execution order.
   - shell-level layout/theme/language/font-size state
 
 Naive UI is a peer, directly co-consumed foundation for internal teams. The public goal of `@noob-naive-ui/ui` is not Naive wrapper parity or Naive re-exports; it is the layer where your product adds composites, hooks, token plumbing, and specialized admin-oriented widgets.
+
 ### Internal workspace package if needed
 
 - `@noob-naive-ui/internal-shared` or equivalent internal-only package [INFERENCE]

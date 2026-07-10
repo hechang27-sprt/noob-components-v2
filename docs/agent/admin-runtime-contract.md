@@ -96,14 +96,17 @@ These are Phase 0 candidate types. They are intentionally frontend-only.
 
 ```ts
 export type AdminAuthStatus =
-  | { kind: 'loading' }
-  | { kind: 'anonymous'; reason?: 'signed-out' | 'expired' | 'forbidden' | 'unknown' }
+  | { kind: "loading" }
   | {
-      kind: 'authenticated'
-      userLabel?: string
-      avatarUrl?: string
-      subtitle?: string
+      kind: "anonymous";
+      reason?: "signed-out" | "expired" | "forbidden" | "unknown";
     }
+  | {
+      kind: "authenticated";
+      userLabel?: string;
+      avatarUrl?: string;
+      subtitle?: string;
+    };
 ```
 
 Notes:
@@ -116,15 +119,15 @@ Notes:
 
 ```ts
 export type AdminLoginValues = {
-  username: string
-  password: string
-  remember?: boolean
-}
+  username: string;
+  password: string;
+  remember?: boolean;
+};
 
 export type AdminAuthActions = {
-  login: (values: AdminLoginValues) => Promise<void>
-  logout: () => Promise<void> | void
-}
+  login: (values: AdminLoginValues) => Promise<void>;
+  logout: () => Promise<void> | void;
+};
 ```
 
 Notes:
@@ -136,11 +139,11 @@ Notes:
 ### 3. Route visibility input
 
 ```ts
-export type AdminRouteKey = string
+export type AdminRouteKey = string;
 
 export type AdminRouteVisibility = {
-  visibleRouteKeys: ReadonlySet<AdminRouteKey>
-}
+  visibleRouteKeys: ReadonlySet<AdminRouteKey>;
+};
 ```
 
 Notes:
@@ -154,9 +157,9 @@ Notes:
 For the navigation tree, prefer Naive UI's own type directly:
 
 ```ts
-import type { MenuOption } from 'naive-ui'
+import type { MenuOption } from "naive-ui";
 
-export type AdminMenuTree = MenuOption[]
+export type AdminMenuTree = MenuOption[];
 ```
 
 Notes:
@@ -170,21 +173,21 @@ Notes:
 ### 5. Theme / language / shell preferences
 
 ```ts
-export type AdminThemeMode = 'light' | 'dark' | 'system'
-export type AdminFontSize = 'small' | 'medium' | 'large'
+export type AdminThemeMode = "light" | "dark" | "system";
+export type AdminFontSize = "small" | "medium" | "large";
 
 export type AdminLocaleOption = {
-  key: string
-  label: string
-}
+  key: string;
+  label: string;
+};
 
 export type AdminShellPreferences = {
-  themeMode: AdminThemeMode
-  fontSize: AdminFontSize
-  locale: string
-  availableLocales: AdminLocaleOption[]
-  sidebarCollapsed: boolean
-}
+  themeMode: AdminThemeMode;
+  fontSize: AdminFontSize;
+  locale: string;
+  availableLocales: AdminLocaleOption[];
+  sidebarCollapsed: boolean;
+};
 ```
 
 Notes:
@@ -254,6 +257,7 @@ The following defaults are now considered decided for Phase 0:
 1. `visibleRouteKeys` is the route-visibility contract for Phase 1; no additional route metadata contract is required yet.
 2. The runtime may own local persistence of theme/locale/sidebar preferences.
 3. `AdminLoginPage` is packaged by default, but starters/apps may replace it while keeping the same runtime contract.
+
 ## Phase 0 completion criterion for `@noob-naive-ui/admin`
 
 Phase 0 is complete only when:

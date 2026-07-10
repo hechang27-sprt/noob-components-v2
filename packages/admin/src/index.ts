@@ -1,4 +1,4 @@
-import './style.css'
+import "./style.css";
 
 export type {
   AdminAuthActions,
@@ -10,9 +10,12 @@ export type {
   AdminRouteKey,
   AdminRouteVisibility,
   AdminShellPreferences,
-  AdminThemeMode
-} from './runtime-contract'
+  AdminThemeMode,
+} from "./runtime-contract";
 
-export { useAdminShellPreferencesStore } from './stores/shell-preferences'
+export { useAdminShellPreferencesStore } from "./stores/shell-preferences";
 
-export { AdminLoginPage, type AdminLoginPageProps } from './components/admin-login-page'
+export {
+  AdminLoginPage,
+  type AdminLoginPageProps,
+} from "./components/admin-login-page";

@@ -1,24 +1,24 @@
-import { resolve } from 'node:path'
+import { resolve } from "node:path";
 
-import tailwindcss from '@tailwindcss/vite'
-import vueJsx from '@vitejs/plugin-vue-jsx'
-import { defineConfig } from 'vitest/config'
+import tailwindcss from "@tailwindcss/vite";
+import vueJsx from "@vitejs/plugin-vue-jsx";
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [tailwindcss(), vueJsx()],
   build: {
     lib: {
-      entry: resolve(__dirname, 'src/index.ts'),
-      formats: ['es'],
-      fileName: 'index',
-      cssFileName: 'style'
+      entry: resolve(__dirname, "src/index.ts"),
+      formats: ["es"],
+      fileName: "index",
+      cssFileName: "style",
     },
     rollupOptions: {
-      external: ['naive-ui', 'pinia', 'vue', 'zod']
-    }
+      external: ["naive-ui", "pinia", "vue", "zod"],
+    },
   },
   test: {
-    environment: 'node',
-    include: ['tests/**/*.test.ts']
-  }
-})
+    environment: "node",
+    include: ["tests/**/*.test.ts"],
+  },
+});

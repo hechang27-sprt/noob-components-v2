@@ -82,7 +82,8 @@ export const AdminLoginPage = defineComponent(
         return (
           <main
             class="grid min-h-dvh place-items-center p-6 max-sm:items-start max-sm:p-4"
-            aria-busy="true">
+            aria-busy="true"
+          >
             <NCard class="w-full max-w-md" content-style="padding: 0">
               <h1 class="sr-only">Checking your session</h1>
               <p class="sr-only" role="status" aria-live="polite">
@@ -131,7 +132,8 @@ export const AdminLoginPage = defineComponent(
               onSubmit={(event: Event) => {
                 event.preventDefault();
                 void submit();
-              }}>
+              }}
+            >
               {anonymousStatusMessage ? (
                 <p class="mb-4 text-sm" role="status">
                   {anonymousStatusMessage}
@@ -139,7 +141,8 @@ export const AdminLoginPage = defineComponent(
               ) : null}
               <NFormItem
                 label="Username"
-                label-props={{ for: `${formId}-username` }}>
+                label-props={{ for: `${formId}-username` }}
+              >
                 <NInput
                   value={username.value}
                   disabled={isPending.value}
@@ -157,7 +160,8 @@ export const AdminLoginPage = defineComponent(
               </NFormItem>
               <NFormItem
                 label="Password"
-                label-props={{ for: `${formId}-password` }}>
+                label-props={{ for: `${formId}-password` }}
+              >
                 <NInput
                   type="password"
                   value={password.value}
@@ -181,7 +185,8 @@ export const AdminLoginPage = defineComponent(
                   onUpdateChecked={(checked) => {
                     remember.value = checked as boolean;
                     clearFeedback();
-                  }}>
+                  }}
+                >
                   Remember me
                 </NCheckbox>
               </NFormItem>
@@ -200,7 +205,8 @@ export const AdminLoginPage = defineComponent(
                 type="primary"
                 block
                 loading={isPending.value}
-                disabled={isPending.value}>
+                disabled={isPending.value}
+              >
                 {isPending.value ? "Signing in…" : "Sign in"}
               </NButton>
             </NForm>

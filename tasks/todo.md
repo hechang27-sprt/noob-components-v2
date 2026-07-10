@@ -1,6 +1,7 @@
 # Phase 0 Todo: Phase 1 implementation preparation
 
 ## Phase 1: Workspace foundation
+
 - [x] Task 1: Establish workspace root and toolchain baseline.
   - [x] Add root workspace manifest and package globs for `packages/ui`, `packages/admin`, `apps/admin-starter`.
   - [x] Add root scripts for `install`, `build`, `typecheck`, and starter `dev` flow.
@@ -22,11 +23,13 @@
   - [x] Verify: `pnpm --filter @noob-naive-ui/admin typecheck`
 
 ## Checkpoint: Foundation
+
 - [x] Workspace install succeeds.
 - [x] All package builds/typechecks succeed.
 - [x] Public package boundaries match the contract docs.
 
 ## Phase 2: Admin runtime vertical slice
+
 - [x] Task 4: Implement runtime-owned shell preferences store with local persistence.
   - [x] Add Pinia-based preferences store in `@noob-naive-ui/admin`.
   - [x] Persist theme/locale/sidebar state locally without backend coupling.
@@ -54,11 +57,13 @@
   - [ ] Manual verify: package-level demo harness or targeted component test hides route keys missing from rendered navigation.
 
 ## Checkpoint: Runtime slice
+
 - [ ] Runtime package builds cleanly.
 - [ ] Package-level runtime tests or demo harnesses cover preferences, login shell, and navigation visibility.
 - [ ] No runtime code depends on backend DTOs, transport clients, or business pages.
 
 ## Phase 3: Starter proof and DX validation
+
 - [ ] Task 8: Scaffold the starter app shell and direct Naive/Tailwind assembly.
   - [ ] Create app entry, root component, router shell, and package-local Vite/type config.
   - [ ] Configure Tailwind 4 and Naive UI directly in starter app assembly.
@@ -83,6 +88,7 @@
   - [ ] Manual verify: browser smoke confirms login flow, shell rendering, menu visibility, and preference persistence.
 
 ## Checkpoint: Complete
+
 - [ ] End-to-end starter smoke flow reaches login shell and authenticated shell and proves the intended architecture.
 - [ ] Workspace build/typecheck passes.
 - [ ] Docs reflect implementation-grounded boundary clarifications.
