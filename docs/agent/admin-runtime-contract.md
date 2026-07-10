@@ -44,12 +44,11 @@ If any of those appear in the shared runtime, the boundary has already failed.
 `@noob-naive-ui/admin` should own only frontend shell/runtime concerns:
 
 - page shell layout
-- navigation/menu rendering
+- direct rendering of a starter-built Naive menu tree
 - theme control UI
 - language control UI
 - cosmetic/style control entry points
 - login page UI
-- route-visibility application using frontend-ready inputs
 - shell-local Pinia state for layout/theme/language and related runtime concerns
 
 ## Starter/app responsibilities
@@ -62,8 +61,8 @@ Backend-specific starters or app code must own:
 - session restoration/fetching
 - logout implementation
 - mapping backend permission/auth/session data into frontend-ready runtime state
-- route registry and domain page modules
-- derivation of visible route keys and menu/navigation tree
+- route registry, domain page modules, and router integration
+- derivation of the final `MenuOption[]` tree, including visibility, hierarchy, and router-aware link/rendered-label content
 
 ## Contract design rule
 
@@ -74,8 +73,7 @@ Good runtime inputs:
 - auth status
 - login submit handler
 - logout handler
-- visible route keys
-- menu/navigation tree
+- final menu/navigation tree
 - current locale
 - available locales
 - current theme mode / font size
@@ -136,25 +134,9 @@ Notes:
 - starters/apps decide what happens inside `login`
 - `@noob-naive-ui/admin` only owns form UX and pending/error presentation
 
-### 3. Route visibility input
+### 3. Menu/navigation tree
 
-```ts
-export type AdminRouteKey = string;
-
-export type AdminRouteVisibility = {
-  visibleRouteKeys: ReadonlySet<AdminRouteKey>;
-};
-```
-
-Notes:
-
-- no backend permission payloads
-- runtime sees only which frontend route keys are visible
-- starter/app maps backend authz to these keys
-
-### 4. Menu/navigation tree
-
-For the navigation tree, prefer Naive UI's own type directly:
+For the navigation tree, use Naive UI's own type directly:
 
 ```ts
 import type { MenuOption } from "naive-ui";
@@ -165,12 +147,12 @@ export type AdminMenuTree = MenuOption[];
 Notes:
 
 - this avoids inventing a parallel menu-node type that would mostly duplicate Naive UI
-- the starter/app still owns deriving `MenuOption[]` from its own route registry and backend-derived visibility state
-- runtime invariant: `option.key` is the canonical frontend route/menu visibility key used to match `visibleRouteKeys`
-- `@noob-naive-ui/admin` only renders and administers shell navigation; it still must not learn backend route/menu DTOs
+- the starter/app owns deriving the final `MenuOption[]` from its route registry and backend-derived state
+- `@noob-naive-ui/admin` passes the tree unchanged to direct `NMenu` composition; it does not filter, normalize keys, own selection/navigation, or interpret route visibility
+- starter-owned router behavior belongs in its supplied link/rendered-label content; the runtime never receives a router object
 - this is an acceptable Naive-specific dependency because the navigation layer is already part of the chosen Naive-based runtime
 
-### 5. Theme / language / shell preferences
+### 4. Theme / language / shell preferences
 
 ```ts
 export type AdminThemeMode = "light" | "dark" | "system";
@@ -203,17 +185,15 @@ Possible exports:
 
 - `AdminShell`
 - `AdminLoginPage`
-- `AdminNavigation`
-- `AdminThemeControls`
-- `AdminLanguageControls`
-- `createAdminRuntimeStore` or equivalent runtime store helpers
-  - `AdminAuthStatus`
-  - `AdminLoginValues`
-  - `AdminAuthActions`
-  - `AdminRouteKey`
-  - `AdminRouteVisibility`
-  - `AdminMenuTree`
-  - `AdminShellPreferences`
+- runtime store helpers
+- `AdminAuthStatus`
+- `AdminLoginValues`
+- `AdminAuthActions`
+- `AdminRouteKey` (existing general frontend alias)
+- `AdminMenuTree` (existing alias for `MenuOption[]`)
+- `AdminShellPreferences`
+
+The runtime does not export `AdminNavigation` or `AdminRouteVisibility`: direct menu input belongs to the starter-built shell boundary.
 
 Possible non-exports:
 
@@ -231,15 +211,13 @@ Starter/app code:
 - fetches current user from backend
 - interprets backend response
 - maps it to `AdminAuthStatus`
-- maps backend permission data to `visibleRouteKeys`
-- maps app route registry to `AdminMenuNode[]`
-- passes all of that to `@noob-naive-ui/admin`
+- maps route registry and backend-derived state to a final `MenuOption[]`, including any router-aware link/rendered-label content
+- passes that tree and frontend auth state to `@noob-naive-ui/admin`
 
 `@noob-naive-ui/admin`:
 
-- renders shell, header, nav, login page, theme/lang controls
-- hides/shows routes/menu entries based on frontend-ready inputs
-
+- renders shell, header, direct menu tree, login page, and theme/lang controls
+- does not filter menu visibility, own route selection, or receive router/backend objects
 ### Bad
 
 `@noob-naive-ui/admin`:
@@ -254,7 +232,7 @@ Starter/app code:
 
 The following defaults are now considered decided for Phase 0:
 
-1. `visibleRouteKeys` is the route-visibility contract for Phase 1; no additional route metadata contract is required yet.
+1. The starter provides the final `MenuOption[]`; the runtime has no route-visibility contract or filtering layer.
 2. The runtime may own local persistence of theme/locale/sidebar preferences.
 3. `AdminLoginPage` is packaged by default, but starters/apps may replace it while keeping the same runtime contract.
 

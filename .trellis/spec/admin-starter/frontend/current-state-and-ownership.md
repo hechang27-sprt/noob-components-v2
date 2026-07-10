@@ -8,7 +8,7 @@ Until the starter is scaffolded, do not document or rely on an app entrypoint, c
 
 ## Ratified ownership for Tasks 8–9
 
-When implementation begins, the starter owns app assembly and all backend-specific concerns: transport/API clients, query/server state, login/session/logout behavior, mapping backend information into frontend-ready inputs, route registry, domain pages, and derivation of `AdminMenuTree` and `visibleRouteKeys`. Sources: `docs/agent/admin-runtime-contract.md` and `tasks/plan.md` Tasks 8–9.
+When implementation begins, the starter owns app assembly and all backend-specific concerns: transport/API clients, query/server state, login/session/logout behavior, mapping backend information into frontend-ready inputs, route registry, domain pages, and construction of the final `MenuOption[]` (visibility, hierarchy, and router-aware link/rendered-label content). Sources: `docs/agent/admin-runtime-contract.md` and `tasks/plan.md` Tasks 8–9.
 
 The starter consumes `@noob-naive-ui/ui` and `@noob-naive-ui/admin` through their public exports. It uses Naive UI directly for commodity controls and app-level provider assembly; `@noob-naive-ui/ui` is reserved for value-add components and theme helpers.
 
@@ -23,4 +23,4 @@ Do not:
 
 ## Verification after scaffolding
 
-Tasks 8–9 require package-local `build` and `typecheck` commands, a dev-server smoke test, and browser verification of login, shell rendering, navigation visibility, and preference persistence. Add concrete local patterns to this spec only after those tasks land.
+Tasks 8–9 require package-local `build` and `typecheck` commands, a dev-server smoke test, and browser verification of login, shell rendering, the starter-built menu, open tabs, and preference persistence. Add concrete local patterns to this spec only after those tasks land.

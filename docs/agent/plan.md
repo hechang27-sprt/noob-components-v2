@@ -11,7 +11,7 @@ Phase 0 planning converts the ratified architecture docs under `docs/agent` into
 - Treat Naive UI as a direct peer dependency for both library consumers and the starter. Rationale: wrapper parity is explicitly rejected; the proof slice should show direct `naive-ui` usage at app level and narrow value-add exports from `@noob-naive-ui/ui`.
 - Keep `@noob-naive-ui/admin` frontend-only. Rationale: the starter, not the runtime, owns backend integration, route registry, auth/session derivation, and visibility mapping.
 - Make the first vertical slice the admin shell flow, not a generic UI component port. Rationale: the product target is admin-app builders, and the shell/runtime seam is the highest-risk boundary to prove early.
-- Use `MenuOption[]` plus `visibleRouteKeys` exactly as documented in `docs/agent/admin-runtime-contract.md`. Rationale: the contract is already ratified; Phase 1 should validate it, not redesign it.
+- Have the starter construct the final `MenuOption[]` and let the admin shell render it unchanged. Rationale: visibility and router behavior belong with starter route derivation; the runtime should not own a second navigation contract.
 - Prefer starter-owned Tailwind 4 setup in the first slice. Rationale: Tailwind consumption is app-shell assembly; no package helper is justified until multiple starters need the same setup. [INFERENCE]
 
 ## Dependency Graph
@@ -27,7 +27,7 @@ Workspace root config
   │     ├── shell preferences store
   │     ├── login page
   │     ├── shell layout primitives
-  │     └── navigation visibility composition
+  │     └── starter-built sidebar menu composition
   │
   ├── @noob-naive-ui/ui value-add bridge layer
   │     └── Naive provider/theme helper used by starter/runtime
@@ -35,7 +35,7 @@ Workspace root config
   └── starter app wiring
         ├── app shell assembly
         ├── frontend-ready auth status derivation
-        ├── menu tree + visibleRouteKeys derivation
+        ├── final MenuOption[] derivation
         └── end-to-end shell proof
 ```
 
@@ -59,14 +59,14 @@ Implementation order follows this graph. The starter cannot validate the runtime
 
 - [ ] Task 4: Implement runtime-owned shell preferences store with local persistence.
 - [ ] Task 5: Implement `AdminLoginPage` and auth-shell primitives.
-- [ ] Task 6: Implement `AdminShell` layout primitives and runtime controls.
-- [ ] Task 7: Implement navigation visibility composition using `MenuOption[]` and `visibleRouteKeys`.
+- [ ] Task 6: Implement `AdminShell` layout, runtime controls, open tabs, and starter-built sidebar menu.
+- [ ] Task 7: Merged into Task 6; no runtime visibility composition remains.
 
 ### Checkpoint: Runtime slice
 
 - [ ] Runtime package builds cleanly.
-- [ ] Package-level runtime tests or demo harnesses cover preferences, login shell, and navigation visibility without depending on the starter app.
-- [ ] No runtime code depends on backend DTOs, transport clients, or business pages.
+- [ ] Package-level runtime tests or demo harnesses cover preferences, login shell, direct starter-menu composition, and open tabs without depending on the starter app.
+- [ ] No runtime code depends on backend DTOs, transport clients, routers, or business pages.
 
 ### Phase 3: Starter proof and DX validation
 
@@ -181,7 +181,7 @@ Create the `@noob-naive-ui/admin` package skeleton and lock in the frontend-only
 
 - Add `packages/admin` package manifest and package-local build/type config.
 - Create entry modules for runtime types and component exports.
-- Implement and export the ratified contract types: `AdminAuthStatus`, `AdminLoginValues`, `AdminAuthActions`, `AdminRouteKey`, `AdminRouteVisibility`, `AdminMenuTree`, `AdminShellPreferences`.
+- Implement and export the ratified contract types: `AdminAuthStatus`, `AdminLoginValues`, `AdminAuthActions`, `AdminRouteKey`, `AdminMenuTree`, `AdminShellPreferences`; remove obsolete `AdminRouteVisibility` after a caller sweep.
 - Keep placeholder runtime components minimal but typed if needed for package compilation.
 
 **Acceptance criteria:**
@@ -287,88 +287,56 @@ Build the packaged but replaceable login page and minimal auth-shell primitives 
 
 **Estimated scope:** Medium (3-5 files)
 
-## Task 6: Implement `AdminShell` layout primitives and runtime controls
+## Task 6: Implement `AdminShell` layout, runtime controls, open tabs, and starter-built sidebar menu
 
 **Description:**
-Build the shell frame itself: header, sidebar container, content slot, theme controls, language controls, and auth-state-aware top-level layout switching. This task stops short of route visibility filtering logic so the file scope stays narrow and the visibility seam stays explicit.
+Build the complete shell frame: `ProLayout` page frame, header/runtime controls, direct starter-built `MenuOption[]` sidebar composition, browser-like open tabs, content slot, and auth-state layout switching. The starter owns all router and menu derivation behavior; the runtime only renders its final Naive menu tree.
 
 **Inputs:**
 
 - Task 4 shell preferences store
 - Task 5 login/auth primitives
-- Task 3 exported shell-facing types
+- Direct Naive `MenuOption[]` from the starter
 
 **Scope / steps:**
 
-- Implement `AdminShell` frame and related shell-control components.
-- Wire theme, locale, font size, and sidebar collapsed state into the shell UI.
-- Support anonymous/loading/authenticated shell state transitions at the layout level.
-- Keep the content area slot-based and starter-owned.
+- Add `pro-naive-ui` as an external Vue/Naive-compatible peer and use `ProLayout` in a defined-height authenticated wrapper.
+- Implement loading/anonymous/authenticated branches and retain the default slot solely for starter `<router-view />` content.
+- Render the supplied `MenuOption[]` unchanged through direct `NMenu` composition in ProLayout's sidebar. Do not filter/normalize it, add a navigation callback, or import `vue-router`.
+- Implement AdminShell-owned local tabs in ProLayout's `tabbar` slot through the frontend-only async tab controller.
+- Wire theme, locale, font size, and sidebar collapsed state into the shell UI through the existing preferences store.
+- Remove only obsolete `AdminRouteVisibility` after an LSP caller sweep; retain existing `AdminMenuTree` and `AdminRouteKey` aliases.
 
 **Acceptance criteria:**
 
-- [ ] `AdminShell` can render loading, anonymous, and authenticated top-level layouts without backend awareness.
-- [ ] Shell controls read/write the runtime preferences store.
-- [ ] Route content remains starter-owned through slots/props; no packaged business pages are introduced.
+- [ ] `AdminShell` renders loading, anonymous, and authenticated layouts without backend or router awareness.
+- [ ] The authenticated branch has a defined-height `ProLayout`; its sidebar receives exactly the starter-supplied menu tree and its default slot remains starter-owned.
+- [ ] Shell controls read/write the runtime preferences store, and AdminShell-owned tab behavior stays synchronized through the tab controller.
+- [ ] No runtime visibility/filtering/navigation contract, route registry, backend DTO, or router import is introduced.
 
 **Verification:**
 
+- [ ] Command succeeds: `pnpm --filter @noob-naive-ui/admin test -- admin-shell`
 - [ ] Command succeeds: `pnpm --filter @noob-naive-ui/admin build`
 - [ ] Command succeeds: `pnpm --filter @noob-naive-ui/admin typecheck`
-- [ ] Manual check: a package-level demo harness or targeted component test can switch between loading, login, and authenticated shell layouts while theme/locale/sidebar controls remain functional.
+- [ ] Manual check: targeted component tests cover auth layouts, direct menu composition, default-slot isolation, open tabs, controls, and router-free boundary.
 
 **Dependencies:** Tasks 4 and 5
 
 **Files likely touched:**
 
-- `packages/admin/src/components/AdminShell.vue`
-- `packages/admin/src/components/AdminThemeControls.vue`
-- `packages/admin/src/components/AdminLanguageControls.vue`
-- `packages/admin/src/components/AdminHeader.vue` [INFERENCE]
+- `packages/admin/package.json`
+- `packages/admin/vite.config.ts`
+- `packages/admin/src/components/admin-shell.tsx`
+- `packages/admin/src/runtime-contract.ts`
 - `packages/admin/src/index.ts`
+- `packages/admin/tests/admin-shell.test.ts`
 
-**Estimated scope:** Medium (3-5 files)
+**Estimated scope:** Large (5-6 files)
 
-## Task 7: Implement navigation visibility composition using `MenuOption[]` and `visibleRouteKeys`
+## Task 7: Merged into Task 6
 
-**Description:**
-Add the navigation-specific runtime layer separately from the general shell frame. This task owns menu rendering, `MenuOption.key` matching, and visible-route filtering, but does not take over route registry ownership from the starter.
-
-**Inputs:**
-
-- Task 3 contract exports
-- Task 6 shell frame
-
-**Scope / steps:**
-
-- Implement `AdminNavigation` or equivalent menu component.
-- Filter or derive renderable menu entries from `MenuOption[]` and `visibleRouteKeys`.
-- Connect navigation selection/output into `AdminShell` without taking ownership of route definitions.
-- Preserve the invariant that `MenuOption.key` is the canonical frontend visibility key.
-
-**Acceptance criteria:**
-
-- [ ] Navigation rendering is driven by `AdminMenuTree` and `AdminRouteVisibility` only.
-- [ ] Hidden route keys do not render in shell navigation.
-- [ ] Runtime still does not own route registry, backend menu DTOs, or business pages.
-
-**Verification:**
-
-- [ ] Command succeeds: `pnpm --filter @noob-naive-ui/admin build`
-- [ ] Command succeeds: `pnpm --filter @noob-naive-ui/admin typecheck`
-- [ ] Manual check: a package-level demo harness or targeted component test hides entries whose keys are missing from `visibleRouteKeys` and shows entries whose keys are present.
-
-**Dependencies:** Task 6
-
-**Files likely touched:**
-
-- `packages/admin/src/components/AdminNavigation.vue`
-- `packages/admin/src/runtime/navigation.ts` [INFERENCE]
-- `packages/admin/src/components/AdminShell.vue`
-- `packages/admin/src/index.ts`
-- `packages/admin/tests/*` [INFERENCE]
-
-**Estimated scope:** Medium (3-5 files)
+The sidebar is part of the `ProLayout` shell frame. The original standalone navigation-visibility work is removed: the starter builds and supplies the final `MenuOption[]`, so `@noob-naive-ui/admin` neither filters visibility nor owns a navigation controller.
 
 ## Task 8: Scaffold the starter app shell and direct Naive/Tailwind assembly
 
@@ -414,23 +382,23 @@ Create the starter application skeleton and prove app-level assembly concerns st
 ## Task 9: Wire starter-owned auth/menu/route derivation into the runtime proof flow
 
 **Description:**
-Finish the starter proof by deriving frontend-ready auth status, menu tree, and `visibleRouteKeys` inside starter code and passing them into `@noob-naive-ui/admin`. This task proves the boundary that backend-shaped concerns stay outside the runtime even when the starter uses local/mock data first.
+Finish the starter proof by deriving frontend-ready auth status and the final `MenuOption[]` inside starter code, then passing them into `@noob-naive-ui/admin`. This proves backend-shaped concerns and router behavior stay outside the runtime even when the starter uses local/mock data first.
 
 **Inputs:**
 
-- Tasks 4-8 outputs
+- Tasks 4–8 outputs
 - `docs/agent/admin-runtime-contract.md`
 
 **Scope / steps:**
 
 - Add starter-owned auth state and login/logout callbacks.
-- Define starter routes/content and derive `AdminMenuTree` plus `visibleRouteKeys` from them.
-- Mount `AdminShell` with packaged login page and authenticated content route.
+- Define starter routes/content and build the final `MenuOption[]`, including visibility and router-aware link/rendered-label content.
+- Mount `AdminShell` with packaged login page, starter-built menu, and authenticated content route.
 - Keep all backend-shaped/mock derivation local to starter code.
 
 **Acceptance criteria:**
 
-- [ ] Starter, not `@noob-naive-ui/admin`, owns route registry and derives frontend-ready auth/menu/visibility inputs.
+- [ ] Starter, not `@noob-naive-ui/admin`, owns route registry, final menu construction, and router behavior.
 - [ ] Running the starter demonstrates the packaged login page, authenticated shell, and at least one visible content route.
 - [ ] Starter uses direct Naive UI components in app code alongside runtime package components.
 
@@ -438,9 +406,9 @@ Finish the starter proof by deriving frontend-ready auth status, menu tree, and 
 
 - [ ] Command succeeds: `pnpm --filter admin-starter build` or the actual starter package name chosen in implementation.
 - [ ] Command succeeds: `pnpm --filter admin-starter dev` smoke start, then browser/manual verification. [INFERENCE]
-- [ ] Manual check: starter can sign in through the packaged login page, render the authenticated shell, and show/hide menu entries by changing `visibleRouteKeys`.
+- [ ] Manual check: starter can sign in through the packaged login page, render the authenticated shell, and update its supplied menu tree from starter-owned state.
 
-**Dependencies:** Tasks 4, 5, 6, 7, 8
+**Dependencies:** Tasks 4, 5, 6, 8
 
 **Files likely touched:**
 
@@ -499,7 +467,7 @@ Perform the first integrated verification pass after the proof slice works. This
 - After Task 1 settles workspace conventions, Task 2 (`@noob-naive-ui/ui` entry) and Task 3 (`@noob-naive-ui/admin` API surface/types) can proceed in parallel if both obey the ratified contracts.
 - After Task 3 lands the admin contract surface, Task 4 (preferences store) and Task 5 (login page) can proceed in parallel.
 - Task 6 should stay sequential after Tasks 4 and 5 because it integrates both runtime state and auth-shell primitives.
-- Task 7 should stay sequential after Task 6 because it composes visibility logic into the shell frame.
+- Task 7 is merged into Task 6; do not create a standalone runtime visibility layer.
 - Task 8 can begin once Tasks 1-3 settle package surfaces.
 - Task 9 should stay sequential after Tasks 4-8 because it proves the integrated runtime/starter seam.
 - Task 10 stays last.
@@ -509,10 +477,10 @@ Perform the first integrated verification pass after the proof slice works. This
 | Risk                                                                              | Impact | Mitigation                                                                                                                                |
 | --------------------------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | Shared code pressure appears immediately between `ui`, `admin`, and starter       | Medium | Start duplicated but local; extract only after two concrete callsites prove the seam.                                                     |
-| Runtime contract is still too vague for starter wiring                            | High   | Treat `AdminAuthStatus`, `AdminAuthActions`, `AdminRouteVisibility`, and `AdminMenuTree` as compile-time package exports early in Task 3. |
+| Runtime contract is still too vague for starter wiring                            | High   | Treat `AdminAuthStatus`, `AdminAuthActions`, and direct starter-built `MenuOption[]` as the compile-time shell boundary; remove `AdminRouteVisibility`. |
 | Naive UI provider/theming responsibilities get split awkwardly across packages    | Medium | Keep the provider bridge minimal in `@noob-naive-ui/ui`; let the starter own app assembly and prove a single obvious setup path.          |
-| Shell runtime accidentally absorbs backend concerns during starter implementation | High   | Put all backend-shaped derivation in the starter from day one; reject any runtime type that mentions DTOs, sessions, or transport.        |
-| Task sizing drifts beyond medium during shell/starter work                        | Medium | Split shell frame from navigation visibility and split starter scaffolding from starter-owned derivation, as above.                       |
+| Shell runtime accidentally absorbs backend concerns during starter implementation | High   | Put all backend-shaped derivation and menu construction in the starter from day one; reject any runtime type that mentions DTOs, sessions, transport, or router state.        |
+| Task sizing drifts beyond medium during shell/starter work                        | Medium | Merge the sidebar into the shell frame; keep menu derivation local to the starter.                       |
 | Verification commands drift from actual scripts created in Task 1                 | Low    | Normalize script names in Task 1 and update this plan only if implementation requires a better root command contract.                     |
 
 ## Open Questions

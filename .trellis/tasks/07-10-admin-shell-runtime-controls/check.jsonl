@@ -1,0 +1,7 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/admin/frontend/index.md", "reason": "Admin quality gate"}
+{"file": ".trellis/spec/admin/frontend/runtime-contract.md", "reason": "Boundary review criteria"}
+{"file": ".trellis/spec/admin/frontend/shell-preferences.md", "reason": "Store behavior review criteria"}
+{"file": ".trellis/spec/admin/frontend/tsx-components-and-tests.md", "reason": "Component and test review criteria"}
+{"file": ".trellis/tasks/07-10-admin-shell-runtime-controls/research/existing-admin-contracts-and-tests.md", "reason": "Existing test-pattern evidence"}
+{"file": ".trellis/tasks/07-10-admin-shell-runtime-controls/research/pro-layout-integration.md", "reason": "ProLayout dependency and router-free boundary"}

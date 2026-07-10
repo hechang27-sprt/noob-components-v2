@@ -6,7 +6,7 @@ Use this guide when a change crosses package, storage/runtime, or application/ru
 
 | Boundary                                    | Owner                                     | Contract                                                                                                                     |
 | ------------------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Future starter/app → `@noob-naive-ui/admin` | Starter will derive frontend-ready values | `AdminAuthStatus`, `AdminAuthActions`, `AdminMenuTree`, `AdminRouteVisibility` from `packages/admin/src/runtime-contract.ts` |
+| Future starter/app → `@noob-naive-ui/admin` | Starter will derive frontend-ready values | `AdminAuthStatus`, `AdminAuthActions`, direct `MenuOption[]`, and optional shell tab controller |
 | Browser storage → admin runtime             | Runtime parsing helper                    | `packages/admin/src/runtime/shell-preferences.ts` normalizes `unknown` with Zod before Pinia sees it                         |
 | Admin runtime → component                   | Component props and callbacks             | `AdminLoginPageProps` in `packages/admin/src/components/admin-login-page.tsx`                                                |
 | Future app → `@noob-naive-ui/ui`            | App will consume a narrow library API     | `NoobNaiveThemeBridge` from `packages/ui/src/theme/naive.ts`                                                                 |
@@ -17,7 +17,7 @@ The starter, shell, and navigation renderer are not scaffolded yet. Their owners
 
 `@noob-naive-ui/admin` already defines the frontend-ready contract but currently implements only the login page and shell-preferences state. Tasks 6–9 must keep backend DTOs, sessions, permission payloads, transport clients, and route registries in the starter/app. The shared runtime will consume mapped frontend values.
 
-For planned navigation, the starter creates `MenuOption[]` and `visibleRouteKeys`; the runtime will use `MenuOption.key` as the canonical frontend visibility key. Avoid adding a second backend-derived key or parallel menu-node contract.
+For planned navigation, the starter creates the final `MenuOption[]`, including visibility and router-aware label/link content. The runtime renders the tree unchanged; do not add route-key matching, `visibleRouteKeys`, a second backend-derived key, or a parallel menu-node contract.
 
 ## Storage/state contract
 

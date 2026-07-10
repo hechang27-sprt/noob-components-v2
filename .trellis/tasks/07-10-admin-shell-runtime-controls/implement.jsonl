@@ -1,0 +1,7 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/admin/frontend/index.md", "reason": "Admin package pre-development and quality checks"}
+{"file": ".trellis/spec/admin/frontend/runtime-contract.md", "reason": "Frontend-only auth and public API boundary"}
+{"file": ".trellis/spec/admin/frontend/shell-preferences.md", "reason": "Pinia persistence and normalization boundary"}
+{"file": ".trellis/spec/admin/frontend/tsx-components-and-tests.md", "reason": "TSX, accessibility, and DOM-test conventions"}
+{"file": ".trellis/tasks/07-10-admin-shell-runtime-controls/research/task6-contract-and-boundary.md", "reason": "Task 6 scope and ownership evidence"}
+{"file": ".trellis/tasks/07-10-admin-shell-runtime-controls/research/pro-layout-integration.md", "reason": "Official ProLayout browser and source findings"}

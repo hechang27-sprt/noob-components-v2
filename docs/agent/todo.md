@@ -42,24 +42,22 @@
   - [x] Verify: `pnpm --filter @noob-naive-ui/admin build`
   - [x] Verify: targeted login component test. [INFERENCE]
   - [x] Manual verify: package-level demo harness or targeted component test shows and submits packaged login page.
-- [ ] Task 6: Implement `AdminShell` layout primitives and runtime controls.
-  - [ ] Build shell frame, top-level auth-state layout switching, and starter-owned content slot.
-  - [ ] Build theme/language/sidebar controls backed by the runtime preferences store.
+- [ ] Task 6: Implement `AdminShell` layout, runtime controls, open tabs, and starter-built sidebar menu.
+  - [ ] Build loading/login/authenticated switching; use `ProLayout` as the authenticated frame with a defined page-height wrapper.
+  - [ ] Keep the default slot router-free and starter-owned; it is where the starter places `<router-view />`. `@noob-naive-ui/admin` must not import or depend on `vue-router`.
+  - [ ] Render the starter-supplied `MenuOption[]` unchanged in ProLayout's internal sidebar. The starter owns visibility, hierarchy, and router-aware label/link content; admin has no navigation/visibility controller or filtering logic.
+  - [ ] Implement browser-like open-tab state/UI inside `AdminShell` through ProLayout's internal `tabbar` slot; expose no `tabbar` slot and use a frontend-only tab controller for starter navigation callbacks.
+  - [ ] Build theme/language/sidebar controls backed by the runtime preferences store and ProLayout's collapsed interface.
   - [ ] Verify: `pnpm --filter @noob-naive-ui/admin build`
   - [ ] Verify: `pnpm --filter @noob-naive-ui/admin typecheck`
-  - [ ] Manual verify: package-level demo harness or targeted component test switches between loading, login, and authenticated shell layouts.
-- [ ] Task 7: Implement navigation visibility composition using `MenuOption[]` and `visibleRouteKeys`.
-  - [ ] Build `AdminNavigation` or equivalent menu renderer.
-  - [ ] Hide/show entries using `MenuOption.key` matched against `visibleRouteKeys`.
-  - [ ] Keep route registry ownership in the starter.
-  - [ ] Verify: `pnpm --filter @noob-naive-ui/admin build`
-  - [ ] Verify: `pnpm --filter @noob-naive-ui/admin typecheck`
-  - [ ] Manual verify: package-level demo harness or targeted component test hides route keys missing from rendered navigation.
+  - [ ] Manual verify: targeted component test covers all auth layouts, unchanged sidebar-menu composition, default-slot isolation, open/activate/close tab behavior, tab cleanup across auth/controller transitions, router-free boundary, ProLayout sizing, and preference controls.
+
+> Task 7 is merged into Task 6. The runtime no longer composes navigation visibility; the starter supplies its final `MenuOption[]` tree directly.
 
 ## Checkpoint: Runtime slice
 
 - [ ] Runtime package builds cleanly.
-- [ ] Package-level runtime tests or demo harnesses cover preferences, login shell, and navigation visibility.
+- [ ] Package-level runtime tests or demo harnesses cover preferences, login shell, direct starter-menu composition, and open tabs.
 - [ ] No runtime code depends on backend DTOs, transport clients, or business pages.
 
 ## Phase 3: Starter proof and DX validation
@@ -73,11 +71,11 @@
   - [ ] Manual verify: starter renders a basic app frame with Naive provider and Tailwind styles active.
 - [ ] Task 9: Wire starter-owned auth/menu/route derivation into the runtime proof flow.
   - [ ] Add starter-owned auth state and login/logout callbacks.
-  - [ ] Derive `AdminMenuTree` and `visibleRouteKeys` from starter route/navigation definitions.
-  - [ ] Mount `AdminShell` with packaged login page and one authenticated content route.
+  - [ ] Build the final `MenuOption[]` directly from starter route/navigation definitions, including any visibility and router-aware link/label behavior.
+  - [ ] Mount `AdminShell` with packaged login page, starter-built menu, and one authenticated content route.
   - [ ] Verify: `pnpm --filter admin-starter build` or chosen starter package name.
   - [ ] Verify: starter dev smoke run plus browser/manual checks. [INFERENCE]
-  - [ ] Manual verify: starter signs in, renders authenticated shell, and changes menu visibility by `visibleRouteKeys`.
+  - [ ] Manual verify: starter signs in, renders authenticated shell, and updates its supplied menu tree when its own navigation state changes.
 - [ ] Task 10: Validate end-to-end proof, docs alignment, and remaining boundary notes.
   - [ ] Run final workspace verification from repo root.
   - [ ] Compare implementation against runtime-contract and boundary-map docs.
@@ -85,7 +83,7 @@
   - [ ] Verify: `pnpm build`
   - [ ] Verify: `pnpm typecheck`
   - [ ] Verify: `pnpm test` or the targeted introduced test set. [INFERENCE]
-  - [ ] Manual verify: browser smoke confirms login flow, shell rendering, menu visibility, and preference persistence.
+- [ ] Manual verify: browser smoke confirms login flow, shell rendering, starter-built menu, open tabs, and preference persistence.
 
 ## Checkpoint: Complete
 

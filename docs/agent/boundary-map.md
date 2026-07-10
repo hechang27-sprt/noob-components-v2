@@ -115,6 +115,6 @@ Document the boundary explicitly:
 
 - **Use Naive UI directly** for commodity controls and layout primitives.
 - **Use `@noob-naive-ui/ui`** for value-add composites, hooks, token/theme bridge helpers, and specialized widgets.
-- **Use `@noob-naive-ui/admin`** for shell runtime, login/auth UI, frontend-ready menu/navigation data, route-visibility application, and shell-level state — not for packaged business/admin operation pages.
+- **Use `@noob-naive-ui/admin`** for shell runtime, login/auth UI, direct starter-built menu composition, open tabs, and shell-level state — not for menu visibility derivation, router ownership, or packaged business/admin operation pages.
 
 If that boundary is not written down, teams will recreate ambiguity around whether to use a direct Naive component or a library wrapper.

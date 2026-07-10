@@ -15,7 +15,7 @@ Read the code-reuse guide before creating an internal shared package, a second p
 
 Read the cross-layer guide before changing any of these contracts:
 
-- `AdminAuthStatus`, `AdminAuthActions`, `AdminMenuTree`, or `AdminRouteVisibility`;
+- `AdminAuthStatus`, `AdminAuthActions`, or `AdminMenuTree`;
 - shell-preferences schema, storage adapter, or persistent fields;
 - starter-owned auth, route, or navigation derivation;
 - the Naive theme bridge consumed by an application.

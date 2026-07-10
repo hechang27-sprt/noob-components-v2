@@ -2,11 +2,11 @@
 
 ## Package boundary
 
-`packages/admin/src/runtime-contract.ts` is the contract boundary. It models only rendering-relevant frontend information:
+`packages/admin/src/runtime-contract.ts` is the contract boundary. It models only rendering-relevant frontend information.
 
 - `AdminAuthStatus` is a discriminated loading/anonymous/authenticated union, not a backend user or session.
 - `AdminAuthActions` receives frontend form values through callbacks.
-- `AdminRouteVisibility` exposes `ReadonlySet<AdminRouteKey>` and `AdminMenuTree` is Naive UI `MenuOption[]`.
+- `AdminMenuTree` is Naive UI `MenuOption[]`; it remains an existing public alias, while `AdminShell` accepts direct starter-built `MenuOption[]` without a visibility contract.
 - `AdminShellPreferences` contains frontend-local shell settings.
 
 Keep additions frontend-ready and minimal. The public barrel, `packages/admin/src/index.ts`, exports types, the preferences store, and `AdminLoginPage`; add exports there intentionally rather than reaching into internals.
@@ -15,7 +15,7 @@ Keep additions frontend-ready and minimal. The public barrel, `packages/admin/sr
 
 The shared runtime must not import or define backend routes, request/response DTOs, transport clients, session/user models, permission payloads, TanStack Query ownership, or packaged business CRUD pages. `docs/agent/admin-runtime-contract.md` assigns those responsibilities to the starter/app.
 
-The route-visibility and menu types establish the ratified seam for later Tasks 6–9; no shell or navigation renderer exists yet. When those tasks are implemented, the starter will derive `AdminAuthStatus`, `AdminMenuTree`, and `visibleRouteKeys`, while the runtime will consume those frontend-ready values. `MenuOption.key` is the canonical frontend route/menu visibility key; do not replace it with backend menu identifiers.
+The starter derives the final `MenuOption[]`, including visibility, hierarchy, and router-aware link/rendered-label content. The runtime renders it unchanged with direct Naive composition; it must not filter visibility, normalize menu keys, own route selection, or receive a router. `AdminRouteVisibility` is obsolete and must be removed only after callers are migrated or verified absent.
 
 ## Dependencies and build
 
