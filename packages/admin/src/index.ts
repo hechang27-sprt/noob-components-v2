@@ -24,4 +24,5 @@ export {
   type AdminShellProps,
   type AdminShellTab,
   type AdminShellTabController,
+  type AdminShellTabInput,
 } from "./components/admin-shell";

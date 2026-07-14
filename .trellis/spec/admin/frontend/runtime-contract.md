@@ -20,14 +20,20 @@ Keep additions frontend-ready and minimal. The public barrel, `packages/admin/sr
 ### 2. Signatures
 
 ```ts
-export type AdminShellTab = {
+export type AdminShellTabInput = {
   key: string;
   label: string;
   closable?: boolean;
 };
 
+export type AdminShellTab = AdminShellTabInput & {
+  index: number;
+  activationPendingVersion?: number;
+  closePendingVersion?: number;
+};
+
 export type AdminShellTabController = {
-  current: AdminShellTab | null;
+  current: AdminShellTabInput | null;
   activate: (key: string) => Promise<void>;
   close: (closedKey: string, suggestedNextKey: string | null) => Promise<void>;
 };
@@ -45,7 +51,7 @@ export type AdminShellProps = {
 - Loading and anonymous states render no layout/sidebar/tabbar/default-slot content; anonymous delegates login UX to `AdminLoginPage` with the supplied actions.
 - The authenticated state mounts `ProLayout` in a definite-height `height: 100dvh` container, binds its collapsed state to `useAdminShellPreferencesStore`, and forwards only the default slot as content.
 - `menuOptions` is starter-owned opaque input. Pass the exact array reference directly to internal `NMenu`; do not inspect, clone, filter, re-key, or handle selection.
-- `tabController.current` is authoritative for highlighting. The shell awaits `activate` and `close`; it updates membership only after a resolved close and invalidates pending actions when authentication or the controller changes.
+- `tabController.current` is an authoritative host descriptor, while `AdminShellTab` is shell-local state carrying visible-order index and per-operation ownership. The shell awaits `activate` and `close`; it updates membership only after a resolved close and invalidates pending actions when authentication or the controller changes.
 - Theme, font size, locale, and sidebar controls call the existing preferences-store actions. Locale options remain runtime-only; controls never parse or persist storage.
 
 ### 4. Validation and error matrix
@@ -66,7 +72,7 @@ export type AdminShellProps = {
 
 ### 6. Tests required
 
-`packages/admin/tests/admin-shell.test.ts` must observably cover every auth branch, default-slot isolation, defined-height `ProLayout`, unchanged menu composition and empty-menu absence, store-backed controls, tab deduplication/presentation updates, async success/failure/pending behavior, and auth/controller cleanup.
+`packages/admin/tests/admin-shell.test.ts` must observably cover every auth branch, default-slot isolation, defined-height `ProLayout`, unchanged menu composition and empty-menu absence, store-backed controls, host-descriptor versus shell-state separation, visible-order updates, async success/failure/pending behavior, and auth/controller cleanup.
 
 ### 7. Wrong vs correct
 

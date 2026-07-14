@@ -3,6 +3,7 @@ import { ProLayout } from "pro-naive-ui";
 import {
   defineComponent,
   onBeforeUnmount,
+  reactive,
   ref,
   watch,
   type PropType,
@@ -18,8 +19,8 @@ import type {
 } from "../runtime-contract";
 import { useAdminShellPreferencesStore } from "../stores/shell-preferences";
 
-/** Describes one frontend-ready page that the starter reports as open. */
-export type AdminShellTab = {
+/** Describes host-owned presentation for one router-neutral tab. */
+export type AdminShellTabInput = {
   /** Identifies the tab and must stay stable across host updates. */
   key: string;
   /** Supplies the user-visible page title without exposing route metadata. */
@@ -28,10 +29,20 @@ export type AdminShellTab = {
   closable?: boolean;
 };
 
+/** Stores shell-local ordering and async ownership for an open tab. */
+export type AdminShellTab = AdminShellTabInput & {
+  /** Records the tab's current zero-based position in the visible tab order. */
+  index: number;
+  /** Owns the current activation request for this tab's session, if any. */
+  activationPendingVersion?: number;
+  /** Owns the current close request for this tab's session, if any. */
+  closePendingVersion?: number;
+};
+
 /** Coordinates router-neutral tab activation and closure with the starter. */
 export type AdminShellTabController = {
-  /** Reports the host-authoritative active tab, or no active tab. */
-  current: AdminShellTab | null;
+  /** Reports the host-authoritative active tab descriptor, or no active tab. */
+  current: AdminShellTabInput | null;
   /**
    * Requests activation without letting the shell optimistically change selection.
    *
@@ -74,16 +85,28 @@ export const AdminShell = defineComponent(
   (props: AdminShellProps, { slots }) => {
     /** Reads and mutates the one existing runtime preference store. */
     const preferences = useAdminShellPreferencesStore();
-    /** Retains only tabs observed from the current authenticated host session. */
-    const tabs = ref<AdminShellTab[]>([]);
+    /** Stores only tabs observed in the current authenticated host session by key. */
+    const tabs = reactive(new Map<string, AdminShellTab>());
+    /** Owns the entire user-visible tab ordering independently of map insertion order. */
+    const visibleTabs = ref<string[]>([]);
     /** Holds a sanitized async-tab feedback message for the current session. */
     const tabError = ref<string>();
     /** Invalidates callback completions that belong to an earlier tab session. */
     const sessionVersion = ref(0);
-    /** Records activation requests currently pending for this session by tab key. */
-    const pendingActivations = ref<Record<string, number>>({});
-    /** Records close requests currently pending for this session by tab key. */
-    const pendingCloses = ref<Record<string, number>>({});
+
+    /**
+     * Synchronizes each retained tab's index with the sole visible-order source.
+     *
+     * @returns Nothing after writing each current zero-based visible index.
+     */
+    function reindexTabs(): void {
+      visibleTabs.value.forEach((key, index) => {
+        const tab = tabs.get(key);
+        if (tab) {
+          tab.index = index;
+        }
+      });
+    }
 
     /**
      * Clears all session-local tab state when its auth or controller boundary changes.
@@ -91,35 +114,37 @@ export const AdminShell = defineComponent(
      * @returns Nothing after invalidating in-flight callback completions.
      */
     function clearTabs(): void {
-      tabs.value = [];
+      tabs.clear();
+      visibleTabs.value.length = 0;
       tabError.value = undefined;
       sessionVersion.value += 1;
-      pendingActivations.value = {};
-      pendingCloses.value = {};
     }
 
     /**
-     * Adds or refreshes a host-reported tab without changing active selection.
+     * Adds or refreshes host-owned tab presentation without replacing shell-local state.
      *
      * @param current - The latest host-authoritative tab descriptor, if any.
      * @returns Nothing after synchronizing local membership and presentation.
      */
-    function recordCurrentTab(current: AdminShellTab | null): void {
+    function recordCurrentTab(current: AdminShellTabInput | null): void {
       if (!current) {
         return;
       }
 
-      const existingIndex = tabs.value.findIndex(
-        (tab) => tab.key === current.key,
-      );
-      if (existingIndex === -1) {
-        tabs.value = [...tabs.value, { ...current }];
+      const existing = tabs.get(current.key);
+      if (existing) {
+        existing.label = current.label;
+        existing.closable = current.closable;
         return;
       }
 
-      const nextTabs = [...tabs.value];
-      nextTabs[existingIndex] = { ...nextTabs[existingIndex], ...current };
-      tabs.value = nextTabs;
+      tabs.set(current.key, {
+        key: current.key,
+        label: current.label,
+        closable: current.closable,
+        index: visibleTabs.value.length,
+      });
+      visibleTabs.value.push(current.key);
     }
 
     /**
@@ -131,14 +156,12 @@ export const AdminShell = defineComponent(
     async function activateTab(key: string): Promise<void> {
       const controller = props.tabController;
       const version = sessionVersion.value;
-      if (!controller || pendingActivations.value[key] === version) {
+      const tab = tabs.get(key);
+      if (!controller || !tab || tab.activationPendingVersion === version) {
         return;
       }
 
-      pendingActivations.value = {
-        ...pendingActivations.value,
-        [key]: version,
-      };
+      tab.activationPendingVersion = version;
       tabError.value = undefined;
 
       try {
@@ -146,18 +169,17 @@ export const AdminShell = defineComponent(
       } catch {
         if (
           sessionVersion.value === version &&
-          pendingActivations.value[key] === version
+          tabs.get(key)?.activationPendingVersion === version
         ) {
           tabError.value = "Unable to activate tab.";
         }
       } finally {
+        const currentTab = tabs.get(key);
         if (
           sessionVersion.value === version &&
-          pendingActivations.value[key] === version
+          currentTab?.activationPendingVersion === version
         ) {
-          const nextPending = { ...pendingActivations.value };
-          delete nextPending[key];
-          pendingActivations.value = nextPending;
+          currentTab.activationPendingVersion = undefined;
         }
       }
     }
@@ -165,7 +187,7 @@ export const AdminShell = defineComponent(
     /**
      * Computes the next-key suggestion for a close request without changing host state.
      *
-     * @param index - Current index of the tab requested for closure.
+     * @param index - Current visible-order index of the tab requested for closure.
      * @param tabKey - Stable key of the tab requested for closure.
      * @returns The adjacent or current host key, or null when none is available.
      */
@@ -175,7 +197,9 @@ export const AdminShell = defineComponent(
         return currentKey ?? null;
       }
 
-      return tabs.value[index + 1]?.key ?? tabs.value[index - 1]?.key ?? null;
+      return (
+        visibleTabs.value[index + 1] ?? visibleTabs.value[index - 1] ?? null
+      );
     }
 
     /**
@@ -187,17 +211,19 @@ export const AdminShell = defineComponent(
     async function closeTab(tabKey: string): Promise<void> {
       const controller = props.tabController;
       const version = sessionVersion.value;
-      const index = tabs.value.findIndex((tab) => tab.key === tabKey);
+      const tab = tabs.get(tabKey);
+      const index = visibleTabs.value.indexOf(tabKey);
       if (
         !controller ||
+        !tab ||
         index === -1 ||
-        tabs.value[index].closable === false ||
-        pendingCloses.value[tabKey] === version
+        tab.closable === false ||
+        tab.closePendingVersion === version
       ) {
         return;
       }
 
-      pendingCloses.value = { ...pendingCloses.value, [tabKey]: version };
+      tab.closePendingVersion = version;
       tabError.value = undefined;
       const suggestedNextKey = getSuggestedNextKey(index, tabKey);
 
@@ -205,25 +231,26 @@ export const AdminShell = defineComponent(
         await controller.close(tabKey, suggestedNextKey);
         if (
           sessionVersion.value === version &&
-          pendingCloses.value[tabKey] === version
+          tabs.get(tabKey)?.closePendingVersion === version
         ) {
-          tabs.value = tabs.value.filter((tab) => tab.key !== tabKey);
+          tabs.delete(tabKey);
+          visibleTabs.value.splice(index, 1);
+          reindexTabs();
         }
       } catch {
         if (
           sessionVersion.value === version &&
-          pendingCloses.value[tabKey] === version
+          tabs.get(tabKey)?.closePendingVersion === version
         ) {
           tabError.value = "Unable to close tab.";
         }
       } finally {
+        const currentTab = tabs.get(tabKey);
         if (
           sessionVersion.value === version &&
-          pendingCloses.value[tabKey] === version
+          currentTab?.closePendingVersion === version
         ) {
-          const nextPending = { ...pendingCloses.value };
-          delete nextPending[tabKey];
-          pendingCloses.value = nextPending;
+          currentTab.closePendingVersion = undefined;
         }
       }
     }
@@ -411,29 +438,32 @@ export const AdminShell = defineComponent(
         tabbar: props.tabController
           ? () => (
               <div data-admin-tabs role="tablist" aria-label="Open pages">
-                {tabs.value.map((tab) => (
-                  <div key={tab.key} class="inline-flex items-center">
-                    <button
-                      type="button"
-                      role="tab"
-                      data-admin-tab-key={tab.key}
-                      aria-selected={activeKey === tab.key}
-                      onClick={() => void activateTab(tab.key)}
-                    >
-                      {tab.label}
-                    </button>
-                    {tab.closable !== false ? (
+                {visibleTabs.value.map((key) => {
+                  const tab = tabs.get(key);
+                  return tab ? (
+                    <div key={tab.key} class="inline-flex items-center">
                       <button
                         type="button"
-                        data-admin-tab-close={tab.key}
-                        aria-label={`Close ${tab.label}`}
-                        onClick={() => void closeTab(tab.key)}
+                        role="tab"
+                        data-admin-tab-key={tab.key}
+                        aria-selected={activeKey === tab.key}
+                        onClick={() => void activateTab(tab.key)}
                       >
-                        ×
+                        {tab.label}
                       </button>
-                    ) : null}
-                  </div>
-                ))}
+                      {tab.closable !== false ? (
+                        <button
+                          type="button"
+                          data-admin-tab-close={tab.key}
+                          aria-label={`Close ${tab.label}`}
+                          onClick={() => void closeTab(tab.key)}
+                        >
+                          ×
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null;
+                })}
                 {tabError.value ? (
                   <p role="alert" data-admin-tab-error>
                     {tabError.value}

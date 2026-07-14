@@ -6,7 +6,10 @@ import { createApp, h, nextTick, reactive, type App } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AdminShell } from "../src/components/admin-shell";
-import type { AdminShellTabController } from "../src/components/admin-shell";
+import type {
+  AdminShellTabController,
+  AdminShellTabInput,
+} from "../src/components/admin-shell";
 import type {
   AdminAuthActions,
   AdminAuthStatus,
@@ -236,9 +239,15 @@ describe("AdminShell", () => {
   });
 
   it("keeps host current tab authoritative and awaits tab actions", async () => {
+    const current = {
+      key: "home",
+      label: "Home",
+      closable: false,
+      activationPendingVersion: 1,
+    } as AdminShellTabInput;
     let resolveActivate: (() => void) | undefined;
     const controller: AdminShellTabController = {
-      current: { key: "home", label: "Home", closable: false },
+      current,
       activate: vi.fn(
         () =>
           new Promise<void>((resolve) => {
@@ -313,7 +322,7 @@ describe("AdminShell", () => {
     expect(container.textContent).toContain("Unable to activate tab");
   });
 
-  it("updates tab labels, preserves non-closable tabs, and removes after close", async () => {
+  it("updates host descriptors without retaining stale local fields", async () => {
     const controller = reactive({
       current: {
         key: "home",
@@ -352,14 +361,90 @@ describe("AdminShell", () => {
     ).toContain("Renamed Home");
     expect(target.querySelector('[data-admin-tab-close="home"]')).toBeNull();
 
+    controller.current = { key: "home", label: "Closable Home" };
+    await settle();
+    expect(
+      target.querySelector('[data-admin-tab-close="home"]'),
+    ).not.toBeNull();
+
+    controller.current = { key: "next", label: "Next", closable: true };
+    await settle();
+    controller.current = { key: "third", label: "Third", closable: true };
+    await settle();
     controller.current = { key: "next", label: "Next", closable: true };
     await settle();
     target
       .querySelector<HTMLButtonElement>('[data-admin-tab-close="next"]')!
       .click();
     await settle();
-    expect(controller.close).toHaveBeenCalledWith("next", "home");
-    expect(target.querySelector('[data-admin-tab-key="next"]')).toBeNull();
+    expect(controller.close).toHaveBeenCalledWith("next", "third");
+    expect(
+      [...target.querySelectorAll("[data-admin-tab-key]")].map((tab) =>
+        tab.getAttribute("data-admin-tab-key"),
+      ),
+    ).toEqual(["home", "third"]);
+
+    controller.current = { key: "third", label: "Third", closable: true };
+    await settle();
+    target
+      .querySelector<HTMLButtonElement>('[data-admin-tab-close="third"]')!
+      .click();
+    await settle();
+    expect(controller.close).toHaveBeenLastCalledWith("third", "home");
+  });
+
+  it("retains per-tab pending ownership across host descriptor refreshes", async () => {
+    let resolveActivate: (() => void) | undefined;
+    let resolveClose: (() => void) | undefined;
+    const controller = reactive({
+      current: {
+        key: "home",
+        label: "Home",
+        closable: true,
+      } as AdminShellTabController["current"],
+      activate: vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveActivate = resolve;
+          }),
+      ),
+      close: vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveClose = resolve;
+          }),
+      ),
+    });
+    const container = mountShell(
+      { kind: "authenticated" },
+      createAuthActions(),
+      { tabController: controller },
+    );
+    await settle();
+
+    container
+      .querySelector<HTMLButtonElement>('[data-admin-tab-key="home"]')!
+      .click();
+    controller.current = { key: "home", label: "Updated Home", closable: true };
+    await settle();
+    container
+      .querySelector<HTMLButtonElement>('[data-admin-tab-key="home"]')!
+      .click();
+    expect(controller.activate).toHaveBeenCalledTimes(1);
+
+    container
+      .querySelector<HTMLButtonElement>('[data-admin-tab-close="home"]')!
+      .click();
+    controller.current = { key: "home", label: "Final Home", closable: true };
+    await settle();
+    container
+      .querySelector<HTMLButtonElement>('[data-admin-tab-close="home"]')!
+      .click();
+    expect(controller.close).toHaveBeenCalledTimes(1);
+
+    resolveActivate!();
+    resolveClose!();
+    await settle();
   });
 
   it("removes a tab only after close resolves and retains it on rejection", async () => {
@@ -401,6 +486,7 @@ describe("AdminShell", () => {
 
   it("clears tabs across auth and controller sessions and ignores stale callbacks", async () => {
     let resolveActivate: (() => void) | undefined;
+    let resolveNewActivate: (() => void) | undefined;
     const controller: AdminShellTabController = {
       current: { key: "one", label: "One", closable: true },
       activate: vi.fn(
@@ -443,10 +529,16 @@ describe("AdminShell", () => {
     expect(host.querySelector("[data-admin-tabs]")).toBeNull();
     expect(host.querySelector('[data-slot="transition-content"]')).toBeNull();
     props.authStatus = { kind: "authenticated" };
+    const activate = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveNewActivate = resolve;
+        }),
+    );
     props.tabController = {
       ...controller,
       current: { key: "one", label: "New One" },
-      activate: vi.fn(async () => undefined),
+      activate,
     };
     await settle();
     expect(
@@ -455,7 +547,17 @@ describe("AdminShell", () => {
     expect(
       host.querySelector('[data-admin-tab-key="one"]')?.textContent,
     ).toContain("New One");
+    host
+      .querySelector<HTMLButtonElement>("[data-admin-tab-key='one']")!
+      .click();
+    expect(activate).toHaveBeenCalledTimes(1);
     resolveActivate!();
+    await settle();
+    host
+      .querySelector<HTMLButtonElement>("[data-admin-tab-key='one']")!
+      .click();
+    expect(activate).toHaveBeenCalledTimes(1);
+    resolveNewActivate!();
     await settle();
     expect(
       host.querySelector('[data-admin-tab-key="one"]')?.textContent,
