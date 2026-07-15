@@ -71,3 +71,38 @@ Replaced AdminShell native preference and tab controls with direct NDropdown/NBu
 ### Next Steps
 
 - None - task complete
+
+## Session 3: Establish package-owned Tailwind CSS builds
+
+**Date**: 2026-07-15
+**Task**: Define Tailwind package consumption boundary
+
+### Summary
+
+Established independent UI/admin CSS build artifacts and converted demo-local presentation to Tailwind utilities. UI builds before admin, and admin builds before focused demo commands; library styles omit Preflight and use explicit Tailwind layers.
+
+### Main Changes
+
+- Added UI's public compiled stylesheet and admin aggregation through its workspace dependency.
+- Added clean-checkout prerequisite builds and CSS side-effect metadata.
+- Converted demo-local layout/page CSS to Tailwind with app-local automatic source detection.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9b38e810` | feat: establish package-owned Tailwind CSS builds |
+
+### Testing
+
+- Clean UI → admin → demo builds passed.
+- `pnpm --filter @noob-naive-ui/admin test` — 21 passed.
+- Browser smoke verified login, navigation, tabs, sign out, clean console, and no application API request.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete.
