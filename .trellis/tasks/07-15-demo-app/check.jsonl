@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/admin/frontend/index.md", "reason": "Admin quality checks for consumed public contracts."}
+{"file": ".trellis/spec/admin/frontend/runtime-contract.md", "reason": "Shell behavior and boundary assertions to review."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer verification criteria."}
+{"file": ".trellis/tasks/07-15-demo-app/research/admin-integration.md", "reason": "Expected demo integration behavior."}

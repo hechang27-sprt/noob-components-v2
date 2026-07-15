@@ -29,6 +29,37 @@ importers:
 
   apps/admin-starter: {}
 
+  apps/demo:
+    dependencies:
+      '@noob-naive-ui/admin':
+        specifier: workspace:*
+        version: link:../../packages/admin
+      naive-ui:
+        specifier: ^2.43.1
+        version: 2.44.1(vue@3.5.39(typescript@7.0.2))
+      pinia:
+        specifier: ^3.0.4
+        version: 3.0.4(typescript@7.0.2)(vue@3.5.39(typescript@7.0.2))
+      pro-naive-ui:
+        specifier: ^3.2.3
+        version: 3.2.3(naive-ui@2.44.1(vue@3.5.39(typescript@7.0.2)))(vue@3.5.39(typescript@7.0.2))
+      vue:
+        specifier: ^3.5.0
+        version: 3.5.39(typescript@7.0.2)
+      vue-router:
+        specifier: ^4.5.1
+        version: 4.6.4(vue@3.5.39(typescript@7.0.2))
+    devDependencies:
+      '@vitejs/plugin-vue-jsx':
+        specifier: ^5.1.6
+        version: 5.1.6(vite@8.1.4(@types/node@26.1.0)(jiti@2.7.0))(vue@3.5.39(typescript@7.0.2))
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vite:
+        specifier: ^8.1.3
+        version: 8.1.4(@types/node@26.1.0)(jiti@2.7.0)
+
   packages/admin:
     dependencies:
       naive-ui:
@@ -754,6 +785,9 @@ packages:
   '@vue/compiler-ssr@3.5.39':
     resolution: {integrity: sha512-Ce7/wvwMHai74bdszfXExdazFigYnlF9zgCmEQUcM1j0fOymlouZ7XilTYNo8oUjhlnjYOZbGrcYKuqjz89Ucw==}
 
+  '@vue/devtools-api@6.6.4':
+    resolution: {integrity: sha512-sGhTPMuXqZ1rVOk32RylztWkfXTRhuS7vgAKv0zjqk8gbsHkJ7xfFf+jbySxt7tWObEJwyKaHMikV/WGDiQm8g==}
+
   '@vue/devtools-api@7.7.10':
     resolution: {integrity: sha512-KxtEpUOOpFz/qOGRrAwA36QF7DqIA+FXgCYit9mk9wjbaZt0sXOFz81ElOZtKA4HbWHUdwNjZHBFsFFyp5BZiA==}
 
@@ -1344,6 +1378,11 @@ packages:
     peerDependenciesMeta:
       '@vue/composition-api':
         optional: true
+
+  vue-router@4.6.4:
+    resolution: {integrity: sha512-Hz9q5sa33Yhduglwz6g9skT8OBPii+4bFn88w6J+J4MfEo4KRRpmiNG/hHHkdbRFlLBOqxN8y8gf2Fb0MTUgVg==}
+    peerDependencies:
+      vue: ^3.5.0
 
   vue@3.5.39:
     resolution: {integrity: sha512-xmZCYabFGcirU8r0fTuvl/LICc1OU620rnqepaJDL/a141ZigkG7AyaxQLdqJ02ZRYzWe6YPaDHeQx7MfknQfA==}
@@ -1990,6 +2029,8 @@ snapshots:
       '@vue/compiler-dom': 3.5.39
       '@vue/shared': 3.5.39
 
+  '@vue/devtools-api@6.6.4': {}
+
   '@vue/devtools-api@7.7.10':
     dependencies:
       '@vue/devtools-kit': 7.7.10
@@ -2500,6 +2541,11 @@ snapshots:
 
   vue-demi@0.14.10(vue@3.5.39(typescript@7.0.2)):
     dependencies:
+      vue: 3.5.39(typescript@7.0.2)
+
+  vue-router@4.6.4(vue@3.5.39(typescript@7.0.2)):
+    dependencies:
+      '@vue/devtools-api': 6.6.4
       vue: 3.5.39(typescript@7.0.2)
 
   vue@3.5.39(typescript@7.0.2):

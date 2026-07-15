@@ -1,0 +1,31 @@
+/** Provides a full-height content wrapper for application-owned shell slot content. */
+.demo-content {
+  min-height: 100%;
+}
+
+/** Aligns the application-owned sign-out control with the shell content edge. */
+.demo-signout {
+  display: flex;
+  justify-content: flex-end;
+  padding: 1rem;
+}
+
+/** Provides consistent page spacing for each local demonstration route. */
+.demo-page {
+  padding: 1.5rem;
+}
+
+/** Styles the single semantic heading in each local demonstration page. */
+.demo-page__title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/** Constrains and spaces explanatory route-page copy for comfortable reading. */
+.demo-page__description {
+  max-width: 42rem;
+  margin: 0.75rem 0 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}

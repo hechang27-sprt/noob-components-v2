@@ -1,0 +1,27 @@
+{
+  "name": "demo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "predev": "pnpm --filter @noob-naive-ui/admin build",
+    "dev": "vite",
+    "prebuild": "pnpm --filter @noob-naive-ui/admin build",
+    "build": "vite build",
+    "pretypecheck": "pnpm --filter @noob-naive-ui/admin build",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@noob-naive-ui/admin": "workspace:*",
+    "naive-ui": "^2.43.1",
+    "pinia": "^3.0.4",
+    "pro-naive-ui": "^3.2.3",
+    "vue": "^3.5.0",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue-jsx": "^5.1.6",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.3"
+  }
+}

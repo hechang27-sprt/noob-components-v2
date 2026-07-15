@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/admin/frontend/index.md", "reason": "Admin package frontend conventions and required quality checks."}
+{"file": ".trellis/spec/admin/frontend/runtime-contract.md", "reason": "Public shell and login boundary consumed by the demo."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Application-to-runtime ownership and preference boundary."}
+{"file": ".trellis/tasks/07-15-demo-app/research/admin-integration.md", "reason": "Repository-specific integration findings."}

@@ -2,6 +2,7 @@ packages:
   - packages/ui
   - packages/admin
   - apps/admin-starter
+  - apps/demo
 allowBuilds:
   esbuild: true
   vue-demi: true
