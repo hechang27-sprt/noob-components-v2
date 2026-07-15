@@ -1,4 +1,10 @@
-import { NMenu, type MenuOption } from "naive-ui";
+import {
+  NButton,
+  NDropdown,
+  NMenu,
+  type DropdownOption,
+  type MenuOption,
+} from "naive-ui";
 import { ProLayout } from "pro-naive-ui";
 import {
   defineComponent,
@@ -13,11 +19,23 @@ import { AdminLoginPage } from "./admin-login-page";
 import type {
   AdminAuthActions,
   AdminAuthStatus,
-  AdminFontSize,
   AdminLocaleOption,
-  AdminThemeMode,
 } from "../runtime-contract";
 import { useAdminShellPreferencesStore } from "../stores/shell-preferences";
+
+/** Presents the fixed theme-mode choices without rebuilding dropdown options per render. */
+const themeModeOptions = [
+  { key: "system", label: "System" },
+  { key: "light", label: "Light" },
+  { key: "dark", label: "Dark" },
+] satisfies DropdownOption[];
+
+/** Presents the fixed font-size choices without rebuilding dropdown options per render. */
+const fontSizeOptions = [
+  { key: "small", label: "Small" },
+  { key: "medium", label: "Medium" },
+  { key: "large", label: "Large" },
+] satisfies DropdownOption[];
 
 /** Describes host-owned presentation for one router-neutral tab. */
 export type AdminShellTabInput = {
@@ -259,37 +277,39 @@ export const AdminShell = defineComponent(
     }
 
     /**
-     * Updates the theme preference from the internal select control.
+     * Updates the theme preference from a Naive dropdown option key.
      *
-     * @param event - Select change event carrying a valid theme-mode value.
-     * @returns Nothing after forwarding the value to the preference store.
+     * @param value - Selected dropdown key, which may be a string or number.
+     * @returns Nothing after forwarding a valid theme mode to the preference store.
      */
-    function setThemeMode(event: Event): void {
-      preferences.setThemeMode(
-        (event.target as HTMLSelectElement).value as AdminThemeMode,
-      );
+    function setThemeMode(value: string | number): void {
+      if (value === "system" || value === "light" || value === "dark") {
+        preferences.setThemeMode(value);
+      }
     }
 
     /**
-     * Updates the font-size preference from the internal select control.
+     * Updates the font-size preference from a Naive dropdown option key.
      *
-     * @param event - Select change event carrying a valid font-size value.
-     * @returns Nothing after forwarding the value to the preference store.
+     * @param value - Selected dropdown key, which may be a string or number.
+     * @returns Nothing after forwarding a valid font size to the preference store.
      */
-    function setFontSize(event: Event): void {
-      preferences.setFontSize(
-        (event.target as HTMLSelectElement).value as AdminFontSize,
-      );
+    function setFontSize(value: string | number): void {
+      if (value === "small" || value === "medium" || value === "large") {
+        preferences.setFontSize(value);
+      }
     }
 
     /**
-     * Updates the locale preference from an available runtime locale option.
+     * Updates the locale preference from a Naive dropdown option key.
      *
-     * @param event - Select change event carrying an available locale key.
-     * @returns Nothing after forwarding the value to the preference store.
+     * @param value - Selected dropdown key, which may be a string or number.
+     * @returns Nothing after forwarding a string locale key to the preference store.
      */
-    function setLocale(event: Event): void {
-      preferences.setLocale((event.target as HTMLSelectElement).value);
+    function setLocale(value: string | number): void {
+      if (typeof value === "string") {
+        preferences.setLocale(value);
+      }
     }
 
     /**
@@ -380,51 +400,65 @@ export const AdminShell = defineComponent(
       const localeOptions: AdminLocaleOption[] = preferences.availableLocales;
       const menuOptions = props.menuOptions;
       const userLabel = authStatus.userLabel;
+      const themeModeLabel =
+        themeModeOptions.find(({ key }) => key === preferences.themeMode)
+          ?.label ?? preferences.themeMode;
+      const fontSizeLabel =
+        fontSizeOptions.find(({ key }) => key === preferences.fontSize)?.label ??
+        preferences.fontSize;
+      const localeLabel =
+        localeOptions.find(({ key }) => key === preferences.locale)?.label ??
+        preferences.locale;
       const layoutSlots = {
         "nav-right": () => (
           <div class="flex items-center gap-2" data-admin-controls>
             <span>{userLabel ?? "Signed in"}</span>
-            <label>
-              Theme
-              <select
-                name="theme-mode"
-                value={preferences.themeMode}
-                onChange={setThemeMode}
+            <NDropdown
+              trigger="click"
+              value={preferences.themeMode}
+              options={themeModeOptions}
+              onSelect={setThemeMode}
+            >
+              <NButton
+                attr-type="button"
+                data-admin-control="theme-mode"
+                aria-label={`Theme: ${themeModeLabel}`}
               >
-                <option value="system">System</option>
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-              </select>
-            </label>
-            <label>
-              Font size
-              <select
-                name="font-size"
-                value={preferences.fontSize}
-                onChange={setFontSize}
+                Theme: {themeModeLabel}
+              </NButton>
+            </NDropdown>
+            <NDropdown
+              trigger="click"
+              value={preferences.fontSize}
+              options={fontSizeOptions}
+              onSelect={setFontSize}
+            >
+              <NButton
+                attr-type="button"
+                data-admin-control="font-size"
+                aria-label={`Font size: ${fontSizeLabel}`}
               >
-                <option value="small">Small</option>
-                <option value="medium">Medium</option>
-                <option value="large">Large</option>
-              </select>
-            </label>
-            <label>
-              Language
-              <select
-                name="locale"
-                value={preferences.locale}
+                Font size: {fontSizeLabel}
+              </NButton>
+            </NDropdown>
+            <NDropdown
+              trigger="click"
+              value={preferences.locale}
+              options={localeOptions}
+              disabled={localeOptions.length === 0}
+              onSelect={setLocale}
+            >
+              <NButton
+                attr-type="button"
+                data-admin-control="locale"
                 disabled={localeOptions.length === 0}
-                onChange={setLocale}
+                aria-label={`Language: ${localeLabel}`}
               >
-                {localeOptions.map((option) => (
-                  <option key={option.key} value={option.key}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button
-              type="button"
+                Language: {localeLabel}
+              </NButton>
+            </NDropdown>
+            <NButton
+              attr-type="button"
               data-admin-control="sidebar"
               aria-pressed={preferences.sidebarCollapsed}
               onClick={() => setSidebarCollapsed(!preferences.sidebarCollapsed)}
@@ -432,7 +466,7 @@ export const AdminShell = defineComponent(
               {preferences.sidebarCollapsed
                 ? "Expand sidebar"
                 : "Collapse sidebar"}
-            </button>
+            </NButton>
           </div>
         ),
         sidebar: menuOptions?.length
@@ -445,24 +479,26 @@ export const AdminShell = defineComponent(
                   const tab = tabs.get(key);
                   return tab ? (
                     <div key={tab.key} class="inline-flex items-center">
-                      <button
-                        type="button"
-                        role="tab"
+                      <NButton
+                        attr-type="button"
+                        text
+                        {...{ role: "tab" }}
                         data-admin-tab-key={tab.key}
                         aria-selected={activeKey === tab.key}
                         onClick={() => void activateTab(tab.key)}
                       >
                         {tab.label}
-                      </button>
+                      </NButton>
                       {tab.closable !== false ? (
-                        <button
-                          type="button"
+                        <NButton
+                          attr-type="button"
+                          text
                           data-admin-tab-close={tab.key}
                           aria-label={`Close ${tab.label}`}
                           onClick={() => void closeTab(tab.key)}
                         >
                           ×
-                        </button>
+                        </NButton>
                       ) : null}
                     </div>
                   ) : null;

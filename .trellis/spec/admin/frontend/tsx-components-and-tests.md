@@ -6,6 +6,18 @@ Use compositional Vue setup functions with `defineComponent` and TSX for render 
 
 Import Naive UI controls directly and use Tailwind utilities for local layout. Package Tailwind scanning is configured in `packages/admin/src/style.css`, which is imported by the public barrel.
 
+## Naive UI control composition
+
+Prefer direct Naive UI primitives over hand-authored native controls. In `AdminShell`, use `NButton` for actions and compose persistent choices as a click-triggered `NDropdown` around an `NButton`:
+
+```tsx
+<NDropdown trigger="click" options={options} onSelect={setPreference}>
+  <NButton attr-type="button">Theme: {label}</NButton>
+</NDropdown>
+```
+
+`NDropdown` emits a `string | number` option key; guard or narrow that value before calling a typed store action. Its option menu renders in the document-level popup layer, so component tests must open the trigger, await Vue rendering, and query `document` for the visible option rather than limiting queries to the mounted shell container.
+
 ## Auth UI behavior
 
 Components consume frontend-ready input and injected callbacks. `AdminLoginPage` calls `props.authActions.login(values)` and does not know transport errors or response shapes. Its status branches render loading, authenticated, and anonymous UI from `AdminAuthStatus`.

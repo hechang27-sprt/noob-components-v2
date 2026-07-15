@@ -109,6 +109,30 @@ async function settle(): Promise<void> {
   await nextTick();
 }
 
+/**
+ * Opens a Naive dropdown trigger and selects one visible popup-layer option.
+ *
+ * @param trigger - The button that owns the dropdown to open.
+ * @param label - The exact label of the option to select.
+ * @returns A promise that resolves after option selection and Vue rendering settle.
+ */
+async function selectDropdownOption(
+  trigger: HTMLElement,
+  label: string,
+): Promise<void> {
+  trigger.click();
+  await settle();
+  const option = [...document.querySelectorAll<HTMLElement>(
+    ".n-dropdown-option-body__label",
+  )]
+    .find((element) => element.textContent === label)
+    ?.closest<HTMLElement>(".n-dropdown-option-body");
+
+  expect(option).toBeTruthy();
+  option!.click();
+  await settle();
+}
+
 describe("AdminShell", () => {
   it("renders an isolated loading layout without authenticated content", () => {
     const container = mountShell({ kind: "loading" }, createAuthActions(), {
@@ -194,27 +218,24 @@ describe("AdminShell", () => {
     expect(container.textContent).toContain("Ada");
     expect(container.querySelector("[data-admin-tabs]")).toBeNull();
 
-    const theme = container.querySelector<HTMLSelectElement>(
-      'select[name="theme-mode"]',
-    );
-    theme!.value = "dark";
-    theme!.dispatchEvent(new Event("change", { bubbles: true }));
-    await settle();
+    expect(container.querySelectorAll("select")).toHaveLength(0);
     const preferences = useAdminShellPreferencesStore();
-    expect(preferences.themeMode).toBe("dark");
-    expect(theme?.value).toBe("dark");
 
-    const fontSize = container.querySelector<HTMLSelectElement>(
-      'select[name="font-size"]',
+    const theme = container.querySelector<HTMLElement>(
+      '[data-admin-control="theme-mode"]',
     );
-    fontSize!.value = "large";
-    fontSize!.dispatchEvent(new Event("change", { bubbles: true }));
-    await settle();
-    expect(preferences.fontSize).toBe("large");
-    expect(fontSize?.value).toBe("large");
+    expect(theme?.classList).toContain("n-button");
+    await selectDropdownOption(theme!, "Dark");
+    expect(preferences.themeMode).toBe("dark");
 
-    const locale = container.querySelector<HTMLSelectElement>(
-      'select[name="locale"]',
+    const fontSize = container.querySelector<HTMLElement>(
+      '[data-admin-control="font-size"]',
+    );
+    await selectDropdownOption(fontSize!, "Large");
+    expect(preferences.fontSize).toBe("large");
+
+    const locale = container.querySelector<HTMLButtonElement>(
+      '[data-admin-control="locale"]',
     );
     expect(locale?.disabled).toBe(true);
     preferences.setAvailableLocales([
@@ -223,15 +244,13 @@ describe("AdminShell", () => {
     ]);
     await settle();
     expect(locale?.disabled).toBe(false);
-    locale!.value = "fr";
-    locale!.dispatchEvent(new Event("change", { bubbles: true }));
-    await settle();
+    await selectDropdownOption(locale!, "Français");
     expect(preferences.locale).toBe("fr");
-    expect(locale?.value).toBe("fr");
 
     const sidebarButton = container.querySelector<HTMLButtonElement>(
       '[data-admin-control="sidebar"]',
     );
+    expect(sidebarButton?.classList).toContain("n-button");
     sidebarButton!.click();
     await settle();
     expect(preferences.sidebarCollapsed).toBe(true);
@@ -275,6 +294,7 @@ describe("AdminShell", () => {
     const tab = container.querySelector<HTMLButtonElement>(
       '[data-admin-tab-key="home"]',
     );
+    expect(tab?.classList).toContain("n-button");
     tab!.click();
     tab!.click();
     expect(controller.activate).toHaveBeenCalledTimes(1);
@@ -366,6 +386,9 @@ describe("AdminShell", () => {
     expect(
       target.querySelector('[data-admin-tab-close="home"]'),
     ).not.toBeNull();
+    expect(
+      target.querySelector('[data-admin-tab-close="home"]')?.classList,
+    ).toContain("n-button");
 
     controller.current = { key: "next", label: "Next", closable: true };
     await settle();
