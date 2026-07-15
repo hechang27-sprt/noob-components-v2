@@ -117,4 +117,6 @@ packages:
     path: packages/admin
   admin-starter:
     path: apps/admin-starter
+  demo:
+    path: apps/demo
 default_package: @noob-naive-ui/ui
