@@ -233,9 +233,12 @@ export const AdminShell = defineComponent(
           sessionVersion.value === version &&
           tabs.get(tabKey)?.closePendingVersion === version
         ) {
+          const visibleIndex = visibleTabs.value.indexOf(tabKey);
           tabs.delete(tabKey);
-          visibleTabs.value.splice(index, 1);
-          reindexTabs();
+          if (visibleIndex !== -1) {
+            visibleTabs.value.splice(visibleIndex, 1);
+            reindexTabs();
+          }
         }
       } catch {
         if (

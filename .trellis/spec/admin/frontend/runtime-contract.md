@@ -61,7 +61,7 @@ export type AdminShellProps = {
 | No menu options or an empty array | Do not render the sidebar. |
 | No tab controller | Do not render tabbar or retain tabs. |
 | `activate` or `close` rejects | Retain tab membership/highlight; show only generic UI-safe feedback. |
-| Close callback resolves | Remove the closed tab; the starter receives the computed adjacent suggested key. |
+| Close callback resolves | Look up the closed key in the **current** visible order, then remove both that key and its map record and reindex. A pre-await index is only valid for the callback's suggested-next key because concurrent closes can shift visible order. |
 | Auth leaves authenticated or controller changes | Clear local tabs and invalidate prior async tab actions. |
 
 ### 5. Good, base, and bad cases

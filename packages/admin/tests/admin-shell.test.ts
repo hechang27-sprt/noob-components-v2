@@ -447,6 +447,52 @@ describe("AdminShell", () => {
     await settle();
   });
 
+  it("removes concurrent close requests by key after visible order shifts", async () => {
+    const closeResolvers = new Map<string, () => void>();
+    const controller = reactive({
+      current: { key: "a", label: "A", closable: true } as AdminShellTabController["current"],
+      activate: vi.fn(async () => undefined),
+      close: vi.fn(
+        (key: string) =>
+          new Promise<void>((resolve) => {
+            closeResolvers.set(key, resolve);
+          }),
+      ),
+    });
+    const container = mountShell(
+      { kind: "authenticated" },
+      createAuthActions(),
+      { tabController: controller },
+    );
+    await settle();
+
+    controller.current = { key: "b", label: "B", closable: true };
+    await settle();
+    controller.current = { key: "c", label: "C", closable: true };
+    await settle();
+    controller.current = { key: "a", label: "A", closable: true };
+    await settle();
+    container
+      .querySelector<HTMLButtonElement>('[data-admin-tab-close="a"]')!
+      .click();
+    controller.current = { key: "b", label: "B", closable: true };
+    await settle();
+    container
+      .querySelector<HTMLButtonElement>('[data-admin-tab-close="b"]')!
+      .click();
+
+    closeResolvers.get("a")!();
+    await settle();
+    closeResolvers.get("b")!();
+    await settle();
+
+    expect(
+      [...container.querySelectorAll("[data-admin-tab-key]")].map((tab) =>
+        tab.getAttribute("data-admin-tab-key"),
+      ),
+    ).toEqual(["c"]);
+  });
+
   it("removes a tab only after close resolves and retains it on rejection", async () => {
     let rejectClose: ((reason?: unknown) => void) | undefined;
     const controller: AdminShellTabController = {
