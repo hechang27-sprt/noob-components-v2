@@ -37,3 +37,37 @@ Replaced Trellis template specs with source-backed UI, admin, starter, and share
 ### Next Steps
 
 - None - task complete
+
+
+## Session 2: Prefer Naive UI components
+
+**Date**: 2026-07-15
+**Task**: Prefer Naive UI components
+
+### Summary
+
+Replaced AdminShell native preference and tab controls with direct NDropdown/NButton composition; added popup-layer behavior tests and documented the convention.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8dbddbca743c` | (see git log) |
+
+### Testing
+
+- `pnpm --filter @noob-naive-ui/admin test` — 21 passed
+- `pnpm --filter @noob-naive-ui/admin typecheck` — passed
+- `pnpm --filter @noob-naive-ui/admin build` — passed
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
