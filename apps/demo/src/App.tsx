@@ -9,7 +9,6 @@ import {
 } from "@noob-naive-ui/admin";
 import {
   darkTheme,
-  NButton,
   NConfigProvider,
   type GlobalTheme,
   type GlobalThemeOverrides,
@@ -191,14 +190,7 @@ export default defineComponent({
           menuOptions={menuOptions}
           tabController={tabController}
         >
-          <div class="min-h-full">
-            <div class="flex justify-end p-4">
-              <NButton attr-type="button" onClick={() => void logout()}>
-                Sign out
-              </NButton>
-            </div>
-            <RouterView />
-          </div>
+          <RouterView />
         </AdminShell>
       </NConfigProvider>
     );

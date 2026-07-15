@@ -15,6 +15,7 @@ export default defineConfig({
     },
     rollupOptions: {
       external: [
+        "@vicons/ionicons5",
         "@noob-naive-ui/ui",
         "naive-ui",
         "pinia",

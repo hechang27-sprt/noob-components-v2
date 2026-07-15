@@ -1,10 +1,25 @@
 import {
+  NAvatar,
   NButton,
   NDropdown,
+  NIcon,
   NMenu,
+  NTab,
+  NTabs,
+  NThing,
+  useThemeVars,
   type DropdownOption,
   type MenuOption,
 } from "naive-ui";
+import {
+  LanguageOutline,
+  LogOutOutline,
+  MenuOutline,
+  MoonOutline,
+  PersonCircleOutline,
+  SunnyOutline,
+  TextOutline,
+} from "@vicons/ionicons5";
 import { ProLayout } from "pro-naive-ui";
 import {
   defineComponent,
@@ -23,18 +38,25 @@ import type {
 } from "../runtime-contract";
 import { useAdminShellPreferencesStore } from "../stores/shell-preferences";
 
-/** Presents the fixed theme-mode choices without rebuilding dropdown options per render. */
-const themeModeOptions = [
-  { key: "system", label: "System" },
-  { key: "light", label: "Light" },
-  { key: "dark", label: "Dark" },
-] satisfies DropdownOption[];
-
 /** Presents the fixed font-size choices without rebuilding dropdown options per render. */
 const fontSizeOptions = [
   { key: "small", label: "Small" },
   { key: "medium", label: "Medium" },
   { key: "large", label: "Large" },
+] satisfies DropdownOption[];
+
+/** Renders the Vicons glyph that distinguishes the account menu's logout action. */
+function renderLogoutIcon() {
+  return (
+    <NIcon size={16}>
+      <LogOutOutline />
+    </NIcon>
+  );
+}
+
+/** Presents the fixed account actions without rebuilding their option descriptors per render. */
+const accountOptions = [
+  { key: "logout", label: "Sign out", icon: renderLogoutIcon },
 ] satisfies DropdownOption[];
 
 /** Describes host-owned presentation for one router-neutral tab. */
@@ -111,6 +133,10 @@ export const AdminShell = defineComponent(
     const tabError = ref<string>();
     /** Invalidates callback completions that belong to an earlier tab session. */
     const sessionVersion = ref(0);
+    /** Prevents duplicate logout actions while the supplied async callback settles. */
+    const logoutPending = ref(false);
+    /** Holds generic UI-safe feedback when the supplied logout action rejects. */
+    const logoutError = ref<string>();
 
     /**
      * Synchronizes each retained tab's index with the sole visible-order source.
@@ -163,6 +189,23 @@ export const AdminShell = defineComponent(
         index: visibleTabs.value.length,
       });
       visibleTabs.value.push(current.key);
+    }
+
+    /**
+     * Lets Naive UI leave the active tab only for a known, idle local target.
+     *
+     * @param key - Candidate tab name emitted by `NTabs.onBeforeLeave`.
+     * @returns Whether `NTabs` may emit the corresponding value update.
+     */
+    function canActivateTab(key: string | number): boolean {
+      if (typeof key !== "string") {
+        return false;
+      }
+
+      const tab = tabs.get(key);
+      return Boolean(
+        tab && tab.activationPendingVersion !== sessionVersion.value,
+      );
     }
 
     /**
@@ -277,15 +320,16 @@ export const AdminShell = defineComponent(
     }
 
     /**
-     * Updates the theme preference from a Naive dropdown option key.
+     * Toggles between dark and non-dark presentation without opening a menu.
      *
-     * @param value - Selected dropdown key, which may be a string or number.
-     * @returns Nothing after forwarding a valid theme mode to the preference store.
+     * Dark mode exits to explicit light mode; light and system modes enter dark mode.
+     *
+     * @returns Nothing after forwarding the next theme mode to the preference store.
      */
-    function setThemeMode(value: string | number): void {
-      if (value === "system" || value === "light" || value === "dark") {
-        preferences.setThemeMode(value);
-      }
+    function toggleThemeMode(): void {
+      preferences.setThemeMode(
+        preferences.themeMode === "dark" ? "light" : "dark",
+      );
     }
 
     /**
@@ -320,6 +364,28 @@ export const AdminShell = defineComponent(
      */
     function setSidebarCollapsed(value: boolean): void {
       preferences.setSidebarCollapsed(value);
+    }
+
+    /**
+     * Delegates the logout menu choice to the supplied frontend action without overlap.
+     *
+     * @param value - Selected dropdown key, which may be a string or number.
+     * @returns A promise that settles after recording any safe local failure feedback.
+     */
+    async function selectAccountAction(value: string | number): Promise<void> {
+      if (value !== "logout" || logoutPending.value) {
+        return;
+      }
+
+      logoutPending.value = true;
+      logoutError.value = undefined;
+      try {
+        await props.authActions.logout();
+      } catch {
+        logoutError.value = "Unable to sign out.";
+      } finally {
+        logoutPending.value = false;
+      }
     }
 
     /**
@@ -399,50 +465,82 @@ export const AdminShell = defineComponent(
       const activeKey = props.tabController?.current?.key;
       const localeOptions: AdminLocaleOption[] = preferences.availableLocales;
       const menuOptions = props.menuOptions;
-      const userLabel = authStatus.userLabel;
-      const themeModeLabel =
-        themeModeOptions.find(({ key }) => key === preferences.themeMode)
-          ?.label ?? preferences.themeMode;
+      const userLabel = authStatus.userLabel ?? "Signed in";
       const fontSizeLabel =
-        fontSizeOptions.find(({ key }) => key === preferences.fontSize)?.label ??
-        preferences.fontSize;
+        fontSizeOptions.find(({ key }) => key === preferences.fontSize)
+          ?.label ?? preferences.fontSize;
       const localeLabel =
         localeOptions.find(({ key }) => key === preferences.locale)?.label ??
         preferences.locale;
+      const themeIcon =
+        preferences.themeMode === "dark" ? SunnyOutline : MoonOutline;
+      const theme = useThemeVars();
       const layoutSlots = {
-        "nav-right": () => (
-          <div class="flex items-center gap-2" data-admin-controls>
-            <span>{userLabel ?? "Signed in"}</span>
-            <NDropdown
-              trigger="click"
-              value={preferences.themeMode}
-              options={themeModeOptions}
-              onSelect={setThemeMode}
+        "nav-left": () => (
+          <div class="flex items-center h-full" data-admin-nav-left>
+            <NButton
+              attr-type="button"
+              quaternary
+              circle
+              size="large"
+              data-admin-control="sidebar"
+              aria-label={
+                preferences.sidebarCollapsed
+                  ? "Expand sidebar"
+                  : "Collapse sidebar"
+              }
+              aria-pressed={preferences.sidebarCollapsed}
+              onClick={() => setSidebarCollapsed(!preferences.sidebarCollapsed)}
             >
-              <NButton
-                attr-type="button"
-                data-admin-control="theme-mode"
-                aria-label={`Theme: ${themeModeLabel}`}
-              >
-                Theme: {themeModeLabel}
-              </NButton>
-            </NDropdown>
+              <NIcon size={18}>
+                <MenuOutline />
+              </NIcon>
+            </NButton>
+          </div>
+        ),
+        "nav-right": () => (
+          <div class="flex items-center h-full gap-1" data-admin-controls>
+            <NButton
+              attr-type="button"
+              quaternary
+              circle
+              size="large"
+              data-admin-control="theme-mode"
+              data-admin-theme-action={
+                preferences.themeMode === "dark" ? "exit-dark" : "enter-dark"
+              }
+              aria-label={
+                preferences.themeMode === "dark"
+                  ? "Switch to light theme"
+                  : "Switch to dark theme"
+              }
+              onClick={toggleThemeMode}
+            >
+              <NIcon component={themeIcon} size={18} />
+            </NButton>
             <NDropdown
-              trigger="click"
+              trigger="hover"
+              delay={0}
               value={preferences.fontSize}
               options={fontSizeOptions}
               onSelect={setFontSize}
             >
               <NButton
                 attr-type="button"
+                quaternary
+                circle
+                size="large"
                 data-admin-control="font-size"
                 aria-label={`Font size: ${fontSizeLabel}`}
               >
-                Font size: {fontSizeLabel}
+                <NIcon size={18}>
+                  <TextOutline />
+                </NIcon>
               </NButton>
             </NDropdown>
             <NDropdown
-              trigger="click"
+              trigger="hover"
+              delay={0}
               value={preferences.locale}
               options={localeOptions}
               disabled={localeOptions.length === 0}
@@ -450,59 +548,101 @@ export const AdminShell = defineComponent(
             >
               <NButton
                 attr-type="button"
+                quaternary
+                circle
+                size="large"
                 data-admin-control="locale"
                 disabled={localeOptions.length === 0}
                 aria-label={`Language: ${localeLabel}`}
               >
-                Language: {localeLabel}
+                <NIcon size={18}>
+                  <LanguageOutline />
+                </NIcon>
               </NButton>
             </NDropdown>
-            <NButton
-              attr-type="button"
-              data-admin-control="sidebar"
-              aria-pressed={preferences.sidebarCollapsed}
-              onClick={() => setSidebarCollapsed(!preferences.sidebarCollapsed)}
+            <NDropdown
+              trigger="hover"
+              delay={0}
+              disabled={logoutPending.value}
+              options={accountOptions}
+              onSelect={selectAccountAction}
             >
-              {preferences.sidebarCollapsed
-                ? "Expand sidebar"
-                : "Collapse sidebar"}
-            </NButton>
+              <NButton
+                attr-type="button"
+                quaternary
+                size="large"
+                class="gap-1.5"
+                data-admin-control="account"
+                disabled={logoutPending.value}
+                loading={logoutPending.value}
+                aria-label={`Account: ${userLabel}`}
+              >
+                <NThing>
+                  {{
+                    avatar: () => (
+                      <NAvatar round bordered>
+                        <NIcon>
+                          <PersonCircleOutline />
+                        </NIcon>
+                      </NAvatar>
+                    ),
+                    header: () => (
+                      <div class="h-10 inline-flex items-center">
+                        {userLabel}
+                      </div>
+                    ),
+                  }}
+                </NThing>
+              </NButton>
+            </NDropdown>
+            {logoutError.value ? (
+              <p role="alert" data-admin-logout-error>
+                {logoutError.value}
+              </p>
+            ) : null}
           </div>
         ),
         sidebar: menuOptions?.length
-          ? () => <NMenu options={menuOptions} />
+          ? () => <NMenu options={menuOptions} value={activeKey} />
           : undefined,
         tabbar: props.tabController
           ? () => (
-              <div data-admin-tabs role="tablist" aria-label="Open pages">
-                {visibleTabs.value.map((key) => {
-                  const tab = tabs.get(key);
-                  return tab ? (
-                    <div key={tab.key} class="inline-flex items-center">
-                      <NButton
-                        attr-type="button"
-                        text
-                        {...{ role: "tab" }}
+              <div class="min-w-0" role="tablist" aria-label="Open pages">
+                <NTabs
+                  type="card"
+                  size="small"
+                  value={activeKey}
+                  tabsPadding={8}
+                  data-admin-tabs
+                  onBeforeLeave={canActivateTab}
+                  onUpdateValue={(key: string | number) =>
+                    void activateTab(String(key))
+                  }
+                  onClose={(key: string | number) => void closeTab(String(key))}
+                  tabClass="data-[admin-tab-active=true]:h-9/10 h-4/5 self-end rounded-t-xl!"
+                >
+                  {visibleTabs.value.map((key) => {
+                    const tab = tabs.get(key);
+                    const active = activeKey === tab?.key;
+                    /** Supplies tab semantics that Naive UI does not declare as component props. */
+                    const tabAccessibilityProps = {
+                      role: "tab",
+                      "aria-selected": active,
+                      "aria-current": active ? "page" : undefined,
+                    };
+                    return tab ? (
+                      <NTab
+                        key={tab.key}
+                        name={tab.key}
+                        tab={tab.label}
+                        closable={tab.closable !== false}
                         data-admin-tab-key={tab.key}
-                        aria-selected={activeKey === tab.key}
-                        onClick={() => void activateTab(tab.key)}
-                      >
-                        {tab.label}
-                      </NButton>
-                      {tab.closable !== false ? (
-                        <NButton
-                          attr-type="button"
-                          text
-                          data-admin-tab-close={tab.key}
-                          aria-label={`Close ${tab.label}`}
-                          onClick={() => void closeTab(tab.key)}
-                        >
-                          ×
-                        </NButton>
-                      ) : null}
-                    </div>
-                  ) : null;
-                })}
+                        data-admin-tab-active={active}
+                        {...tabAccessibilityProps}
+                      />
+                    ) : null;
+                  })}
+                </NTabs>
                 {tabError.value ? (
                   <p role="alert" data-admin-tab-error>
                     {tabError.value}
@@ -517,12 +657,10 @@ export const AdminShell = defineComponent(
       return (
         <div class="h-dvh" style={{ height: "100dvh" }}>
           <ProLayout
-            {...{
-              collapsed: preferences.sidebarCollapsed,
-              "onUpdate:collapsed": setSidebarCollapsed,
-              showSidebar: Boolean(menuOptions?.length),
-              showTabbar: Boolean(props.tabController),
-            }}
+            collapsed={preferences.sidebarCollapsed}
+            onUpdateCollapsed={setSidebarCollapsed}
+            showSidebar={Boolean(menuOptions?.length)}
+            showTabbar={Boolean(props.tabController)}
             v-slots={layoutSlots}
           />
         </div>

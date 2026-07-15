@@ -8,15 +8,17 @@ Import Naive UI controls directly and use Tailwind utilities for local layout. P
 
 ## Naive UI control composition
 
-Prefer direct Naive UI primitives over hand-authored native controls. In `AdminShell`, use `NButton` for actions and compose persistent choices as a click-triggered `NDropdown` around an `NButton`:
+Prefer direct Naive UI primitives over hand-authored native controls. In `AdminShell`, use `NButton` for immediate actions and compose persistent multi-option choices as immediate hover-triggered `NDropdown` controls:
 
 ```tsx
-<NDropdown trigger="click" options={options} onSelect={setPreference}>
-  <NButton attr-type="button">Theme: {label}</NButton>
+<NDropdown trigger="hover" delay={0} options={options} onSelect={setPreference}>
+  <NButton attr-type="button">{label}</NButton>
 </NDropdown>
 ```
 
-`NDropdown` emits a `string | number` option key; guard or narrow that value before calling a typed store action. Its option menu renders in the document-level popup layer, so component tests must open the trigger, await Vue rendering, and query `document` for the visible option rather than limiting queries to the mounted shell container.
+Do not turn binary actions into menus. The theme button directly toggles `dark` against explicit `light`, while font size and locale remain dropdown choices. `NDropdown` emits a `string | number` option key; guard or narrow that value before calling a typed store action. Its option menu renders in the document-level popup layer, so component tests must open the trigger, await Vue rendering, and query `document` for the visible option rather than limiting queries to the mounted shell container.
+
+Render the shell tab strip with controlled `NTabs type="card"` and direct `NTab` children. Do not use `NTabPane`: routed content remains in `ProLayout`'s default slot. Connect `tabController` behavior through `NTabs` callbacks—`onBeforeLeave` gates known idle targets, `onUpdateValue` requests host activation, and `onClose` requests shell-managed closure.
 
 ## Auth UI behavior
 

@@ -50,9 +50,12 @@ export type AdminShellProps = {
 
 - Loading and anonymous states render no layout/sidebar/tabbar/default-slot content; anonymous delegates login UX to `AdminLoginPage` with the supplied actions.
 - The authenticated state mounts `ProLayout` in a definite-height `height: 100dvh` container, binds its collapsed state to `useAdminShellPreferencesStore`, and forwards only the default slot as content.
-- `menuOptions` is starter-owned opaque input. Pass the exact array reference directly to internal `NMenu`; do not inspect, clone, filter, re-key, or handle selection.
+- `menuOptions` is starter-owned opaque input. Pass the exact array reference directly to internal `NMenu`; do not inspect, clone, filter, re-key, or handle selection. Bind only `NMenu.value` to `tabController.current.key` so host-authoritative route changes keep the menu highlight synchronized.
 - `tabController.current` is an authoritative host descriptor, while `AdminShellTab` is shell-local state carrying visible-order index and per-operation ownership. The shell awaits `activate` and `close`; it updates membership only after a resolved close and invalidates pending actions when authentication or the controller changes.
 - Theme, font size, locale, and sidebar controls call the existing preferences-store actions. Locale options remain runtime-only; controls never parse or persist storage.
+- Authenticated header presentation stays frontend-only: the `nav-left` sidebar control and `nav-right` theme/font/locale/account controls use `NIcon` with `@vicons/ionicons5`. Font, locale, and account dropdowns use immediate `trigger="hover"`/`delay={0}`. The account trigger shows only a generic icon and `userLabel` fallback, and its sole option invokes `authActions.logout`.
+- The theme control is a direct action, not a dropdown: `dark` renders sun and selects `light`; `light` and `system` render moon and select `dark`. Its accessible name describes that next action.
+- Tab presentation uses controlled `NTabs type="card"` with direct `NTab` children and no `NTabPane`. Bind the host-authoritative current key to `value`, gate transitions through `onBeforeLeave`, request activation through `onUpdateValue`, and request shell-owned closure through `onClose`; never recreate tabs from `NButton` controls.
 
 ### 4. Validation and error matrix
 
@@ -63,6 +66,7 @@ export type AdminShellProps = {
 | `activate` or `close` rejects | Retain tab membership/highlight; show only generic UI-safe feedback. |
 | Close callback resolves | Look up the closed key in the **current** visible order, then remove both that key and its map record and reindex. A pre-await index is only valid for the callback's suggested-next key because concurrent closes can shift visible order. |
 | Auth leaves authenticated or controller changes | Clear local tabs and invalidate prior async tab actions. |
+| Account menu selects `logout` | Invoke only the supplied `authActions.logout`; do not model a session or add a second logout flow. |
 
 ### 5. Good, base, and bad cases
 
@@ -72,7 +76,8 @@ export type AdminShellProps = {
 
 ### 6. Tests required
 
-`packages/admin/tests/admin-shell.test.ts` must observably cover every auth branch, default-slot isolation, defined-height `ProLayout`, unchanged menu composition and empty-menu absence, store-backed controls, host-descriptor versus shell-state separation, visible-order updates, async success/failure/pending behavior, and auth/controller cleanup.
+`packages/admin/tests/admin-shell.test.ts` must observably cover every auth branch, default-slot isolation, defined-height `ProLayout`, unchanged menu composition, tab-driven menu-highlight synchronization, empty-menu absence, store-backed controls, host-descriptor versus shell-state separation, visible-order updates, async success/failure/pending behavior, and auth/controller cleanup.
+It must also cover icon-only accessible names, immediate hover menu selection, action-oriented theme glyph mapping, account logout delegation, native `NTabs`/`NTab` semantics, active/inactive accessibility state, and async activation/close callbacks.
 
 ### 7. Wrong vs correct
 
@@ -92,7 +97,7 @@ The starter derives the final `MenuOption[]`, including visibility, hierarchy, a
 
 ## Dependencies and build
 
-`packages/admin/package.json` declares Vue, Pinia, Naive UI, and Pro Naive UI as peers, while Zod is an implementation dependency. `packages/admin/vite.config.ts` builds `src/index.ts` as an ES library with Vue JSX and Tailwind plugins, and externalizes all five runtime dependencies. Preserve this boundary when adding imports or build features.
+`packages/admin/package.json` declares Vue, Pinia, Naive UI, and Pro Naive UI as peers; `@noob-naive-ui/ui`, `@vicons/ionicons5`, and Zod are implementation dependencies. `packages/admin/vite.config.ts` builds `src/index.ts` as an ES library with Vue JSX and Tailwind plugins, and externalizes every runtime import: those three implementation dependencies plus the four peers. Preserve this boundary when adding imports or build features.
 
 Avoid broad Naive/Pro Naive re-exports. Import and compose primitives directly inside admin runtime components, as `packages/admin/src/components/admin-login-page.tsx` and `packages/admin/src/components/admin-shell.tsx` do.
 

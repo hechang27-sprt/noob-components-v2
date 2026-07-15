@@ -4,7 +4,6 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "predev": "pnpm --filter @noob-naive-ui/admin build",
     "dev": "vite",
     "prebuild": "pnpm --filter @noob-naive-ui/admin build",
     "build": "vite build",
