@@ -16,12 +16,18 @@
   "files": [
     "dist"
   ],
+  "sideEffects": [
+    "**/*.css"
+  ],
   "scripts": {
+    "prebuild": "pnpm --filter @noob-naive-ui/ui build",
     "build": "pnpm run clean && vite build && pnpm run build:types",
     "build:types": "tsc -p tsconfig.json --emitDeclarationOnly",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "pretest": "pnpm --filter @noob-naive-ui/ui build",
     "test": "vitest run",
     "test:watch": "vitest",
+    "pretypecheck": "pnpm --filter @noob-naive-ui/ui build",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "peerDependencies": {
@@ -40,6 +46,7 @@
     "vitest": "^4.1.10"
   },
   "dependencies": {
+    "@noob-naive-ui/ui": "workspace:*",
     "zod": "^4.4.3"
   }
 }

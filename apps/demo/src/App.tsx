@@ -53,9 +53,8 @@ export default defineComponent({
     const systemUsesDark = ref(systemThemeQuery.matches);
     /** Derives the active route's shell descriptor directly from Vue Router's reactive state. */
     const currentTab = computed<AdminShellTabInput | null>(() => {
-      const definition = routeDefinitionsByName[
-        String(router.currentRoute.value.name ?? "")
-      ];
+      const definition =
+        routeDefinitionsByName[String(router.currentRoute.value.name ?? "")];
 
       return definition
         ? {
@@ -172,22 +171,28 @@ export default defineComponent({
        * @param suggestedNextKey - The route key the shell recommends after the close.
        * @returns A promise that resolves after the router processes the selected location.
        */
-      async close(closedKey: string, suggestedNextKey: string | null): Promise<void> {
+      async close(
+        closedKey: string,
+        suggestedNextKey: string | null,
+      ): Promise<void> {
         void closedKey;
         await router.push(suggestedNextKey ?? demoRouteDefinitions[0].path);
       },
     };
 
     return () => (
-      <NConfigProvider theme={theme.value} themeOverrides={themeOverrides.value}>
+      <NConfigProvider
+        theme={theme.value}
+        themeOverrides={themeOverrides.value}
+      >
         <AdminShell
           authStatus={authStatus.value}
           authActions={authActions}
           menuOptions={menuOptions}
           tabController={tabController}
         >
-          <div class="demo-content">
-            <div class="demo-signout">
+          <div class="min-h-full">
+            <div class="flex justify-end p-4">
               <NButton attr-type="button" onClick={() => void logout()}>
                 Sign out
               </NButton>
@@ -200,7 +205,6 @@ export default defineComponent({
   },
 });
 
-
 /**
  * Creates one router-aware Naive UI menu option while preserving the app-owned route hierarchy.
  *
@@ -210,6 +214,8 @@ export default defineComponent({
 function createMenuOption(definition: DemoRouteDefinition): MenuOption {
   return {
     key: definition.path,
-    label: () => <RouterLink to={definition.path}>{definition.label}</RouterLink>,
+    label: () => (
+      <RouterLink to={definition.path}>{definition.label}</RouterLink>
+    ),
   };
 }

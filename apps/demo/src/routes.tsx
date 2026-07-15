@@ -32,9 +32,9 @@ function createDemoPage(title: string, description: string) {
      */
     setup() {
       return () => (
-        <main class="demo-page">
-          <h1 class="demo-page__title">{title}</h1>
-          <p class="demo-page__description">{description}</p>
+        <main class="p-6">
+          <h1 class="m-0 text-2xl font-semibold">{title}</h1>
+          <p class="mt-3 max-w-2xl text-base leading-6">{description}</p>
         </main>
       );
     },
