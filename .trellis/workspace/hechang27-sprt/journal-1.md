@@ -106,3 +106,35 @@ Established independent UI/admin CSS build artifacts and converted demo-local pr
 ### Next Steps
 
 - None - task complete.
+
+
+## Session 3: Polish AdminShell controls and navigation
+
+**Date**: 2026-07-16
+**Task**: Polish AdminShell controls and navigation
+
+### Summary
+
+Polished authenticated header controls with Vicons, direct theme toggling, hover preference/account menus, safe logout handling, and controlled NTabs. Synchronized NMenu highlighting with host-authoritative tab state, added demo source HMR aliases, expanded regression coverage, and verified admin/demo typechecks, tests, builds, and browser flows.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ecba53c4` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
