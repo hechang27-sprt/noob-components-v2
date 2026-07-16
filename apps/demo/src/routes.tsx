@@ -5,7 +5,7 @@ import { defineComponent } from "vue";
 export type DemoRouteDefinition = {
   /** Supplies the stable Vue Router name used to identify the route. */
   name: string;
-  /** Supplies the stable path used as both the route location and tab key. */
+  /** Supplies the stable URL path used to resolve this host-owned destination. */
   path: string;
   /** Supplies the human-readable label used by the menu and shell tab. */
   label: string;

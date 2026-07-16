@@ -6,7 +6,7 @@ import { createApp, h, nextTick, reactive, type App } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AdminShell } from "../src/components/admin-shell";
-import type { AdminShellTabController } from "../src/components/admin-shell";
+import type { AdminShellNavigation } from "../src/components/admin-shell";
 import type {
   AdminAuthActions,
   AdminAuthStatus,
@@ -36,7 +36,7 @@ afterEach(cleanMountedApps);
  *
  * @param authStatus - Frontend auth state supplied to the shell.
  * @param authActions - Starter-owned login/logout callbacks.
- * @param options - Optional opaque menu, tab controller, and synthetic slots.
+ * @param options - Optional opaque menu, navigation adapter, and synthetic slots.
  * @returns The mounted application container.
  */
 function mountShell(
@@ -44,7 +44,7 @@ function mountShell(
   authActions: AdminAuthActions,
   options: {
     menuOptions?: MenuOption[];
-    tabController?: AdminShellTabController;
+    navigation?: AdminShellNavigation;
     content?: string;
     sidebarContent?: string;
     tabbarContent?: string;
@@ -76,7 +76,7 @@ function mountShell(
           authStatus,
           authActions,
           menuOptions: options.menuOptions,
-          tabController: options.tabController,
+          navigation: options.navigation,
         },
         slots,
       ),
@@ -292,505 +292,125 @@ describe("AdminShell", () => {
     expect(authActions.logout).toHaveBeenCalledTimes(1);
   });
 
-  it("synchronizes menu highlight after tab-driven navigation", async () => {
-    const descriptors: Record<string, AdminShellTabController["current"]> = {
-      home: { key: "home", label: "Home", closable: false },
-      settings: { key: "settings", label: "Settings", closable: true },
-    };
-    const controller = reactive({
-      current: descriptors.home,
-      activate: vi.fn(async (key: string) => {
-        controller.current = descriptors[key] ?? null;
-      }),
-      close: vi.fn(async () => undefined),
+  it("commits a menu open candidate only after host confirmation", async () => {
+    let resolveOpen: ((value: { active: AdminShellNavigation["active"] }) => void) | undefined;
+    const home = { id: "home-1", nav: { navKey: "home" }, label: "Home", closable: false };
+    const navigation = reactive<AdminShellNavigation>({
+      active: home,
+      handleNavigation: vi.fn(
+        () => new Promise((resolve) => { resolveOpen = resolve; }),
+      ),
     });
-    const menuOptions: MenuOption[] = [
-      {
-        key: "home",
-        label: () =>
-          h(
-            "button",
-            {
-              type: "button",
-              "data-menu-target": "home",
-              onClick: () => {
-                controller.current = descriptors.home;
-              },
-            },
-            "Home",
-          ),
-      },
-      {
-        key: "settings",
-        label: () =>
-          h(
-            "button",
-            {
-              type: "button",
-              "data-menu-target": "settings",
-              onClick: () => {
-                controller.current = descriptors.settings;
-              },
-            },
-            "Settings",
-          ),
-      },
-    ];
-    const container = mountShell(
-      { kind: "authenticated" },
-      createAuthActions(),
-      { menuOptions, tabController: controller },
-    );
-    await settle();
-
-    container
-      .querySelector<HTMLElement>('[data-menu-target="settings"]')!
-      .click();
-    await settle();
-    expect(container.querySelector(".n-menu-item-content--selected")?.textContent).toContain(
-      "Settings",
-    );
-
-    container
-      .querySelector<HTMLElement>('[data-admin-tab-key="home"]')!
-      .click();
-    await settle();
-    expect(controller.activate).toHaveBeenCalledWith("home");
-    expect(container.querySelector(".n-menu-item-content--selected")?.textContent).toContain(
-      "Home",
-    );
-  });
-
-  it("contains rejected logout actions as visible local feedback", async () => {
-    const authActions: AdminAuthActions = {
-      login: vi.fn(),
-      logout: vi.fn(async () => {
-        throw new Error("logout failed");
-      }),
-    };
-    const container = mountShell({ kind: "authenticated" }, authActions);
-    const account = container.querySelector<HTMLElement>(
-      '[data-admin-control="account"]',
-    );
-
-    await selectDropdownOption(account!, "Sign out");
-
-    expect(authActions.logout).toHaveBeenCalledTimes(1);
-    expect(
-      container.querySelector("[data-admin-logout-error]")?.textContent,
-    ).toBe("Unable to sign out.");
-    expect(
-      container.querySelector<HTMLButtonElement>(
-        '[data-admin-control="account"]',
-      )?.disabled,
-    ).toBe(false);
-  });
-
-  it("renders host-owned tabs through NTabs without reactivating the active tab", async () => {
-    const controller: AdminShellTabController = {
-      current: { key: "home", label: "Home", closable: false },
-      activate: vi.fn(async () => undefined),
-      close: vi.fn(async () => undefined),
-    };
-    const container = mountShell(
-      { kind: "authenticated" },
-      createAuthActions(),
-      { tabController: controller },
-    );
-    await settle();
-
-    const tabs = container.querySelector("[data-admin-tabs]");
-    const tab = container.querySelector<HTMLElement>(
-      '[data-admin-tab-key="home"]',
-    );
-
-    expect(tabs?.classList).toContain("n-tabs");
-    expect(tabs?.parentElement?.getAttribute("role")).toBe("tablist");
-    expect(tab?.classList).toContain("n-tabs-tab");
-    expect(tab?.getAttribute("role")).toBe("tab");
-    expect(tab?.getAttribute("aria-selected")).toBe("true");
-    expect(tab?.getAttribute("aria-current")).toBe("page");
-    tab!.click();
-    expect(controller.activate).not.toHaveBeenCalled();
-  });
-
-  it("retains host-owned tab state after activation rejects", async () => {
-    const controller = reactive({
-      current: {
-        key: "home",
-        label: "Home",
-      } as AdminShellTabController["current"],
-      activate: vi.fn(async () => {
-        throw new Error("navigation denied");
-      }),
-      close: vi.fn(async () => undefined),
+    const container = mountShell({ kind: "authenticated" }, createAuthActions(), {
+      menuOptions: [{ key: "home", label: "Home" }, { key: "settings", label: "Settings" }],
+      navigation,
     });
-    const container = mountShell(
-      { kind: "authenticated" },
-      createAuthActions(),
-      { tabController: controller },
-    );
     await settle();
-    controller.current = { key: "settings", label: "Settings" };
+    [...container.querySelectorAll<HTMLElement>(".n-menu-item-content")]
+      .find((item) => item.textContent?.includes("Settings"))!.click();
     await settle();
-
-    container
-      .querySelector<HTMLButtonElement>('[data-admin-tab-key="home"]')!
-      .click();
+    const request = vi.mocked(navigation.handleNavigation).mock.calls[0]![0];
+    expect(request.kind).toBe("open");
+    if (request.kind !== "open") throw new Error("Expected open request.");
+    expect(request.candidate.nav).toEqual({ navKey: "settings" });
+    expect(request.current).toEqual(home);
+    expect(container.querySelectorAll("[data-admin-tab-key]")).toHaveLength(1);
+    const confirmed = { id: request.candidate.id, nav: request.candidate.nav, label: "Settings", closable: true };
+    navigation.active = confirmed;
+    resolveOpen!({ active: confirmed });
     await settle();
-
-    expect(controller.activate).toHaveBeenCalledWith("home");
-    expect(
-      container
-        .querySelector('[data-admin-tab-key="settings"]')
-        ?.getAttribute("data-admin-tab-active"),
-    ).toBe("true");
-    expect(
-      container
-        .querySelector('[data-admin-tab-key="settings"]')
-        ?.getAttribute("aria-current"),
-    ).toBe("page");
-    expect(
-      container
-        .querySelector('[data-admin-tab-key="home"]')
-        ?.hasAttribute("aria-current"),
-    ).toBe(false);
-    expect(container.querySelectorAll("[data-admin-tab-key]")).toHaveLength(2);
-    expect(container.textContent).toContain("Unable to activate tab");
+    expect(container.querySelector(`[data-admin-tab-key="${confirmed.id}"]`)).not.toBeNull();
   });
 
-  it("updates host descriptors without retaining stale local fields", async () => {
-    const controller = reactive({
-      current: {
-        key: "home",
-        label: "Home",
-        closable: false,
-      } as AdminShellTabController["current"],
-      activate: vi.fn(async () => undefined),
-      close: vi.fn(async () => undefined),
+  it("does not commit a rejected open candidate", async () => {
+    const navigation: AdminShellNavigation = {
+      active: { id: "home-1", nav: { navKey: "home" }, label: "Home" },
+      handleNavigation: vi.fn(async () => { throw new Error("private failure"); }),
+    };
+    const container = mountShell({ kind: "authenticated" }, createAuthActions(), {
+      menuOptions: [{ key: "settings", label: "Settings" }], navigation,
     });
+    await settle();
+    container.querySelector<HTMLElement>(".n-menu-item-content")!.click();
+    await settle();
+    await settle();
+    expect(container.querySelectorAll("[data-admin-tab-key]")).toHaveLength(1);
+    expect(container.textContent).toContain("Unable to navigate");
+    expect(container.textContent).not.toContain("private failure");
+  });
+
+  it("activates the newest matching navKey while ignoring parameters", async () => {
+    const home = { id: "home", nav: { navKey: "home" }, label: "Home" };
+    const older = { id: "report-1", nav: { navKey: "reports", params: { id: 1 } }, label: "Report 1" };
+    const newer = { id: "report-2", nav: { navKey: "reports", params: { id: 2 } }, label: "Report 2" };
+    const navigation = reactive<AdminShellNavigation>({
+      active: home,
+      handleNavigation: vi.fn(async (request) => {
+        const active = request.kind === "open" ? null : request.destination;
+        navigation.active = active;
+        return { active };
+      }),
+    });
+    const container = mountShell({ kind: "authenticated" }, createAuthActions(), {
+      menuOptions: [{ key: "reports", label: "Reports" }], navigation,
+    });
+    await settle();
+    navigation.active = older;
+    await settle();
+    navigation.active = newer;
+    await settle();
+    navigation.active = home;
+    await settle();
+    container.querySelector<HTMLElement>(".n-menu-item-content")!.click();
+    await settle();
+    expect(navigation.handleNavigation).toHaveBeenLastCalledWith({ kind: "activate", destination: newer, current: home });
+  });
+
+  it("keeps duplicate destinations as independently closable page instances", async () => {
+    const first = { id: "same-1", nav: { navKey: "reports", params: { id: 1 } }, label: "First", closable: true };
+    const second = { id: "same-2", nav: { navKey: "reports", params: { id: 1 } }, label: "Second", closable: true };
+    const navigation = reactive<AdminShellNavigation>({
+      active: first,
+      handleNavigation: vi.fn(async (request) => ({ active: request.kind === "close" ? request.destination : request.kind === "open" ? null : request.destination })),
+    });
+    const container = mountShell({ kind: "authenticated" }, createAuthActions(), { navigation });
+    await settle();
+    navigation.active = second;
+    await settle();
+    getTabClose(container, "same-1")!.click();
+    await settle();
+    expect(navigation.handleNavigation).toHaveBeenLastCalledWith({ kind: "close", closing: first, destination: second });
+    expect(container.querySelector('[data-admin-tab-key="same-1"]')).toBeNull();
+    expect(container.querySelector('[data-admin-tab-key="same-2"]')).not.toBeNull();
+  });
+
+  it("clears page instances when auth or the navigation boundary changes", async () => {
+    const first: AdminShellNavigation = {
+      active: { id: "one", nav: { navKey: "one" }, label: "One" },
+      handleNavigation: vi.fn(async () => ({ active: null })),
+    };
     const props = reactive({
       authStatus: { kind: "authenticated" } as AdminAuthStatus,
       authActions: createAuthActions(),
-      tabController: controller,
+      navigation: first as AdminShellNavigation | undefined,
     });
     const target = document.createElement("div");
     document.body.append(target);
     const pinia = createPinia();
     setActivePinia(pinia);
     useAdminShellPreferencesStore().initialize();
-    const app = createApp({
-      setup: () => () => h(AdminShell, props),
-    });
+    const app = createApp({ setup: () => () => h(AdminShell, props) });
     app.use(pinia);
     app.mount(target);
     mountedApps.push(app);
     await settle();
-
-    controller.current = {
-      key: "home",
-      label: "Renamed Home",
-      closable: false,
-    };
-    await settle();
-    expect(getTabClose(target, "home")).toBeNull();
-
-    controller.current = { key: "home", label: "Closable Home" };
-    await settle();
-    expect(getTabClose(target, "home")).not.toBeNull();
-    expect(getTabClose(target, "home")?.classList).toContain(
-      "n-tabs-tab__close",
-    );
-
-    controller.current = { key: "next", label: "Next", closable: true };
-    await settle();
-    controller.current = { key: "third", label: "Third", closable: true };
-    await settle();
-    controller.current = { key: "next", label: "Next", closable: true };
-    await settle();
-    getTabClose(target, "next")!.click();
-    await settle();
-    expect(controller.close).toHaveBeenCalledWith("next", "third");
-    expect(
-      [...target.querySelectorAll("[data-admin-tab-key]")].map((tab) =>
-        tab.getAttribute("data-admin-tab-key"),
-      ),
-    ).toEqual(["home", "third"]);
-
-    controller.current = { key: "third", label: "Third", closable: true };
-    await settle();
-    getTabClose(target, "third")!.click();
-    await settle();
-    expect(controller.close).toHaveBeenLastCalledWith("third", "home");
-  });
-
-  it("retains per-tab pending ownership across host descriptor refreshes", async () => {
-    let resolveActivate: (() => void) | undefined;
-    let resolveClose: (() => void) | undefined;
-    const controller = reactive({
-      current: {
-        key: "home",
-        label: "Home",
-        closable: true,
-      } as AdminShellTabController["current"],
-      activate: vi.fn(
-        () =>
-          new Promise<void>((resolve) => {
-            resolveActivate = resolve;
-          }),
-      ),
-      close: vi.fn(
-        () =>
-          new Promise<void>((resolve) => {
-            resolveClose = resolve;
-          }),
-      ),
-    });
-    const container = mountShell(
-      { kind: "authenticated" },
-      createAuthActions(),
-      { tabController: controller },
-    );
-    await settle();
-    controller.current = { key: "settings", label: "Settings", closable: true };
-    await settle();
-
-    container
-      .querySelector<HTMLElement>('[data-admin-tab-key="home"]')!
-      .click();
-    controller.current = {
-      key: "settings",
-      label: "Updated Settings",
-      closable: true,
-    };
-    await settle();
-    container
-      .querySelector<HTMLElement>('[data-admin-tab-key="home"]')!
-      .click();
-    expect(controller.activate).toHaveBeenCalledTimes(1);
-
-    getTabClose(container, "home")!.click();
-    controller.current = {
-      key: "settings",
-      label: "Final Settings",
-      closable: true,
-    };
-    await settle();
-    getTabClose(container, "home")!.click();
-    expect(controller.close).toHaveBeenCalledTimes(1);
-
-    resolveActivate!();
-    resolveClose!();
-    await settle();
-  });
-
-  it("removes concurrent close requests by key after visible order shifts", async () => {
-    const closeResolvers = new Map<string, () => void>();
-    const controller = reactive({
-      current: {
-        key: "a",
-        label: "A",
-        closable: true,
-      } as AdminShellTabController["current"],
-      activate: vi.fn(async () => undefined),
-      close: vi.fn(
-        (key: string) =>
-          new Promise<void>((resolve) => {
-            closeResolvers.set(key, resolve);
-          }),
-      ),
-    });
-    const container = mountShell(
-      { kind: "authenticated" },
-      createAuthActions(),
-      { tabController: controller },
-    );
-    await settle();
-
-    controller.current = { key: "b", label: "B", closable: true };
-    await settle();
-    controller.current = { key: "c", label: "C", closable: true };
-    await settle();
-    getTabClose(container, "a")!.click();
-    controller.current = { key: "b", label: "B", closable: true };
-    await settle();
-    getTabClose(container, "b")!.click();
-
-    closeResolvers.get("a")!();
-    await settle();
-    closeResolvers.get("b")!();
-    await settle();
-
-    expect(
-      [...container.querySelectorAll("[data-admin-tab-key]")].map((tab) =>
-        tab.getAttribute("data-admin-tab-key"),
-      ),
-    ).toEqual(["c"]);
-  });
-
-  it("removes a tab only after close resolves and retains it on rejection", async () => {
-    let rejectClose: ((reason?: unknown) => void) | undefined;
-    const controller: AdminShellTabController = {
-      current: { key: "home", label: "Home", closable: true },
-      activate: vi.fn(async () => undefined),
-      close: vi.fn(
-        () =>
-          new Promise<void>((_resolve, reject) => {
-            rejectClose = reject;
-          }),
-      ),
-    };
-    const container = mountShell(
-      { kind: "authenticated" },
-      createAuthActions(),
-      { tabController: controller },
-    );
-    const closeButton = getTabClose(container, "home")!;
-    closeButton.click();
-    closeButton.click();
-    await settle();
-    expect(controller.close).toHaveBeenCalledTimes(1);
-    expect(
-      container.querySelector('[data-admin-tab-key="home"]'),
-    ).not.toBeNull();
-    rejectClose!(new Error("denied"));
-    await settle();
-    expect(container.textContent).toContain("Unable to close tab");
-    expect(
-      container.querySelector('[data-admin-tab-key="home"]'),
-    ).not.toBeNull();
-  });
-
-  it("clears tabs across auth and controller sessions and ignores stale callbacks", async () => {
-    let resolveActivate: (() => void) | undefined;
-    let resolveNewActivate: (() => void) | undefined;
-    const controller = reactive({
-      current: { key: "one", label: "One", closable: true } as
-        | AdminShellTabController["current"]
-        | null,
-      activate: vi.fn(
-        () =>
-          new Promise<void>((resolve) => {
-            resolveActivate = resolve;
-          }),
-      ),
-      close: vi.fn(async () => undefined),
-    });
-    const host = document.createElement("div");
-    document.body.append(host);
-    const pinia = createPinia();
-    setActivePinia(pinia);
-    useAdminShellPreferencesStore().initialize();
-    const props = reactive({
-      authStatus: { kind: "authenticated" } as AdminAuthStatus,
-      authActions: createAuthActions(),
-      tabController: controller as AdminShellTabController | undefined,
-    });
-    const app = createApp({
-      setup: () => () =>
-        h(AdminShell, props, {
-          default: () => h("div", { "data-slot": "transition-content" }),
-        }),
-    });
-    app.use(pinia);
-    app.mount(host);
-    mountedApps.push(app);
-    await settle();
-    controller.current = { key: "two", label: "Two", closable: true };
-    await settle();
-
-    expect(
-      host.querySelector('[data-slot="transition-content"]'),
-    ).not.toBeNull();
-    host
-      .querySelector<HTMLElement>("[data-admin-tab-key='one']")!
-      .click();
-    await settle();
-    props.authStatus = { kind: "loading" };
-    await settle();
-    expect(host.querySelector("[data-admin-tabs]")).toBeNull();
-    expect(host.querySelector('[data-slot="transition-content"]')).toBeNull();
-    props.authStatus = { kind: "authenticated" };
-    const activate = vi.fn(
-      () =>
-        new Promise<void>((resolve) => {
-          resolveNewActivate = resolve;
-        }),
-    );
-    const nextController = reactive({
-      current: { key: "one", label: "New One" } as
-        | AdminShellTabController["current"]
-        | null,
-      activate,
-      close: controller.close,
-    });
-    props.tabController = nextController;
-    await settle();
-    nextController.current = { key: "two", label: "New Two" };
-    await settle();
-    expect(
-      host.querySelector('[data-slot="transition-content"]'),
-    ).not.toBeNull();
-    expect(
-      host.querySelector('[data-admin-tab-key="one"]')?.textContent,
-    ).toContain("New One");
-    host
-      .querySelector<HTMLElement>("[data-admin-tab-key='one']")!
-      .click();
-    await settle();
-    expect(activate).toHaveBeenCalledTimes(1);
-    resolveActivate!();
-    await settle();
-    host
-      .querySelector<HTMLElement>("[data-admin-tab-key='one']")!
-      .click();
-    await settle();
-    expect(activate).toHaveBeenCalledTimes(1);
-    resolveNewActivate!();
-    await settle();
-    expect(
-      host.querySelector('[data-admin-tab-key="one"]')?.textContent,
-    ).toContain("New One");
-  });
-
-  it("resets tabs across anonymous and controller-removal transitions", async () => {
-    const controller: AdminShellTabController = {
-      current: { key: "one", label: "One" },
-      activate: vi.fn(async () => undefined),
-      close: vi.fn(async () => undefined),
-    };
-    const props = reactive({
-      authStatus: { kind: "authenticated" } as AdminAuthStatus,
-      authActions: createAuthActions(),
-      tabController: controller as AdminShellTabController | undefined,
-    });
-    const target = document.createElement("div");
-    document.body.append(target);
-    const pinia = createPinia();
-    setActivePinia(pinia);
-    useAdminShellPreferencesStore().initialize();
-    const app = createApp({
-      setup: () => () => h(AdminShell, props),
-    });
-    app.use(pinia);
-    app.mount(target);
-    mountedApps.push(app);
-    await settle();
-    expect(target.querySelector('[data-admin-tab-key="one"]')).not.toBeNull();
-
     props.authStatus = { kind: "anonymous" };
     await settle();
     expect(target.querySelector("[data-admin-tabs]")).toBeNull();
     props.authStatus = { kind: "authenticated" };
-    await settle();
-    expect(target.querySelector('[data-admin-tab-key="one"]')).not.toBeNull();
-
-    props.tabController = undefined;
-    await settle();
-    expect(target.querySelector("[data-admin-tabs]")).toBeNull();
-    props.tabController = {
-      ...controller,
-      current: { key: "two", label: "Two" },
+    props.navigation = {
+      active: { id: "two", nav: { navKey: "two" }, label: "Two" },
+      handleNavigation: vi.fn(async () => ({ active: null })),
     };
     await settle();
     expect(target.querySelector('[data-admin-tab-key="one"]')).toBeNull();

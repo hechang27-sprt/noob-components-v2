@@ -4,8 +4,9 @@ import {
   type AdminAuthActions,
   type AdminAuthStatus,
   type AdminLoginValues,
-  type AdminShellTabController,
-  type AdminShellTabInput,
+  type AdminShellDestination,
+  type AdminShellNavigation,
+  type AdminShellTabDescriptor,
 } from "@noob-naive-ui/admin";
 import {
   darkTheme,
@@ -15,7 +16,7 @@ import {
   type MenuOption,
 } from "naive-ui";
 import { computed, defineComponent, onBeforeUnmount, ref } from "vue";
-import { RouterLink, RouterView, useRouter } from "vue-router";
+import { RouterView, useRouter, type LocationQueryRaw } from "vue-router";
 
 import { demoRouteDefinitions, type DemoRouteDefinition } from "./routes";
 
@@ -23,6 +24,27 @@ import { demoRouteDefinitions, type DemoRouteDefinition } from "./routes";
 const routeDefinitionsByName = Object.fromEntries(
   demoRouteDefinitions.map((definition) => [definition.name, definition]),
 ) as Record<string, DemoRouteDefinition>;
+
+/** Names the browser-history field that persists exact shell page-instance identity. */
+const pageInstanceStateKey = "adminShellPageInstanceId";
+
+/** Resolves a host-owned destination into a validated Vue Router location. */
+function resolveDestination(destination: AdminShellDestination): {
+  path: string;
+  query: LocationQueryRaw;
+} {
+  const definition = demoRouteDefinitions.find(
+    ({ path }) => path === destination.navKey,
+  );
+  if (!definition) throw new Error("Unknown demo destination.");
+  const query = Object.fromEntries(
+    Object.entries(destination.params ?? {}).filter(
+      (entry): entry is [string, string | number] =>
+        typeof entry[1] === "string" || typeof entry[1] === "number",
+    ),
+  );
+  return { path: definition.path, query };
+}
 
 /** Maps each public font-size preference to its bounded Naive UI font-size override. */
 const fontSizeOverrides = {
@@ -50,19 +72,6 @@ export default defineComponent({
     const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
     /** Reflects the browser's current dark-mode media-query match. */
     const systemUsesDark = ref(systemThemeQuery.matches);
-    /** Derives the active route's shell descriptor directly from Vue Router's reactive state. */
-    const currentTab = computed<AdminShellTabInput | null>(() => {
-      const definition =
-        routeDefinitionsByName[String(router.currentRoute.value.name ?? "")];
-
-      return definition
-        ? {
-            key: definition.path,
-            label: definition.label,
-            closable: definition.closable,
-          }
-        : null;
-    });
 
     /** Resolves the shell theme from the public preference without adding a parallel theme store. */
     const theme = computed<GlobalTheme | null>(() => {
@@ -144,38 +153,54 @@ export default defineComponent({
 
     /** Holds the public callback contract used by the packaged anonymous login branch. */
     const authActions: AdminAuthActions = { login, logout };
-    /** Holds a stable shell tab controller whose current descriptor derives from the active route. */
-    const tabController: AdminShellTabController = {
-      /**
-       * Returns the active local route as the host-authoritative tab descriptor.
-       *
-       * @returns The current route's tab descriptor, or null before route resolution.
-       */
-      get current() {
-        return currentTab.value;
+    /** Builds a confirmed descriptor from the current route and persisted history identity. */
+    function currentDescriptor(
+      preferredId?: string,
+    ): AdminShellTabDescriptor | null {
+      const definition =
+        routeDefinitionsByName[String(router.currentRoute.value.name ?? "")];
+      if (!definition) return null;
+      const state = window.history.state as Record<string, unknown> | null;
+      const storedId = state?.[pageInstanceStateKey];
+      const id =
+        preferredId ??
+        (typeof storedId === "string" ? storedId : crypto.randomUUID());
+      if (storedId !== id)
+        window.history.replaceState(
+          { ...state, [pageInstanceStateKey]: id },
+          "",
+        );
+      return {
+        id,
+        nav: {
+          navKey: definition.path,
+          params: { ...router.currentRoute.value.query },
+        },
+        label: definition.label,
+        closable: definition.closable,
+      };
+    }
+
+    /** Holds one stable page-instance navigation adapter derived from confirmed router state. */
+    const navigation: AdminShellNavigation = {
+      /** Returns the route plus exact browser-history page-instance identity. */
+      get active() {
+        return currentDescriptor();
       },
-      /**
-       * Navigates to an existing demo tab key through the app-owned router.
-       *
-       * @param key - The stable local route path selected in the shell tab bar.
-       * @returns A promise that resolves after the router processes the location.
-       */
-      async activate(key: string): Promise<void> {
-        await router.push(key);
-      },
-      /**
-       * Navigates to the shell-suggested next tab, falling back to the permanent home route.
-       *
-       * @param closedKey - The closed tab key, intentionally unused because the shell owns membership.
-       * @param suggestedNextKey - The route key the shell recommends after the close.
-       * @returns A promise that resolves after the router processes the selected location.
-       */
-      async close(
-        closedKey: string,
-        suggestedNextKey: string | null,
-      ): Promise<void> {
-        void closedKey;
-        await router.push(suggestedNextKey ?? demoRouteDefinitions[0].path);
+      /** Executes one shell-resolved operation and returns the confirmed active descriptor. */
+      async handleNavigation(request) {
+        let descriptor: Pick<AdminShellTabDescriptor, "id" | "nav">;
+        if (request.kind === "open") descriptor = request.candidate;
+        else if (request.kind === "activate") descriptor = request.destination;
+        else if (request.destination) descriptor = request.destination;
+        else return { active: null };
+        await router.push({
+          ...resolveDestination(descriptor.nav),
+          force: true,
+          state: { [pageInstanceStateKey]: descriptor.id },
+          replace: request.kind === "open" && request.closeCurrent,
+        });
+        return { active: currentDescriptor(descriptor.id) };
       },
     };
 
@@ -188,7 +213,7 @@ export default defineComponent({
           authStatus={authStatus.value}
           authActions={authActions}
           menuOptions={menuOptions}
-          tabController={tabController}
+          navigation={navigation}
         >
           <RouterView />
         </AdminShell>
@@ -198,16 +223,14 @@ export default defineComponent({
 });
 
 /**
- * Creates one router-aware Naive UI menu option while preserving the app-owned route hierarchy.
+ * Creates one plain Naive UI menu option while preserving app-owned route identity.
  *
- * @param definition - The local route metadata used to render the menu link.
+ * @param definition - The local route metadata used to render the menu label.
  * @returns The opaque menu option passed unchanged to the public shell.
  */
 function createMenuOption(definition: DemoRouteDefinition): MenuOption {
   return {
     key: definition.path,
-    label: () => (
-      <RouterLink to={definition.path}>{definition.label}</RouterLink>
-    ),
+    label: definition.label,
   };
 }

@@ -1,7 +1,9 @@
 import tailwindcss from "@tailwindcss/vite";
 import { resolve } from "node:path";
 
+import vue from "@vitejs/plugin-vue";
 import vueJsx from "@vitejs/plugin-vue-jsx";
+import vueDevTools from "vite-plugin-vue-devtools";
 import { defineConfig } from "vite";
 
 /**
@@ -14,7 +16,7 @@ export default defineConfig(({ command }) => {
   const isDevelopmentServer = command === "serve";
 
   return {
-    plugins: [tailwindcss(), vueJsx()],
+    plugins: [tailwindcss(), vue(), vueJsx(), vueDevTools()],
     resolve: isDevelopmentServer
       ? {
           alias: [
@@ -34,7 +36,10 @@ export default defineConfig(({ command }) => {
             },
             {
               find: "@noob-naive-ui/ui/style.css",
-              replacement: resolve(__dirname, "../../packages/ui/src/style.css"),
+              replacement: resolve(
+                __dirname,
+                "../../packages/ui/src/style.css",
+              ),
             },
             {
               find: "@noob-naive-ui/ui",

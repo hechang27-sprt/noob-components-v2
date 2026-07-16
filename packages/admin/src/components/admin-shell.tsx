@@ -26,6 +26,7 @@ import {
   onBeforeUnmount,
   reactive,
   ref,
+  shallowRef,
   watch,
   type PropType,
 } from "vue";
@@ -59,45 +60,96 @@ const accountOptions = [
   { key: "logout", label: "Sign out", icon: renderLogoutIcon },
 ] satisfies DropdownOption[];
 
-/** Describes host-owned presentation for one router-neutral tab. */
-export type AdminShellTabInput = {
-  /** Identifies the tab and must stay stable across host updates. */
-  key: string;
-  /** Supplies the user-visible page title without exposing route metadata. */
+/** Selects whether one navigation call opens a page or activates an existing page instance. */
+export type AdminShellTabNavigationDecision =
+  { kind: "open" } | { kind: "activate"; tabId: string };
+
+/** Resolves one destination against all currently opened public tab snapshots. */
+export type AdminShellTabNavigationResolver = (
+  tabs: readonly AdminShellTabDescriptor[],
+  destination: AdminShellDestination,
+) => AdminShellTabNavigationDecision;
+
+/** Describes a router-neutral destination interpreted only by the host. */
+export type AdminShellDestination = {
+  /** Supplies the stable host-defined navigation key. */
+  navKey: string;
+  /** Supplies optional host-interpreted navigation parameters. */
+  params?: Readonly<Record<string, unknown>>;
+  /** Overrides the shell's default existing-tab resolution for this call. */
+  resolveTabNavigation?: AdminShellTabNavigationResolver;
+};
+
+/** Describes one immutable opened page-instance snapshot exposed to the host. */
+export type AdminShellTabDescriptor = {
+  /** Identifies this page instance independently of its destination. */
+  id: string;
+  /** Supplies the router-neutral destination represented by this page instance. */
+  nav: AdminShellDestination;
+  /** Supplies the user-visible tab label confirmed by the host. */
   label: string;
-  /** Allows the host to keep a tab permanently open when explicitly false. */
+  /** Allows the host to keep a page instance permanently open when false. */
   closable?: boolean;
 };
 
-/** Stores shell-local ordering and async ownership for an open tab. */
-export type AdminShellTab = AdminShellTabInput & {
-  /** Records the tab's current zero-based position in the visible tab order. */
+/** Stores shell-private ordering and pending state for one committed page instance. */
+export type AdminShellTab = AdminShellTabDescriptor & {
+  /** Records the current zero-based visible position. */
   index: number;
-  /** Owns the current activation request for this tab's session, if any. */
-  activationPendingVersion?: number;
-  /** Owns the current close request for this tab's session, if any. */
-  closePendingVersion?: number;
+  /** Prevents duplicate activation requests for this exact record. */
+  activationPending: boolean;
+  /** Prevents duplicate close requests for this exact record. */
+  closePending: boolean;
 };
 
-/** Coordinates router-neutral tab activation and closure with the starter. */
-export type AdminShellTabController = {
-  /** Reports the host-authoritative active tab descriptor, or no active tab. */
-  current: AdminShellTabInput | null;
-  /**
-   * Requests activation without letting the shell optimistically change selection.
-   *
-   * @param key - Stable key of the existing local tab to activate.
-   * @returns A promise that settles after the starter handles activation.
-   */
-  activate: (key: string) => Promise<void>;
-  /**
-   * Requests closure of a local tab and gives the starter a neighbor suggestion.
-   *
-   * @param closedKey - Stable key of the tab requested for closure.
-   * @param suggestedNextKey - Adjacent or host-active key to select after close.
-   * @returns A promise that resolves only when the starter accepts closure.
-   */
-  close: (closedKey: string, suggestedNextKey: string | null) => Promise<void>;
+/** Describes one uncommitted page instance proposed by the shell. */
+export type AdminShellTabCandidate = Pick<
+  AdminShellTabDescriptor,
+  "id" | "nav"
+>;
+
+/** Describes the single discriminated host navigation boundary. */
+export type AdminShellNavigationRequest =
+  | {
+      /** Selects creation of a new uncommitted page instance. */
+      kind: "open";
+      /** Supplies the shell-generated identity and requested destination awaiting host confirmation. */
+      candidate: AdminShellTabCandidate;
+      /** Supplies the host-authoritative active page before the open request, or null when none exists. */
+      current: AdminShellTabDescriptor | null;
+      /** Requests replacement of the current browser-history entry when true, rather than adding an entry. */
+      closeCurrent: boolean;
+    }
+  | {
+      /** Selects navigation to an already committed page instance. */
+      kind: "activate";
+      /** Supplies the exact committed page instance that must become active. */
+      destination: AdminShellTabDescriptor;
+      /** Supplies the host-authoritative active page before activation, or null when none exists. */
+      current: AdminShellTabDescriptor | null;
+    }
+  | {
+      /** Selects removal of one exact committed page instance. */
+      kind: "close";
+      /** Supplies the exact committed page instance to remove after host confirmation. */
+      closing: AdminShellTabDescriptor;
+      /** Supplies the shell-selected fallback page instance to activate, or null when no fallback remains. */
+      destination: AdminShellTabDescriptor | null;
+    };
+
+/** Reports the host-confirmed active page after one navigation request. */
+export type AdminShellNavigationResult = {
+  active: AdminShellTabDescriptor | null;
+};
+
+/** Coordinates router-neutral page-instance navigation with the host application. */
+export type AdminShellNavigation = {
+  /** Reports the host-authoritative active page instance. */
+  active: AdminShellTabDescriptor | null;
+  /** Handles one resolved open, activate, or close request. */
+  handleNavigation: (
+    request: AdminShellNavigationRequest,
+  ) => Promise<AdminShellNavigationResult>;
 };
 
 /** Defines the frontend-ready inputs accepted by the router-free shell. */
@@ -106,216 +158,191 @@ export type AdminShellProps = {
   authStatus: AdminAuthStatus;
   /** Supplies starter-owned login/logout callbacks to the anonymous branch. */
   authActions: AdminAuthActions;
-  /** Supplies the starter-built menu tree without shell inspection or mutation. */
+  /** Supplies the starter-built menu tree without shell mutation. */
   menuOptions?: MenuOption[];
-  /** Supplies optional host authority for locally rendered open tabs. */
-  tabController?: AdminShellTabController;
+  /** Supplies optional host authority for page-instance navigation. */
+  navigation?: AdminShellNavigation;
 };
 
-/**
- * Renders the frontend-only authenticated shell and its runtime-owned controls.
- *
- * The component owns presentation and ephemeral open-tab membership only; the
- * starter owns route content, menu construction, and tab callback behavior.
- *
- * @param props - Frontend auth, menu, and optional tab-controller inputs.
- * @returns A Vue component that selects the corresponding shell branch.
- */
+/** Returns a public immutable snapshot without shell-private mutable fields. */
+function snapshotTab(tab: AdminShellTab): AdminShellTabDescriptor {
+  return { id: tab.id, nav: tab.nav, label: tab.label, closable: tab.closable };
+}
+
+/** Renders the frontend-only authenticated shell and its runtime-owned controls. */
 export const AdminShell = defineComponent(
   (props: AdminShellProps, { slots }) => {
     /** Reads and mutates the one existing runtime preference store. */
     const preferences = useAdminShellPreferencesStore();
-    /** Stores only tabs observed in the current authenticated host session by key. */
+    /** Stores committed page instances by immutable ID. */
     const tabs = reactive(new Map<string, AdminShellTab>());
-    /** Owns the entire user-visible tab ordering independently of map insertion order. */
+    /** Owns the sole user-visible page-instance ordering. */
     const visibleTabs = ref<string[]>([]);
-    /** Holds a sanitized async-tab feedback message for the current session. */
+    /** Holds sanitized navigation feedback for the current boundary. */
     const tabError = ref<string>();
-    /** Invalidates callback completions that belong to an earlier tab session. */
-    const sessionVersion = ref(0);
-    /** Prevents duplicate logout actions while the supplied async callback settles. */
+    /** Identifies the only uncommitted open candidate still allowed to complete. */
+    const pendingOpen = shallowRef<AdminShellTabCandidate>();
+    /** Prevents duplicate logout actions while the supplied callback settles. */
     const logoutPending = ref(false);
-    /** Holds generic UI-safe feedback when the supplied logout action rejects. */
+    /** Holds generic UI-safe feedback when logout rejects. */
     const logoutError = ref<string>();
 
-    /**
-     * Synchronizes each retained tab's index with the sole visible-order source.
-     *
-     * @returns Nothing after writing each current zero-based visible index.
-     */
+    /** Synchronizes retained tab indexes with visible order. */
     function reindexTabs(): void {
-      visibleTabs.value.forEach((key, index) => {
-        const tab = tabs.get(key);
-        if (tab) {
-          tab.index = index;
-        }
+      visibleTabs.value.forEach((id, index) => {
+        const tab = tabs.get(id);
+        if (tab) tab.index = index;
       });
     }
 
-    /**
-     * Clears all session-local tab state when its auth or controller boundary changes.
-     *
-     * @returns Nothing after invalidating in-flight callback completions.
-     */
+    /** Clears ephemeral membership and invalidates an uncommitted candidate. */
     function clearTabs(): void {
       tabs.clear();
       visibleTabs.value.length = 0;
+      pendingOpen.value = undefined;
       tabError.value = undefined;
-      sessionVersion.value += 1;
     }
 
-    /**
-     * Adds or refreshes host-owned tab presentation without replacing shell-local state.
-     *
-     * @param current - The latest host-authoritative tab descriptor, if any.
-     * @returns Nothing after synchronizing local membership and presentation.
-     */
-    function recordCurrentTab(current: AdminShellTabInput | null): void {
-      if (!current) {
-        return;
-      }
-
-      const existing = tabs.get(current.key);
+    /** Records or refreshes one host-confirmed descriptor by page-instance ID. */
+    function recordCurrentTab(current: AdminShellTabDescriptor | null): void {
+      if (!current) return;
+      const existing = tabs.get(current.id);
       if (existing) {
+        existing.nav = current.nav;
         existing.label = current.label;
         existing.closable = current.closable;
         return;
       }
-
-      tabs.set(current.key, {
-        key: current.key,
-        label: current.label,
-        closable: current.closable,
+      tabs.set(current.id, {
+        ...current,
         index: visibleTabs.value.length,
+        activationPending: false,
+        closePending: false,
       });
-      visibleTabs.value.push(current.key);
+      visibleTabs.value.push(current.id);
     }
 
-    /**
-     * Lets Naive UI leave the active tab only for a known, idle local target.
-     *
-     * @param key - Candidate tab name emitted by `NTabs.onBeforeLeave`.
-     * @returns Whether `NTabs` may emit the corresponding value update.
-     */
-    function canActivateTab(key: string | number): boolean {
-      if (typeof key !== "string") {
-        return false;
-      }
-
-      const tab = tabs.get(key);
-      return Boolean(
-        tab && tab.activationPendingVersion !== sessionVersion.value,
-      );
+    /** Returns all committed public descriptors in visible order. */
+    function openedDescriptors(): AdminShellTabDescriptor[] {
+      return visibleTabs.value.flatMap((id) => {
+        const tab = tabs.get(id);
+        return tab ? [snapshotTab(tab)] : [];
+      });
     }
 
-    /**
-     * Starts a host activation callback while suppressing duplicate clicks.
-     *
-     * @param key - Stable key of the already open tab requested for activation.
-     * @returns A promise that settles after reporting any safe local error state.
-     */
-    async function activateTab(key: string): Promise<void> {
-      const controller = props.tabController;
-      const version = sessionVersion.value;
-      const tab = tabs.get(key);
-      if (!controller || !tab || tab.activationPendingVersion === version) {
-        return;
-      }
-
-      tab.activationPendingVersion = version;
-      tabError.value = undefined;
-
-      try {
-        await controller.activate(key);
-      } catch {
-        if (
-          sessionVersion.value === version &&
-          tabs.get(key)?.activationPendingVersion === version
-        ) {
-          tabError.value = "Unable to activate tab.";
-        }
-      } finally {
-        const currentTab = tabs.get(key);
-        if (
-          sessionVersion.value === version &&
-          currentTab?.activationPendingVersion === version
-        ) {
-          currentTab.activationPendingVersion = undefined;
-        }
-      }
-    }
-
-    /**
-     * Computes the next-key suggestion for a close request without changing host state.
-     *
-     * @param index - Current visible-order index of the tab requested for closure.
-     * @param tabKey - Stable key of the tab requested for closure.
-     * @returns The adjacent or current host key, or null when none is available.
-     */
-    function getSuggestedNextKey(index: number, tabKey: string): string | null {
-      const currentKey = props.tabController?.current?.key;
-      if (currentKey !== tabKey) {
-        return currentKey ?? null;
-      }
-
+    /** Returns whether Naive UI may activate a known idle page instance. */
+    function canActivateTab(id: string | number): boolean {
       return (
-        visibleTabs.value[index + 1] ?? visibleTabs.value[index - 1] ?? null
+        typeof id === "string" &&
+        Boolean(tabs.get(id) && !tabs.get(id)!.activationPending)
       );
     }
 
-    /**
-     * Awaits a host close callback before removing the requested tab locally.
-     *
-     * @param tabKey - Stable key of the open tab requested for closure.
-     * @returns A promise that settles after retaining or removing the tab safely.
-     */
-    async function closeTab(tabKey: string): Promise<void> {
-      const controller = props.tabController;
-      const version = sessionVersion.value;
-      const tab = tabs.get(tabKey);
-      const index = visibleTabs.value.indexOf(tabKey);
+    /** Requests activation for one exact committed page instance. */
+    async function activateTab(id: string): Promise<void> {
+      const navigation = props.navigation;
+      const tab = tabs.get(id);
       if (
-        !controller ||
+        !navigation ||
         !tab ||
-        index === -1 ||
-        tab.closable === false ||
-        tab.closePendingVersion === version
-      ) {
+        tab.activationPending ||
+        navigation.active?.id === id
+      )
+        return;
+      tab.activationPending = true;
+      tabError.value = undefined;
+      try {
+        await navigation.handleNavigation({
+          kind: "activate",
+          destination: snapshotTab(tab),
+          current: navigation.active,
+        });
+      } catch {
+        if (tabs.get(id) === tab) tabError.value = "Unable to navigate.";
+      } finally {
+        if (tabs.get(id) === tab) tab.activationPending = false;
+      }
+    }
+
+    /** Resolves a destination and requests either exact activation or a candidate open. */
+    async function requestDestination(
+      destination: AdminShellDestination,
+    ): Promise<void> {
+      const navigation = props.navigation;
+      if (!navigation || pendingOpen.value) return;
+      const opened = openedDescriptors();
+      const newestMatch = [...opened]
+        .reverse()
+        .find((tab) => tab.nav.navKey === destination.navKey);
+      const decision =
+        destination.resolveTabNavigation?.(opened, destination) ??
+        (newestMatch
+          ? { kind: "activate" as const, tabId: newestMatch.id }
+          : { kind: "open" as const });
+      if (decision.kind === "activate") {
+        if (tabs.has(decision.tabId)) await activateTab(decision.tabId);
         return;
       }
-
-      tab.closePendingVersion = version;
+      const candidate = { id: crypto.randomUUID(), nav: destination };
+      pendingOpen.value = candidate;
       tabError.value = undefined;
-      const suggestedNextKey = getSuggestedNextKey(index, tabKey);
-
       try {
-        await controller.close(tabKey, suggestedNextKey);
+        const result = await navigation.handleNavigation({
+          kind: "open",
+          candidate,
+          current: navigation.active,
+          closeCurrent: false,
+        });
         if (
-          sessionVersion.value === version &&
-          tabs.get(tabKey)?.closePendingVersion === version
-        ) {
-          const visibleIndex = visibleTabs.value.indexOf(tabKey);
-          tabs.delete(tabKey);
-          if (visibleIndex !== -1) {
-            visibleTabs.value.splice(visibleIndex, 1);
-            reindexTabs();
-          }
+          props.navigation === navigation &&
+          pendingOpen.value === candidate &&
+          result.active?.id === candidate.id
+        )
+          recordCurrentTab(result.active);
+      } catch {
+        if (props.navigation === navigation && pendingOpen.value === candidate)
+          tabError.value = "Unable to navigate.";
+      } finally {
+        if (pendingOpen.value === candidate) pendingOpen.value = undefined;
+      }
+    }
+
+    /** Computes the current-order fallback descriptor for an exact close request. */
+    function getCloseDestination(
+      tab: AdminShellTab,
+    ): AdminShellTabDescriptor | null {
+      if (props.navigation?.active?.id !== tab.id)
+        return props.navigation?.active ?? null;
+      const id =
+        visibleTabs.value[tab.index + 1] ?? visibleTabs.value[tab.index - 1];
+      const destination = id ? tabs.get(id) : undefined;
+      return destination ? snapshotTab(destination) : null;
+    }
+
+    /** Requests closure and removes only the exact record that owned the completion. */
+    async function closeTab(id: string): Promise<void> {
+      const navigation = props.navigation;
+      const tab = tabs.get(id);
+      if (!navigation || !tab || tab.closable === false || tab.closePending)
+        return;
+      tab.closePending = true;
+      tabError.value = undefined;
+      try {
+        await navigation.handleNavigation({
+          kind: "close",
+          closing: snapshotTab(tab),
+          destination: getCloseDestination(tab),
+        });
+        if (tabs.get(id) === tab) {
+          tabs.delete(id);
+          const index = visibleTabs.value.indexOf(id);
+          if (index !== -1) visibleTabs.value.splice(index, 1);
+          reindexTabs();
         }
       } catch {
-        if (
-          sessionVersion.value === version &&
-          tabs.get(tabKey)?.closePendingVersion === version
-        ) {
-          tabError.value = "Unable to close tab.";
-        }
+        if (tabs.get(id) === tab) tabError.value = "Unable to close tab.";
       } finally {
-        const currentTab = tabs.get(tabKey);
-        if (
-          sessionVersion.value === version &&
-          currentTab?.closePendingVersion === version
-        ) {
-          currentTab.closePendingVersion = undefined;
-        }
+        if (tabs.get(id) === tab) tab.closePending = false;
       }
     }
 
@@ -388,46 +415,35 @@ export const AdminShell = defineComponent(
       }
     }
 
-    /**
-     * Tracks auth/controller boundaries and host-reported current-tab presentation.
-     * The watcher receives the current and prior auth/controller tuple and returns
-     * nothing after resetting stale state or recording the current host tab.
-     */
+    /** Tracks auth/navigation boundaries and records each host-confirmed page instance. */
     watch(
       () => [
         props.authStatus.kind,
-        props.tabController,
-        props.tabController?.current?.key,
-        props.tabController?.current?.label,
-        props.tabController?.current?.closable,
+        props.navigation,
+        props.navigation?.active?.id,
+        props.navigation?.active?.nav,
+        props.navigation?.active?.label,
+        props.navigation?.active?.closable,
       ],
       (next, previous) => {
-        const [kind, controller] = next as [
+        const [kind, navigation] = next as [
           AdminAuthStatus["kind"],
-          AdminShellTabController | undefined,
-          string | undefined,
-          string | undefined,
-          boolean | undefined,
+          AdminShellNavigation | undefined,
         ];
-        const [previousKind, previousController] = (previous ?? []) as [
+        const [previousKind, previousNavigation] = (previous ?? []) as [
           AdminAuthStatus["kind"] | undefined,
-          AdminShellTabController | undefined,
+          AdminShellNavigation | undefined,
         ];
-        const authenticated = kind === "authenticated" && Boolean(controller);
+        const authenticated = kind === "authenticated" && Boolean(navigation);
         const previousAuthenticated =
-          previousKind === "authenticated" && Boolean(previousController);
-
+          previousKind === "authenticated" && Boolean(previousNavigation);
         if (
           !authenticated ||
           !previousAuthenticated ||
-          controller !== previousController
-        ) {
+          navigation !== previousNavigation
+        )
           clearTabs();
-        }
-
-        if (authenticated) {
-          recordCurrentTab(controller?.current ?? null);
-        }
+        if (authenticated) recordCurrentTab(navigation?.active ?? null);
       },
       { immediate: true, flush: "sync" },
     );
@@ -462,7 +478,8 @@ export const AdminShell = defineComponent(
         );
       }
 
-      const activeKey = props.tabController?.current?.key;
+      const activeId = props.navigation?.active?.id;
+      const activeMenuKey = props.navigation?.active?.nav.navKey;
       const localeOptions: AdminLocaleOption[] = preferences.availableLocales;
       const menuOptions = props.menuOptions;
       const userLabel = authStatus.userLabel ?? "Signed in";
@@ -603,15 +620,23 @@ export const AdminShell = defineComponent(
           </div>
         ),
         sidebar: menuOptions?.length
-          ? () => <NMenu options={menuOptions} value={activeKey} />
+          ? () => (
+              <NMenu
+                options={menuOptions}
+                value={activeMenuKey}
+                onUpdateValue={(key: string | number) =>
+                  void requestDestination({ navKey: String(key) })
+                }
+              />
+            )
           : undefined,
-        tabbar: props.tabController
+        tabbar: props.navigation
           ? () => (
               <div class="min-w-0" role="tablist" aria-label="Open pages">
                 <NTabs
                   type="card"
                   size="small"
-                  value={activeKey}
+                  value={activeId}
                   tabsPadding={8}
                   data-admin-tabs
                   onBeforeLeave={canActivateTab}
@@ -621,9 +646,9 @@ export const AdminShell = defineComponent(
                   onClose={(key: string | number) => void closeTab(String(key))}
                   tabClass="data-[admin-tab-active=true]:h-9/10 h-4/5 self-end rounded-t-xl!"
                 >
-                  {visibleTabs.value.map((key) => {
-                    const tab = tabs.get(key);
-                    const active = activeKey === tab?.key;
+                  {visibleTabs.value.map((id) => {
+                    const tab = tabs.get(id);
+                    const active = activeId === tab?.id;
                     /** Supplies tab semantics that Naive UI does not declare as component props. */
                     const tabAccessibilityProps = {
                       role: "tab",
@@ -632,11 +657,11 @@ export const AdminShell = defineComponent(
                     };
                     return tab ? (
                       <NTab
-                        key={tab.key}
-                        name={tab.key}
+                        key={tab.id}
+                        name={tab.id}
                         tab={tab.label}
                         closable={tab.closable !== false}
-                        data-admin-tab-key={tab.key}
+                        data-admin-tab-key={tab.id}
                         data-admin-tab-active={active}
                         {...tabAccessibilityProps}
                       />
@@ -651,7 +676,7 @@ export const AdminShell = defineComponent(
               </div>
             )
           : undefined,
-        default: () => slots.default?.(),
+        default: () => slots.default?.({ navigate: requestDestination }),
       };
 
       return (
@@ -660,7 +685,7 @@ export const AdminShell = defineComponent(
             collapsed={preferences.sidebarCollapsed}
             onUpdateCollapsed={setSidebarCollapsed}
             showSidebar={Boolean(menuOptions?.length)}
-            showTabbar={Boolean(props.tabController)}
+            showTabbar={Boolean(props.navigation)}
             v-slots={layoutSlots}
           />
         </div>
@@ -668,6 +693,7 @@ export const AdminShell = defineComponent(
     };
   },
   {
+    name: "AdminShell",
     props: {
       authStatus: { type: Object as PropType<AdminAuthStatus>, required: true },
       authActions: {
@@ -675,7 +701,7 @@ export const AdminShell = defineComponent(
         required: true,
       },
       menuOptions: Array as PropType<MenuOption[]>,
-      tabController: Object as PropType<AdminShellTabController>,
+      navigation: Object as PropType<AdminShellNavigation>,
     },
   },
 );

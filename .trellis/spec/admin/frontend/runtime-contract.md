@@ -11,89 +11,32 @@
 
 Keep additions frontend-ready and minimal. The public barrel, `packages/admin/src/index.ts`, exports types, the preferences store, `AdminLoginPage`, and `AdminShell`; add exports there intentionally rather than reaching into internals.
 
-## AdminShell contract
+## AdminShell page-instance navigation contract
 
-### 1. Scope / trigger
+`AdminShell` owns ephemeral page-instance membership, visible order, indexes, pending booleans, and close fallback. The host owns routing, destination interpretation, browser history identity, and confirmed active state.
 
-`AdminShell` is the authenticated frontend frame. It owns only presentation, runtime preference controls, and local open-tab membership. The starter owns auth restoration, routing, menu derivation, and the content supplied through the default slot.
+- `AdminShellDestination` contains `navKey`, optional `Readonly<Record<string, unknown>>` parameters, and an optional per-call `resolveTabNavigation` policy.
+- `AdminShellTabDescriptor.id` is immutable page-instance identity. Destinations are not identity: duplicate `navKey` and parameter records are valid.
+- `AdminShellTab` extends the public descriptor only inside the shell with `index`, `activationPending`, and `closePending`; these mutable fields never cross the host boundary.
+- `AdminShellNavigation.handleNavigation` is the sole host callback. Its discriminated request variants are `open`, `activate`, and `close`, and each carries destination-bearing snapshots.
+- The host-authoritative `navigation.active` controls tab selection. The shell records confirmed descriptors by ID and never optimistically changes active state.
+- Before opening, the shell gives `resolveTabNavigation` every public descriptor in visible order. Without a resolver it activates the newest matching `navKey`, ignoring parameters, or opens when no match exists.
+- An open candidate remains outside committed membership until the host returns the same confirmed ID. Rejection or stale completion cannot add it.
+- Existing activation and close operations use exact tab-record identity and boolean pending fields. No session or pending-version counter owns committed operations.
+- A plain menu key becomes `{ navKey: String(key) }`. Rich application triggers use the default scoped-slot `navigate(destination)` control to supply parameters or a resolver.
+- Sidebar selection uses the active destination's `navKey`; unmatched keys naturally leave the opaque `MenuOption[]` unselected. There is no `menuKey` override.
+- Loading and anonymous states render no authenticated layout. Leaving authenticated state or replacing the navigation adapter clears ephemeral membership and invalidates candidates.
+- `@noob-naive-ui/admin` imports no router API. The host persists IDs in browser history and derives active descriptors from confirmed route plus history state.
 
-### 2. Signatures
+### Required tests
 
-```ts
-export type AdminShellTabInput = {
-  key: string;
-  label: string;
-  closable?: boolean;
-};
-
-export type AdminShellTab = AdminShellTabInput & {
-  index: number;
-  activationPendingVersion?: number;
-  closePendingVersion?: number;
-};
-
-export type AdminShellTabController = {
-  current: AdminShellTabInput | null;
-  activate: (key: string) => Promise<void>;
-  close: (closedKey: string, suggestedNextKey: string | null) => Promise<void>;
-};
-
-export type AdminShellProps = {
-  authStatus: AdminAuthStatus;
-  authActions: AdminAuthActions;
-  menuOptions?: MenuOption[];
-  tabController?: AdminShellTabController;
-};
-```
-
-### 3. Contracts
-
-- Loading and anonymous states render no layout/sidebar/tabbar/default-slot content; anonymous delegates login UX to `AdminLoginPage` with the supplied actions.
-- The authenticated state mounts `ProLayout` in a definite-height `height: 100dvh` container, binds its collapsed state to `useAdminShellPreferencesStore`, and forwards only the default slot as content.
-- `menuOptions` is starter-owned opaque input. Pass the exact array reference directly to internal `NMenu`; do not inspect, clone, filter, re-key, or handle selection. Bind only `NMenu.value` to `tabController.current.key` so host-authoritative route changes keep the menu highlight synchronized.
-- `tabController.current` is an authoritative host descriptor, while `AdminShellTab` is shell-local state carrying visible-order index and per-operation ownership. The shell awaits `activate` and `close`; it updates membership only after a resolved close and invalidates pending actions when authentication or the controller changes.
-- Theme, font size, locale, and sidebar controls call the existing preferences-store actions. Locale options remain runtime-only; controls never parse or persist storage.
-- Authenticated header presentation stays frontend-only: the `nav-left` sidebar control and `nav-right` theme/font/locale/account controls use `NIcon` with `@vicons/ionicons5`. Font, locale, and account dropdowns use immediate `trigger="hover"`/`delay={0}`. The account trigger shows only a generic icon and `userLabel` fallback, and its sole option invokes `authActions.logout`.
-- The theme control is a direct action, not a dropdown: `dark` renders sun and selects `light`; `light` and `system` render moon and select `dark`. Its accessible name describes that next action.
-- Tab presentation uses controlled `NTabs type="card"` with direct `NTab` children and no `NTabPane`. Bind the host-authoritative current key to `value`, gate transitions through `onBeforeLeave`, request activation through `onUpdateValue`, and request shell-owned closure through `onClose`; never recreate tabs from `NButton` controls.
-
-### 4. Validation and error matrix
-
-| Condition | Shell behavior |
-| --- | --- |
-| No menu options or an empty array | Do not render the sidebar. |
-| No tab controller | Do not render tabbar or retain tabs. |
-| `activate` or `close` rejects | Retain tab membership/highlight; show only generic UI-safe feedback. |
-| Close callback resolves | Look up the closed key in the **current** visible order, then remove both that key and its map record and reindex. A pre-await index is only valid for the callback's suggested-next key because concurrent closes can shift visible order. |
-| Auth leaves authenticated or controller changes | Clear local tabs and invalidate prior async tab actions. |
-| Account menu selects `logout` | Invoke only the supplied `authActions.logout`; do not model a session or add a second logout flow. |
-
-### 5. Good, base, and bad cases
-
-- Good: the starter builds nested `MenuOption[]` with router-aware label content and supplies `<router-view />` in the default slot.
-- Base: the starter reports a current tab and implements async activation/close callbacks; `AdminShell` renders its local tab UI without importing routing code.
-- Bad: passing a router object, backend session, visibility set, menu-selection callback, or storage adapter to `AdminShell`.
-
-### 6. Tests required
-
-`packages/admin/tests/admin-shell.test.ts` must observably cover every auth branch, default-slot isolation, defined-height `ProLayout`, unchanged menu composition, tab-driven menu-highlight synchronization, empty-menu absence, store-backed controls, host-descriptor versus shell-state separation, visible-order updates, async success/failure/pending behavior, and auth/controller cleanup.
-It must also cover icon-only accessible names, immediate hover menu selection, action-oriented theme glyph mapping, account logout delegation, native `NTabs`/`NTab` semantics, active/inactive accessibility state, and async activation/close callbacks.
-
-### 7. Wrong vs correct
-
-```tsx
-// Wrong: the runtime takes ownership of starter navigation.
-<NMenu options={props.menuOptions.filter(isVisible)} onUpdateValue={router.push} />;
-
-// Correct: direct opaque starter composition.
-<NMenu options={props.menuOptions} />;
-```
+`packages/admin/tests/admin-shell.test.ts` covers auth branches, candidate commit/rejection, newest-match resolution, duplicate destinations, exact-instance close, boundary cleanup, controlled tab accessibility, menu composition, and preference controls. Public-contract changes also require admin typecheck/build and demo typecheck/build/browser verification.
 
 ## Required separation
 
 The shared runtime must not import or define backend routes, request/response DTOs, transport clients, session/user models, permission payloads, TanStack Query ownership, or packaged business CRUD pages. `docs/agent/admin-runtime-contract.md` assigns those responsibilities to the starter/app.
 
-The starter derives the final `MenuOption[]`, including visibility, hierarchy, and router-aware link/rendered-label content. The runtime renders it unchanged with direct Naive composition; it must not filter visibility, normalize menu keys, own route selection, or receive a router. `AdminRouteVisibility` is obsolete and must be removed only after callers are migrated or verified absent.
+The starter derives the final `MenuOption[]`, including visibility and hierarchy, and maps confirmed route state into `AdminShellNavigation.active`. The runtime renders menu structure unchanged, requests string-keyed navigation, and must not filter visibility, normalize keys, receive route objects, or receive a router.
 
 ## Dependencies and build
 

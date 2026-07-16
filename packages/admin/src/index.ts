@@ -21,8 +21,14 @@ export {
 
 export {
   AdminShell,
+  type AdminShellDestination,
+  type AdminShellNavigation,
+  type AdminShellNavigationRequest,
+  type AdminShellNavigationResult,
   type AdminShellProps,
   type AdminShellTab,
-  type AdminShellTabController,
-  type AdminShellTabInput,
+  type AdminShellTabCandidate,
+  type AdminShellTabDescriptor,
+  type AdminShellTabNavigationDecision,
+  type AdminShellTabNavigationResolver,
 } from "./components/admin-shell";

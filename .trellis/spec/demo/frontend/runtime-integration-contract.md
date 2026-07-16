@@ -10,14 +10,14 @@ Use this contract when changing `apps/demo` application assembly, its public adm
 import type {
   AdminAuthActions,
   AdminAuthStatus,
-  AdminShellTabController,
+  AdminShellNavigation,
 } from "@noob-naive-ui/admin";
 import type { MenuOption } from "naive-ui";
 
 const authStatus: Ref<AdminAuthStatus>;
 const authActions: AdminAuthActions;
 const menuOptions: MenuOption[];
-const tabController: AdminShellTabController;
+const navigation: AdminShellNavigation;
 ```
 
 Production-focused commands have an admin-build prerequisite, while Vite serve mode resolves admin and UI source directly:
@@ -35,8 +35,8 @@ Production-focused commands have an admin-build prerequisite, while Vite serve m
 - Import runtime values and types from `@noob-naive-ui/admin`; never use application-source relative imports into `packages/admin`. Demo Vite serve mode may resolve the package specifier to workspace source aliases so library edits participate in HMR, but production build mode must retain artifact resolution.
 - Import `@noob-naive-ui/admin/style.css` explicitly in the app entrypoint. Serve-mode aliases must list exact admin/UI `style.css` subpaths before package-root aliases so Vite loads and watches the real source stylesheets.
 - Keep auth in a single in-memory `Ref<AdminAuthStatus>`. Login trims username/password and rejects either empty value; successful login uses the username only as a rendering label. Logout routes home and changes auth to the signed-out anonymous state.
-- Build the final router-aware `MenuOption[]` in the demo and pass its exact reference to `AdminShell`. The shell gets no router, route-selection callback, visibility input, session, or backend-shaped value.
-- Keep one stable `AdminShellTabController`; its `current` getter derives from Vue Router's reactive route. `activate` and `close` await application-owned router navigation. Do not duplicate shell-local visible-tab membership in the application.
+- Build the final `MenuOption[]` with plain labels in the demo and pass its exact reference to `AdminShell`. The shell gets no router, route object, visibility input, session, or backend-shaped value.
+- Keep one stable `AdminShellNavigation`. Its `active` getter combines the confirmed Vue Router route with `adminShellPageInstanceId` from browser history state, allocating and replacing a bootstrap ID when absent. `handleNavigation` resolves destination snapshots, writes the requested ID through Vue Router `state`, forces identical-location opens, and returns the confirmed descriptor. Do not duplicate shell-local membership.
 - Initialize only `useAdminShellPreferencesStore` in `main.ts`; provide runtime locale options there. Application theme/font presentation reads that same store reactively. Do not add a store, storage adapter, or persistence implementation.
 
 ## 4. Validation & Error Matrix
@@ -45,14 +45,14 @@ Production-focused commands have an admin-build prerequisite, while Vite serve m
 | --- | --- |
 | Username or password trims to empty | Reject login; packaged login UI shows its generic safe error and stays anonymous. |
 | Non-empty credentials | Navigate home and render authenticated shell with the trimmed username label; no network request. |
-| Route changes | Reactive controller reports the new descriptor; shell opens/activates its tab. |
-| Shell closes a tab | Controller awaits suggested-next route or home; shell removes its own membership after resolution. |
+| Route or history changes | Reactive `navigation.active` reports the exact history-backed page instance; sidebar selection follows a matching `navKey`. |
+| Shell closes a tab | The close request navigates to its destination-bearing fallback and preserves that fallback ID before shell removal. |
 | OS color scheme changes in system mode | Reactive media listener updates application theme; remove listener on unmount. |
 | Focused production command from a clean checkout | Its `pre*` hook builds admin JS, CSS, and declarations first; dev serve instead transforms and watches exact admin/UI source aliases. |
 
 ## 5. Good, Base, and Bad Cases
 
-- **Good:** `App.tsx` creates `RouterLink` labels and passes `<RouterView />` in the default slot; it supplies its existing `logout` callback to `AdminShell`, whose authenticated account menu is the sole sign-out UI.
+- **Good:** `App.tsx` creates plain menu labels, passes one stable navigation adapter and `<RouterView />`, and supplies its existing `logout` callback to `AdminShell`.
 - **Base:** static local route pages with no data fetching, request models, or session restoration.
 - **Bad:** a mock `login()` HTTP endpoint, a `SessionDto`, `localStorage` auth restoration, a router prop passed to `AdminShell`, a second preferences store, or importing admin source files directly.
 
