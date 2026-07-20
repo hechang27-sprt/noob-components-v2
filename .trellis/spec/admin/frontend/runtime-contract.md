@@ -15,15 +15,15 @@ Keep additions frontend-ready and minimal. The public barrel, `packages/admin/sr
 
 `AdminShell` owns ephemeral page-instance membership, visible order, indexes, pending booleans, and close fallback. The host owns routing, destination interpretation, browser history identity, and confirmed active state.
 
-- `AdminShellDestination` contains `navKey`, optional `Readonly<Record<string, unknown>>` parameters, and an optional per-call `resolveTabNavigation` policy.
+- `AdminShellDestination` contains only durable router-neutral data: `navKey` and optional `Readonly<Record<string, unknown>>` parameters. It never stores a resolution callback.
 - `AdminShellTabDescriptor.id` is immutable page-instance identity. Destinations are not identity: duplicate `navKey` and parameter records are valid.
 - `AdminShellTab` extends the public descriptor only inside the shell with `index`, `activationPending`, and `closePending`; these mutable fields never cross the host boundary.
 - `AdminShellNavigation.handleNavigation` is the sole host callback. Its discriminated request variants are `open`, `activate`, and `close`, and each carries destination-bearing snapshots.
 - The host-authoritative `navigation.active` controls tab selection. The shell records confirmed descriptors by ID and never optimistically changes active state.
-- Before opening, the shell gives `resolveTabNavigation` every public descriptor in visible order. Without a resolver it activates the newest matching `navKey`, ignoring parameters, or opens when no match exists.
+- Before opening, the optional second `navigate(destination, resolveTabNavigation?)` argument receives every public descriptor in visible order. Without that call-scoped resolver, the shell activates the newest matching `navKey`, ignoring parameters, or opens when no match exists.
 - An open candidate remains outside committed membership until the host returns the same confirmed ID. Rejection or stale completion cannot add it.
 - Existing activation and close operations use exact tab-record identity and boolean pending fields. No session or pending-version counter owns committed operations.
-- A plain menu key becomes `{ navKey: String(key) }`. Rich application triggers use the default scoped-slot `navigate(destination)` control to supply parameters or a resolver.
+- A plain menu key becomes `{ navKey: String(key) }`. Rich application triggers use the default scoped-slot `navigate(destination, resolveTabNavigation?)` control to supply parameters and, separately, an optional resolution policy.
 - Sidebar selection uses the active destination's `navKey`; unmatched keys naturally leave the opaque `MenuOption[]` unselected. There is no `menuKey` override.
 - Loading and anonymous states render no authenticated layout. Leaving authenticated state or replacing the navigation adapter clears ephemeral membership and invalidates candidates.
 - `@noob-naive-ui/admin` imports no router API. The host persists IDs in browser history and derives active descriptors from confirmed route plus history state.

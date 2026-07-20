@@ -2,11 +2,15 @@
 
 import type { MenuOption } from "naive-ui";
 import { createPinia, setActivePinia } from "pinia";
-import { createApp, h, nextTick, reactive, type App } from "vue";
+import { createApp, h, nextTick, reactive, type App, type VNodeChild } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AdminShell } from "../src/components/admin-shell";
-import type { AdminShellNavigation } from "../src/components/admin-shell";
+import type {
+  AdminShellDestination,
+  AdminShellNavigation,
+  AdminShellTabNavigationResolver,
+} from "../src/components/admin-shell";
 import type {
   AdminAuthActions,
   AdminAuthStatus,
@@ -46,6 +50,12 @@ function mountShell(
     menuOptions?: MenuOption[];
     navigation?: AdminShellNavigation;
     content?: string;
+    defaultSlot?: (controls: {
+      navigate: (
+        destination: AdminShellDestination,
+        resolveTabNavigation?: AdminShellTabNavigationResolver,
+      ) => Promise<void>;
+    }) => VNodeChild;
     sidebarContent?: string;
     tabbarContent?: string;
   } = {},
@@ -58,9 +68,10 @@ function mountShell(
   preferences.initialize();
   /** Deliberately passes non-default slots to prove that AdminShell ignores them. */
   const slots = {
-    default: options.content
-      ? () => h("div", { "data-slot": options.content })
-      : undefined,
+    default: options.defaultSlot ??
+      (options.content
+        ? () => h("div", { "data-slot": options.content })
+        : undefined),
     sidebar: options.sidebarContent
       ? () => h("div", { "data-slot": options.sidebarContent })
       : undefined,
@@ -364,6 +375,36 @@ describe("AdminShell", () => {
     container.querySelector<HTMLElement>(".n-menu-item-content")!.click();
     await settle();
     expect(navigation.handleNavigation).toHaveBeenLastCalledWith({ kind: "activate", destination: newer, current: home });
+  });
+
+  it("accepts a call-specific resolver without storing it in the destination", async () => {
+    const home = { id: "home", nav: { navKey: "home" }, label: "Home" };
+    const report = { id: "report-1", nav: { navKey: "reports" }, label: "Report" };
+    const navigation = reactive<AdminShellNavigation>({
+      active: home,
+      handleNavigation: vi.fn(async (request) => ({
+        active: request.kind === "open"
+          ? { ...request.candidate, label: "New report" }
+          : request.destination,
+      })),
+    });
+    const resolver = vi.fn(() => ({ kind: "open" as const }));
+    const container = mountShell({ kind: "authenticated" }, createAuthActions(), {
+      navigation,
+      defaultSlot: ({ navigate }) => h("button", {
+        "data-open-report": "",
+        onClick: () => void navigate({ navKey: "reports" }, resolver),
+      }),
+    });
+    await settle();
+    navigation.active = report;
+    await settle();
+    navigation.active = home;
+    await settle();
+    container.querySelector<HTMLElement>("[data-open-report]")!.click();
+    await settle();
+    expect(resolver).toHaveBeenCalledWith([home, report], { navKey: "reports" });
+    expect(vi.mocked(navigation.handleNavigation).mock.calls.at(-1)?.[0].kind).toBe("open");
   });
 
   it("keeps duplicate destinations as independently closable page instances", async () => {

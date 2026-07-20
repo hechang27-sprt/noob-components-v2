@@ -22,6 +22,7 @@ export {
 export {
   AdminShell,
   type AdminShellDestination,
+  type AdminShellNavigate,
   type AdminShellNavigation,
   type AdminShellNavigationRequest,
   type AdminShellNavigationResult,

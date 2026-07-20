@@ -2,7 +2,10 @@ import { NButton } from "naive-ui";
 import type { RouteRecordRaw } from "vue-router";
 import { defineComponent, type PropType } from "vue";
 
-import type { AdminShellDestination } from "@noob-naive-ui/admin";
+import type {
+  AdminShellDestination,
+  AdminShellTabNavigationResolver,
+} from "@noob-naive-ui/admin";
 
 /** Describes the starter-owned metadata for one locally rendered demonstration route. */
 export type DemoRouteDefinition = {
@@ -47,6 +50,7 @@ function createDemoPage(title: string, description: string) {
 /** Describes the shell-provided navigation control accepted by demonstration pages. */
 type NavigateToDestination = (
   destination: AdminShellDestination,
+  resolveTabNavigation?: AdminShellTabNavigationResolver,
 ) => Promise<void>;
 
 /** Renders the reports page with an application-owned detail navigation trigger. */
@@ -65,11 +69,13 @@ const ReportsDemoPage = defineComponent({
   setup(props) {
     /** Opens a new detail page instance even when the same destination is already open. */
     function openDetail(): void {
-      void props.navigate?.({
-        navKey: "/detail",
-        params: { reportId: "quarterly-2026" },
-        resolveTabNavigation: () => ({ kind: "open" }),
-      });
+      void props.navigate?.(
+        {
+          navKey: "/detail",
+          params: { reportId: "quarterly-2026" },
+        },
+        () => ({ kind: "open" }),
+      );
     }
 
     return () => (

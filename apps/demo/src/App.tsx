@@ -5,6 +5,7 @@ import {
   type AdminAuthStatus,
   type AdminLoginValues,
   type AdminShellDestination,
+  type AdminShellNavigate,
   type AdminShellNavigation,
   type AdminShellTabDescriptor,
 } from "@noob-naive-ui/admin";
@@ -225,7 +226,7 @@ export default defineComponent({
           {({
             navigate,
           }: {
-            navigate: (destination: AdminShellDestination) => Promise<void>;
+            navigate: AdminShellNavigate;
           }) => (
             <RouterView
               v-slots={{

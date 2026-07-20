@@ -70,14 +70,20 @@ export type AdminShellTabNavigationResolver = (
   destination: AdminShellDestination,
 ) => AdminShellTabNavigationDecision;
 
+/** Requests navigation to a destination using an optional policy scoped to this call. */
+export type AdminShellNavigate = (
+  /** Supplies durable router-neutral destination data retained by an opened tab. */
+  destination: AdminShellDestination,
+  /** Supplies an ephemeral policy used only while resolving this navigation call. */
+  resolveTabNavigation?: AdminShellTabNavigationResolver,
+) => Promise<void>;
+
 /** Describes a router-neutral destination interpreted only by the host. */
 export type AdminShellDestination = {
   /** Supplies the stable host-defined navigation key. */
   navKey: string;
   /** Supplies optional host-interpreted navigation parameters. */
   params?: Readonly<Record<string, unknown>>;
-  /** Overrides the shell's default existing-tab resolution for this call. */
-  resolveTabNavigation?: AdminShellTabNavigationResolver;
 };
 
 /** Describes one immutable opened page-instance snapshot exposed to the host. */
@@ -264,9 +270,16 @@ export const AdminShell = defineComponent(
       }
     }
 
-    /** Resolves a destination and requests either exact activation or a candidate open. */
+    /**
+     * Resolves a destination with an optional call policy and requests activation or open.
+     *
+     * @param destination - Durable router-neutral data retained when a new tab is committed.
+     * @param resolveTabNavigation - Ephemeral policy invoked only for this navigation call.
+     * @returns A promise that settles after resolution and any host navigation complete.
+     */
     async function requestDestination(
       destination: AdminShellDestination,
+      resolveTabNavigation?: AdminShellTabNavigationResolver,
     ): Promise<void> {
       const navigation = props.navigation;
       if (!navigation || pendingOpen.value) return;
@@ -275,7 +288,7 @@ export const AdminShell = defineComponent(
         .reverse()
         .find((tab) => tab.nav.navKey === destination.navKey);
       const decision =
-        destination.resolveTabNavigation?.(opened, destination) ??
+        resolveTabNavigation?.(opened, destination) ??
         (newestMatch
           ? { kind: "activate" as const, tabId: newestMatch.id }
           : { kind: "open" as const });

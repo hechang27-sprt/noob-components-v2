@@ -12,7 +12,7 @@ Record the architecture direction that supersedes the original one-tab-per-route
 - A router-neutral destination contains a string navigation key and optional host-interpreted parameters.
 - The host does not maintain a duplicate tab registry. Every final navigation request supplies public tab/destination snapshots sufficient for the host to resolve routing.
 - Use one host callback with a discriminated request union for open, activate, and close operations; do not use positional boolean flags.
-- Each navigation destination may carry a call-specific `resolveTabNavigation` callback. It receives every opened public tab descriptor in visible order and may select any valid tab or force a new instance.
+- The optional second `navigate(destination, resolveTabNavigation?)` argument is call-specific. It receives every opened public tab descriptor in visible order and may select any valid tab or force a new instance; it is never retained in `AdminShellDestination` or a tab record.
 - Without a resolver, the shell selects the most recently opened tab with the same `navKey`, ignoring parameters; if none exists, it opens a new instance.
 - Shell-local fields such as `index`, `activationPending`, and `closePending` never cross the public boundary.
 - New tabs are candidates until host navigation resolves. Failed navigation must not commit membership or active state.
