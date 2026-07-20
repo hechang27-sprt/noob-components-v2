@@ -26,34 +26,31 @@ export type DemoRouteDefinition = {
  * @returns A local Vue route component that renders the supplied page content.
  */
 function createDemoPage(title: string, description: string) {
-  return defineComponent({
-    name: `${title.replaceAll(" ", "")}DemoPage`,
+  return defineComponent(
     /**
      * Creates the page render function from the route's static title and description.
      *
      * @returns A render function for the local demonstration page.
      */
-    setup() {
-      return () => (
-        <main class="p-6">
-          <h1 class="m-0 text-2xl font-semibold">{title}</h1>
-          <p class="mt-3 max-w-2xl text-base leading-6">{description}</p>
-        </main>
-      );
-    },
-  });
+    () => () => (
+      <main class="p-6">
+        <h1 class="m-0 text-2xl font-semibold">{title}</h1>
+        <p class="mt-3 max-w-2xl text-base leading-6">{description}</p>
+      </main>
+    ),
+    { name: `${title.replaceAll(" ", "")}DemoPage` },
+  );
 }
 
 
 /** Renders the reports page with an application-owned detail navigation trigger. */
-const ReportsDemoPage = defineComponent({
-  name: "ReportsDemoPage",
+const ReportsDemoPage = defineComponent(
   /**
    * Creates the reports page and its non-menu detail action.
    *
    * @returns A render function for the reports demonstration page.
    */
-  setup() {
+  () => {
     /** Retains the nearest shell's descendant navigation control. */
     const { navigate } = useAdminShell();
     /** Opens a new detail page instance even when the same destination is already open. */
@@ -81,17 +78,17 @@ const ReportsDemoPage = defineComponent({
       </main>
     );
   },
-});
+  { name: "ReportsDemoPage" },
+);
 
 /** Renders the non-menu detail route reached through an application-owned button. */
-const DetailDemoPage = defineComponent({
-  name: "DetailDemoPage",
+const DetailDemoPage = defineComponent(
   /**
    * Creates detail content from the active shell descriptor's router-neutral params.
    *
    * @returns A render function for the non-menu detail page.
    */
-  setup() {
+  () => {
     /** Retains the nearest shell's reactive public navigation context. */
     const { active } = useAdminShell();
     /** Reactively reads the report identity retained in the active public descriptor. */
@@ -111,7 +108,8 @@ const DetailDemoPage = defineComponent({
       </main>
     );
   },
-});
+  { name: "DetailDemoPage" },
+);
 
 /** Defines the demo's complete local route registry and tab presentation metadata. */
 export const demoRouteDefinitions = [

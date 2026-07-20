@@ -105,14 +105,13 @@ const fontSizeOverrides = {
 } satisfies Record<"small" | "medium" | "large", GlobalThemeOverrides>;
 
 /** Renders the frontend-only demo by composing application state with public admin APIs. */
-export default defineComponent({
-  name: "DemoApp",
+export default defineComponent(
   /**
    * Composes the in-memory auth, router, and public runtime inputs for the demo.
    *
    * @returns A render function for the public admin shell.
    */
-  setup() {
+  () => {
     /** Owns the app-local router used by menu links and tab callbacks. */
     const router = useRouter();
     /** Reads the one public preferences store initialized by the application entry point. */
@@ -287,7 +286,8 @@ export default defineComponent({
       </NConfigProvider>
     );
   },
-});
+  { name: "DemoApp" },
+);
 
 /**
  * Creates one plain Naive UI menu option while preserving app-owned route identity.

@@ -19,25 +19,27 @@ import { useAdminShellPreferencesStore } from "../src/stores/shell-preferences";
 
 
 /** Exercises descendant access to the nearest provided AdminShell context. */
-const ShellContextConsumer = defineComponent({
-  name: "ShellContextConsumer",
+const ShellContextConsumer = defineComponent(
   /**
    * Resolves shell context during descendant setup and renders its reactive state and action.
    *
    * @returns A render function exposing the active label and one destination request button.
    */
-  setup() {
+  () => {
     /** Retains the nearest shell's public descendant context. */
     const shell = useAdminShell();
-    return () => h("section", [
-      h("span", { "data-shell-active": "" }, shell.active.value?.label ?? "none"),
-      h("button", {
-        "data-shell-navigate": "",
-        onClick: () => void shell.navigate({ navKey: "settings" }),
-      }),
-    ]);
+    return () => (
+      <section>
+        <span data-shell-active="">{shell.active.value?.label ?? "none"}</span>
+        <button
+          data-shell-navigate=""
+          onClick={() => void shell.navigate({ navKey: "settings" })}
+        />
+      </section>
+    );
   },
-});
+  { name: "ShellContextConsumer" },
+);
 /** Retains mounted apps until cleanup prevents DOM and Pinia state leakage between tests. */
 const mountedApps: App[] = [];
 

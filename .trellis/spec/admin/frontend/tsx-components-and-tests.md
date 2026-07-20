@@ -2,9 +2,27 @@
 
 ## Component shape
 
-Use compositional Vue setup functions with `defineComponent` and TSX for render functions. `packages/admin/src/components/admin-login-page.tsx` defines typed props with `AdminLoginPageProps`, owns local UI refs, and returns a render closure; it does not use options-style `setup` or raw VNode construction.
+Declare every Vue component in TSX with the Vue 3.3+ functional `defineComponent` overload: the first argument is a setup function that returns the TSX render function, and the second argument is the component options object. Never use the object-style `setup()` declaration. Every `defineComponent` call must provide an explicit `name` option for Vue Devtools and stack-trace debugging, including local and test-only components.
 
-Import Naive UI controls directly and use Tailwind utilities for local layout. Package Tailwind scanning is configured in `packages/admin/src/style.css`, which is imported by the public barrel.
+```tsx
+const DetailPage = defineComponent(
+  /**
+   * Creates detail content from component props.
+   *
+   * @param props - Contains the report identity rendered by this page.
+   * @returns A render function for the detail page.
+   */
+  (props: { reportId: string }) => () => (
+    <main>Report detail: {props.reportId}</main>
+  ),
+  {
+    name: "DetailPage",
+    props: ["reportId"],
+  },
+);
+```
+
+For components with reactive state or lifecycle work, use a block-bodied first argument and return the TSX render closure. Stateless components may return the render closure directly. Import Naive UI controls directly and use Tailwind utilities for local layout. Package Tailwind scanning is configured in `packages/admin/src/style.css`, which is imported by the public barrel.
 
 ## Naive UI control composition
 
