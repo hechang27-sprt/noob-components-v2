@@ -22,12 +22,17 @@ import {
 } from "@vicons/ionicons5";
 import { ProLayout } from "pro-naive-ui";
 import {
+  computed,
   defineComponent,
+  inject,
   onBeforeUnmount,
+  provide,
   reactive,
   ref,
   shallowRef,
   watch,
+  type ComputedRef,
+  type InjectionKey,
   type PropType,
 } from "vue";
 
@@ -77,6 +82,33 @@ export type AdminShellNavigate = (
   /** Supplies an ephemeral policy used only while resolving this navigation call. */
   resolveTabNavigation?: AdminShellTabNavigationResolver,
 ) => Promise<void>;
+
+/** Exposes the nearest AdminShell's public navigation state and destination control. */
+export type AdminShellContext = {
+  /** Reactively reports the host-authoritative active public page descriptor. */
+  active: ComputedRef<AdminShellTabDescriptor | null>;
+  /** Requests navigation through this shell instance's existing resolution path. */
+  navigate: AdminShellNavigate;
+};
+
+/** Identifies shell context privately while preserving typed hierarchical injection. */
+const adminShellContextKey: InjectionKey<AdminShellContext> = Symbol(
+  "AdminShellContext",
+);
+
+/**
+ * Resolves the public context supplied by the nearest ancestor AdminShell.
+ *
+ * @returns The nearest shell's reactive active descriptor and destination control.
+ * @throws When the caller is not rendered beneath an AdminShell provider.
+ */
+export function useAdminShell(): AdminShellContext {
+  const context = inject(adminShellContextKey);
+  if (!context) {
+    throw new Error("useAdminShell() requires an ancestor AdminShell.");
+  }
+  return context;
+}
 
 /** Describes a router-neutral destination interpreted only by the host. */
 export type AdminShellDestination = {
@@ -319,6 +351,15 @@ export const AdminShell = defineComponent(
         if (pendingOpen.value === candidate) pendingOpen.value = undefined;
       }
     }
+
+    /** Reactively projects only the host-authoritative public active descriptor. */
+    const active = computed(() => props.navigation?.active ?? null);
+    /** Retains one stable descendant context for this mounted shell instance. */
+    const shellContext: AdminShellContext = {
+      active,
+      navigate: requestDestination,
+    };
+    provide(adminShellContextKey, shellContext);
 
     /** Computes the current-order fallback descriptor for an exact close request. */
     function getCloseDestination(

@@ -5,7 +5,6 @@ import {
   type AdminAuthStatus,
   type AdminLoginValues,
   type AdminShellDestination,
-  type AdminShellNavigate,
   type AdminShellNavigation,
   type AdminShellTabDescriptor,
 } from "@noob-naive-ui/admin";
@@ -19,10 +18,8 @@ import {
 import {
   computed,
   defineComponent,
-  h,
   onBeforeUnmount,
   ref,
-  type Component,
 } from "vue";
 import { RouterView, useRouter, type HistoryState } from "vue-router";
 
@@ -273,17 +270,6 @@ export default defineComponent({
       },
     };
 
-    /**
-     * Builds routed component props from the active descriptor without encoding params in the URL.
-     *
-     * @param navigate - Scoped shell navigation control forwarded to application pages.
-     * @returns Active descriptor params plus the navigation control as component props.
-     */
-    function currentPageProps(
-      navigate: AdminShellNavigate,
-    ): Record<string, unknown> {
-      return { ...(navigation.active?.nav.params ?? {}), navigate };
-    }
 
     return () => (
       <NConfigProvider
@@ -296,24 +282,7 @@ export default defineComponent({
           menuOptions={menuOptions}
           navigation={navigation}
         >
-          {({
-            navigate,
-          }: {
-            navigate: AdminShellNavigate;
-          }) => (
-            <RouterView
-              v-slots={{
-                default: ({
-                  Component: RouteComponent,
-                }: {
-                  Component: Component | undefined;
-                }) =>
-                  RouteComponent
-                    ? h(RouteComponent, currentPageProps(navigate))
-                    : null,
-              }}
-            />
-          )}
+          <RouterView />
         </AdminShell>
       </NConfigProvider>
     );

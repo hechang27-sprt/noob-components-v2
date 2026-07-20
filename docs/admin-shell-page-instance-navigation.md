@@ -29,7 +29,7 @@ Record the architecture direction that supersedes the original one-tab-per-route
 ## Implemented integration notes
 
 - Plain Naive UI menu selection supplies scalar `navKey`; the host resolves its route registry and confirms presentation before shell membership commit.
-- The scoped default-slot `navigate(destination)` control is the rich trigger seam for parameters and per-call resolution policy.
+- `useAdminShell()` is the rich descendant seam: routed pages read its readonly computed `active` descriptor and invoke `navigate(destination, resolveTabNavigation?)` without `RouterView` prop forwarding. It resolves the nearest shell and throws when no ancestor `AdminShell` exists. The scoped default-slot navigation control remains compatible.
 - First-time opens use an uncommitted candidate whose object identity invalidates stale completion across auth or adapter replacement.
 - An unstamped direct URL derives a transient host descriptor; shell-originated open, activation, and close-fallback navigations persist complete public descriptors through Vue Router state. Hosts must not mutate browser history behind their router.
 - Navigation keys are not tab primary keys; requests therefore carry both immutable page-instance ID and destination-bearing public snapshots.

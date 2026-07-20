@@ -2,10 +2,10 @@
 
 import type { MenuOption } from "naive-ui";
 import { createPinia, setActivePinia } from "pinia";
-import { createApp, h, nextTick, reactive, type App, type VNodeChild } from "vue";
+import { createApp, defineComponent, h, nextTick, reactive, type App, type VNodeChild } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { AdminShell } from "../src/components/admin-shell";
+import { AdminShell, useAdminShell } from "../src/components/admin-shell";
 import type {
   AdminShellDestination,
   AdminShellNavigation,
@@ -17,6 +17,27 @@ import type {
 } from "../src/runtime-contract";
 import { useAdminShellPreferencesStore } from "../src/stores/shell-preferences";
 
+
+/** Exercises descendant access to the nearest provided AdminShell context. */
+const ShellContextConsumer = defineComponent({
+  name: "ShellContextConsumer",
+  /**
+   * Resolves shell context during descendant setup and renders its reactive state and action.
+   *
+   * @returns A render function exposing the active label and one destination request button.
+   */
+  setup() {
+    /** Retains the nearest shell's public descendant context. */
+    const shell = useAdminShell();
+    return () => h("section", [
+      h("span", { "data-shell-active": "" }, shell.active.value?.label ?? "none"),
+      h("button", {
+        "data-shell-navigate": "",
+        onClick: () => void shell.navigate({ navKey: "settings" }),
+      }),
+    ]);
+  },
+});
 /** Retains mounted apps until cleanup prevents DOM and Pinia state leakage between tests. */
 const mountedApps: App[] = [];
 
@@ -301,6 +322,70 @@ describe("AdminShell", () => {
 
     await selectDropdownOption(account!, "Sign out");
     expect(authActions.logout).toHaveBeenCalledTimes(1);
+  });
+
+  it("provides reactive active state and navigation to descendants", async () => {
+    const home = { id: "home", nav: { navKey: "home" }, label: "Home" };
+    const report = { id: "report", nav: { navKey: "reports" }, label: "Report" };
+    const navigation = reactive<AdminShellNavigation>({
+      active: home,
+      handleNavigation: vi.fn(async (request) => ({
+        active: request.kind === "open"
+          ? { ...request.candidate, label: "Report" }
+          : request.destination,
+      })),
+    });
+    const container = mountShell({ kind: "authenticated" }, createAuthActions(), {
+      navigation,
+      defaultSlot: () => h(ShellContextConsumer),
+    });
+    await settle();
+    expect(container.querySelector("[data-shell-active]")?.textContent).toBe("Home");
+    navigation.active = report;
+    await settle();
+    expect(container.querySelector("[data-shell-active]")?.textContent).toBe("Report");
+    container.querySelector<HTMLButtonElement>("[data-shell-navigate]")!.click();
+    await settle();
+    const request = vi.mocked(navigation.handleNavigation).mock.calls.at(-1)?.[0];
+    expect(request?.kind).toBe("open");
+    if (request?.kind !== "open") throw new Error("Expected open request.");
+    expect(request.candidate.nav).toEqual({ navKey: "settings" });
+    expect(request.current).toEqual(report);
+  });
+
+  it("isolates descendant context between concurrently mounted shells", async () => {
+    const firstNavigation: AdminShellNavigation = {
+      active: { id: "first", nav: { navKey: "first" }, label: "First" },
+      handleNavigation: vi.fn(async () => ({ active: null })),
+    };
+    const secondNavigation: AdminShellNavigation = {
+      active: { id: "second", nav: { navKey: "second" }, label: "Second" },
+      handleNavigation: vi.fn(async () => ({ active: null })),
+    };
+    const first = mountShell({ kind: "authenticated" }, createAuthActions(), {
+      navigation: firstNavigation,
+      defaultSlot: () => h(ShellContextConsumer),
+    });
+    const second = mountShell({ kind: "authenticated" }, createAuthActions(), {
+      navigation: secondNavigation,
+      defaultSlot: () => h(ShellContextConsumer),
+    });
+    await settle();
+    expect(first.querySelector("[data-shell-active]")?.textContent).toBe("First");
+    expect(second.querySelector("[data-shell-active]")?.textContent).toBe("Second");
+    second.querySelector<HTMLButtonElement>("[data-shell-navigate]")!.click();
+    await settle();
+    expect(firstNavigation.handleNavigation).not.toHaveBeenCalled();
+    expect(secondNavigation.handleNavigation).toHaveBeenCalledOnce();
+  });
+
+  it("throws when descendant context is requested outside AdminShell", () => {
+    const target = document.createElement("div");
+    document.body.append(target);
+    const app = createApp(ShellContextConsumer);
+    expect(() => app.mount(target)).toThrow(
+      "useAdminShell() requires an ancestor AdminShell.",
+    );
   });
 
   it("commits a menu open candidate only after host confirmation", async () => {

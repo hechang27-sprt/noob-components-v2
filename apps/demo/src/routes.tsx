@@ -1,11 +1,8 @@
 import { NButton } from "naive-ui";
 import type { RouteRecordRaw } from "vue-router";
-import { defineComponent, type PropType } from "vue";
+import { computed, defineComponent } from "vue";
 
-import type {
-  AdminShellDestination,
-  AdminShellTabNavigationResolver,
-} from "@noob-naive-ui/admin";
+import { useAdminShell } from "@noob-naive-ui/admin";
 
 /** Describes the starter-owned metadata for one locally rendered demonstration route. */
 export type DemoRouteDefinition = {
@@ -47,30 +44,22 @@ function createDemoPage(title: string, description: string) {
   });
 }
 
-/** Describes the shell-provided navigation control accepted by demonstration pages. */
-type NavigateToDestination = (
-  destination: AdminShellDestination,
-  resolveTabNavigation?: AdminShellTabNavigationResolver,
-) => Promise<void>;
 
 /** Renders the reports page with an application-owned detail navigation trigger. */
 const ReportsDemoPage = defineComponent({
   name: "ReportsDemoPage",
-  props: {
-    /** Receives the shell's scoped destination navigation control from the demo host. */
-    navigate: Function as PropType<NavigateToDestination>,
-  },
   /**
    * Creates the reports page and its non-menu detail action.
    *
-   * @param props - Contains the optional shell navigation control supplied by RouterView.
    * @returns A render function for the reports demonstration page.
    */
-  setup(props) {
+  setup() {
+    /** Retains the nearest shell's descendant navigation control. */
+    const { navigate } = useAdminShell();
     /** Opens a new detail page instance even when the same destination is already open. */
     function openDetail(): void {
       const randomYear = Math.round(Math.random() * 40 + 2000);
-      void props.navigate?.(
+      void navigate(
         {
           navKey: "/detail",
           params: { reportId: `quarterly-${randomYear}` },
@@ -95,29 +84,34 @@ const ReportsDemoPage = defineComponent({
 });
 
 /** Renders the non-menu detail route reached through an application-owned button. */
-const DetailDemoPage = defineComponent(
+const DetailDemoPage = defineComponent({
+  name: "DetailDemoPage",
   /**
-   * Creates detail content from descriptor params forwarded as component props.
+   * Creates detail content from the active shell descriptor's router-neutral params.
    *
-   * @param props - Contains the report identity retained in the active tab descriptor.
    * @returns A render function for the non-menu detail page.
    */
-  (props: { reportId: string }) => () => (
-    <main class="p-6">
-      <h1 class="m-0 text-2xl font-semibold">
-        Report detail: {props.reportId}
-      </h1>
-      <p class="mt-3 max-w-2xl text-base leading-6">
-        Report {props.reportId} was opened by a page-owned action and has no
-        sidebar menu item.
-      </p>
-    </main>
-  ),
-  {
-    name: "DetailDemoPage",
-    props: ["reportId"],
+  setup() {
+    /** Retains the nearest shell's reactive public navigation context. */
+    const { active } = useAdminShell();
+    /** Reactively reads the report identity retained in the active public descriptor. */
+    const reportId = computed(() => {
+      const value = active.value?.nav.params?.reportId;
+      return typeof value === "string" ? value : "unknown";
+    });
+    return () => (
+      <main class="p-6">
+        <h1 class="m-0 text-2xl font-semibold">
+          Report detail: {reportId.value}
+        </h1>
+        <p class="mt-3 max-w-2xl text-base leading-6">
+          Report {reportId.value} was opened by a page-owned action and has no
+          sidebar menu item.
+        </p>
+      </main>
+    );
   },
-);
+});
 
 /** Defines the demo's complete local route registry and tab presentation metadata. */
 export const demoRouteDefinitions = [

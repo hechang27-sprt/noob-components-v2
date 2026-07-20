@@ -52,7 +52,7 @@ Production-focused commands have an admin-build prerequisite, while Vite serve m
 
 ## 5. Good, Base, and Bad Cases
 
-- **Good:** `App.tsx` creates plain menu labels, passes one stable navigation adapter, forwards the shell's scoped `navigate(destination, resolveTabNavigation?)` control through `RouterView`, and supplies its existing `logout` callback. A page-owned button may open a registered destination omitted from `menuOptions`; pass a second-argument resolver returning `{ kind: "open" }` when each click must create a distinct page instance. Destinations remain data-only.
+- **Good:** `App.tsx` creates plain menu labels, passes one stable navigation adapter, renders `RouterView` directly beneath `AdminShell`, and supplies its existing `logout` callback. Routed pages call `useAdminShell()` to navigate or reactively read active descriptor params without prop forwarding. A page-owned button may open a registered destination omitted from `menuOptions`; pass a second-argument resolver returning `{ kind: "open" }` when each click must create a distinct page instance. Destinations remain data-only.
 - **Base:** static local route pages with no data fetching, request models, or session restoration.
 - **Bad:** a mock `login()` HTTP endpoint, a `SessionDto`, `localStorage` auth restoration, a router prop passed to `AdminShell`, a second preferences store, or importing admin source files directly.
 
