@@ -52,7 +52,7 @@ Production-focused commands have an admin-build prerequisite, while Vite serve m
 
 ## 5. Good, Base, and Bad Cases
 
-- **Good:** `App.tsx` creates plain menu labels, passes one stable navigation adapter and `<RouterView />`, and supplies its existing `logout` callback to `AdminShell`.
+- **Good:** `App.tsx` creates plain menu labels, passes one stable navigation adapter, forwards the shell's scoped `navigate(destination)` control through `RouterView`, and supplies its existing `logout` callback. A page-owned button may open a registered destination omitted from `menuOptions`; use a per-call resolver returning `{ kind: "open" }` when each click must create a distinct page instance.
 - **Base:** static local route pages with no data fetching, request models, or session restoration.
 - **Bad:** a mock `login()` HTTP endpoint, a `SessionDto`, `localStorage` auth restoration, a router prop passed to `AdminShell`, a second preferences store, or importing admin source files directly.
 
@@ -61,7 +61,7 @@ Production-focused commands have an admin-build prerequisite, while Vite serve m
 - `pnpm --filter @noob-naive-ui/admin test` guards the public shell/login contract.
 - `pnpm --filter demo typecheck` proves public declarations resolve from a clean state.
 - `pnpm --filter demo build` proves the public admin stylesheet and app styles bundle.
-- Browser assertions: whitespace rejection; non-empty login; menu route render; tab activation and close; sign out; theme/font/locale/sidebar controls; no console warnings/errors; no application API request.
+- Browser assertions: whitespace rejection; non-empty login; menu route render; a page-owned button opens the non-menu detail route and exact tab; tab activation and close; sign out; theme/font/locale/sidebar controls; no console warnings/errors; no application API request.
 
 ## 7. Wrong vs Correct
 

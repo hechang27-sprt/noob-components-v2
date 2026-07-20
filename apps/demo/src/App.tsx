@@ -15,7 +15,14 @@ import {
   type GlobalThemeOverrides,
   type MenuOption,
 } from "naive-ui";
-import { computed, defineComponent, onBeforeUnmount, ref } from "vue";
+import {
+  computed,
+  defineComponent,
+  h,
+  onBeforeUnmount,
+  ref,
+  type Component,
+} from "vue";
 import { RouterView, useRouter, type LocationQueryRaw } from "vue-router";
 
 import { demoRouteDefinitions, type DemoRouteDefinition } from "./routes";
@@ -215,7 +222,21 @@ export default defineComponent({
           menuOptions={menuOptions}
           navigation={navigation}
         >
-          <RouterView />
+          {({
+            navigate,
+          }: {
+            navigate: (destination: AdminShellDestination) => Promise<void>;
+          }) => (
+            <RouterView
+              v-slots={{
+                default: ({
+                  Component: RouteComponent,
+                }: {
+                  Component: Component | undefined;
+                }) => (RouteComponent ? h(RouteComponent, { navigate }) : null),
+              }}
+            />
+          )}
         </AdminShell>
       </NConfigProvider>
     );
