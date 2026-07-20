@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/admin/frontend/runtime-contract.md", "reason": "Preserve AdminShell router-neutral ownership and page-instance lifecycle boundary"}
+{"file": ".trellis/spec/admin/frontend/tsx-components-and-tests.md", "reason": "Follow controlled Naive UI menu/tab composition and observable test conventions"}
+{"file": ".trellis/spec/demo/frontend/runtime-integration-contract.md", "reason": "Preserve demo ownership of Vue Router and avoid duplicate shell membership"}
+{"file": "docs/admin-shell-page-instance-navigation.md", "reason": "Apply the settled shell-originated page-instance and history-identity decisions"}
+{"file": ".trellis/tasks/07-16-simplify-admin-shell-navigation/research/naive-tab-link-semantics.md", "reason": "Preserve one controlled interaction authority without nested tab links"}
+{"file": ".trellis/tasks/07-16-simplify-admin-shell-navigation/research/admin-framework-comparison.md", "reason": "Retain source-backed navigation ownership findings while superseding route-key identity"}

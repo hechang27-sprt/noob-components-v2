@@ -1,5 +1,0 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
-{"file": ".trellis/spec/admin/frontend/runtime-contract.md", "reason": "Preserve AdminShell router-neutral ownership and tab lifecycle contract"}
-{"file": ".trellis/tasks/07-16-simplify-admin-shell-navigation/research/naive-tab-link-semantics.md", "reason": "Account for Naive UI nested-link event behavior"}
-{"file": ".trellis/tasks/07-16-simplify-admin-shell-navigation/research/admin-framework-comparison.md", "reason": "Apply source-backed navigation ownership and destination-class patterns"}
-{"file": ".trellis/tasks/07-16-simplify-admin-shell-navigation/research/naive-ui-pro-navigation-architecture.md", "reason": "Apply Naive UI Pro destination-policy and navigation findings"}

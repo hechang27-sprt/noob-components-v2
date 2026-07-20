@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/admin/frontend/runtime-contract.md", "reason": "Verify router neutrality, public descriptor boundaries, and shell ownership"}
+{"file": ".trellis/spec/admin/frontend/tsx-components-and-tests.md", "reason": "Verify Naive UI callback wiring, accessibility, and behavioral coverage"}
+{"file": ".trellis/spec/demo/frontend/runtime-integration-contract.md", "reason": "Verify route/history integration remains application-owned without a tab registry"}
+{"file": "docs/admin-shell-page-instance-navigation.md", "reason": "Verify implementation against settled instance identity and history-state decisions"}
+{"file": ".trellis/tasks/07-16-simplify-admin-shell-navigation/research/naive-tab-link-semantics.md", "reason": "Verify one navigation authority and no nested RouterLink behavior"}
