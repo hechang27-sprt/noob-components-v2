@@ -138,3 +138,35 @@ Polished authenticated header controls with Vicons, direct theme toggling, hover
 ### Next Steps
 
 - None - task complete
+
+
+## Session 4: AdminShell page-instance navigation
+
+**Date**: 2026-07-20
+**Task**: AdminShell page-instance navigation
+
+### Summary
+
+Completed the AdminShell page-instance navigation redesign across all changes since vtm (35f80d17): adopted immutable page-instance IDs and the discriminated host navigation boundary; archived 07-16-simplify-admin-shell-navigation; demonstrated non-menu detail navigation; moved tab resolution policy to the call-scoped second argument of navigate so destinations remain durable data-only values; persisted complete public AdminShellTabDescriptor values in Vue Router state while keeping descriptor params independent from URL query parameters; and added the fail-fast useAdminShell() descendant context exposing reactive active descriptor state plus navigation without RouterView prop forwarding. Verified admin tests/typecheck/build, demo typecheck/build, and browser duplicate-detail navigation; archived 07-20-expose-admin-shell-destination-requests.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `35f80d17..3c531d07` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

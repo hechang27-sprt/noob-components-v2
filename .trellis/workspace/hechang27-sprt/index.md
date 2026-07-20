@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 3
-- **Last Active**: 2026-07-16
+- **Total Sessions**: 4
+- **Last Active**: 2026-07-20
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~140 | Active |
+| `journal-1.md` | ~172 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 4 | 2026-07-20 | AdminShell page-instance navigation | `35f80d17`..`3c531d07` | `-` |
 | 3 | 2026-07-16 | Polish AdminShell controls and navigation | `ecba53c4` | `-` |
 | 2 | 2026-07-15 | Prefer Naive UI components | `8dbddbca743c` | `-` |
 | 1 | 2026-07-10 | Bootstrap Trellis specs | `a22919a2` | `-` |
