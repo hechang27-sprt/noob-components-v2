@@ -15,7 +15,7 @@ Keep additions frontend-ready and minimal. The public barrel, `packages/admin/sr
 
 `AdminShell` owns ephemeral page-instance membership, visible order, indexes, pending booleans, and close fallback. The host owns routing, destination interpretation, browser history identity, and confirmed active state.
 
-- `AdminShellDestination` contains only durable router-neutral data: `navKey` and optional `Readonly<Record<string, unknown>>` parameters. It never stores a resolution callback.
+- `AdminShellDestination` contains only durable router-neutral data: `navKey` and optional `Readonly<Record<string, unknown>>` parameters. Callers must keep `params` a plain JSON object suitable for browser-history serialization; this is a documented contract rather than a recursive TypeScript constraint.
 - `AdminShellTabDescriptor.id` is immutable page-instance identity. Destinations are not identity: duplicate `navKey` and parameter records are valid.
 - `AdminShellTab` extends the public descriptor only inside the shell with `index`, `activationPending`, and `closePending`; these mutable fields never cross the host boundary.
 - `AdminShellNavigation.handleNavigation` is the sole host callback. Its discriminated request variants are `open`, `activate`, and `close`, and each carries destination-bearing snapshots.
@@ -26,7 +26,7 @@ Keep additions frontend-ready and minimal. The public barrel, `packages/admin/sr
 - A plain menu key becomes `{ navKey: String(key) }`. Rich application triggers use the default scoped-slot `navigate(destination, resolveTabNavigation?)` control to supply parameters and, separately, an optional resolution policy.
 - Sidebar selection uses the active destination's `navKey`; unmatched keys naturally leave the opaque `MenuOption[]` unselected. There is no `menuKey` override.
 - Loading and anonymous states render no authenticated layout. Leaving authenticated state or replacing the navigation adapter clears ephemeral membership and invalidates candidates.
-- `@noob-naive-ui/admin` imports no router API. The host persists IDs in browser history and derives active descriptors from confirmed route plus history state.
+- `@noob-naive-ui/admin` imports no router API. The host may persist the complete public `AdminShellTabDescriptor` in browser history, but never shell-private `AdminShellTab` fields. Host routing parameters remain independent from URL path/query representation.
 
 ### Required tests
 

@@ -69,10 +69,11 @@ const ReportsDemoPage = defineComponent({
   setup(props) {
     /** Opens a new detail page instance even when the same destination is already open. */
     function openDetail(): void {
+      const randomYear = Math.round(Math.random() * 40 + 2000);
       void props.navigate?.(
         {
           navKey: "/detail",
-          params: { reportId: "quarterly-2026" },
+          params: { reportId: `quarterly-${randomYear}` },
         },
         () => ({ kind: "open" }),
       );
@@ -94,21 +95,29 @@ const ReportsDemoPage = defineComponent({
 });
 
 /** Renders the non-menu detail route reached through an application-owned button. */
-const DetailDemoPage = defineComponent({
-  name: "DetailDemoPage",
-  /** Returns the static detail-page demonstration content. */
-  setup() {
-    return () => (
-      <main class="p-6">
-        <h1 class="m-0 text-2xl font-semibold">Report detail</h1>
-        <p class="mt-3 max-w-2xl text-base leading-6">
-          This page was opened by a page-owned action and has no sidebar menu
-          item.
-        </p>
-      </main>
-    );
+const DetailDemoPage = defineComponent(
+  /**
+   * Creates detail content from descriptor params forwarded as component props.
+   *
+   * @param props - Contains the report identity retained in the active tab descriptor.
+   * @returns A render function for the non-menu detail page.
+   */
+  (props: { reportId: string }) => () => (
+    <main class="p-6">
+      <h1 class="m-0 text-2xl font-semibold">
+        Report detail: {props.reportId}
+      </h1>
+      <p class="mt-3 max-w-2xl text-base leading-6">
+        Report {props.reportId} was opened by a page-owned action and has no
+        sidebar menu item.
+      </p>
+    </main>
+  ),
+  {
+    name: "DetailDemoPage",
+    props: ["reportId"],
   },
-});
+);
 
 /** Defines the demo's complete local route registry and tab presentation metadata. */
 export const demoRouteDefinitions = [

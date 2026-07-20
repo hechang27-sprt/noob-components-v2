@@ -82,7 +82,7 @@ export type AdminShellNavigate = (
 export type AdminShellDestination = {
   /** Supplies the stable host-defined navigation key. */
   navKey: string;
-  /** Supplies optional host-interpreted navigation parameters. */
+  /** Supplies an optional plain JSON object that callers must keep browser-state serializable. */
   params?: Readonly<Record<string, unknown>>;
 };
 

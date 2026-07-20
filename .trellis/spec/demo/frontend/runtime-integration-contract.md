@@ -36,7 +36,7 @@ Production-focused commands have an admin-build prerequisite, while Vite serve m
 - Import `@noob-naive-ui/admin/style.css` explicitly in the app entrypoint. Serve-mode aliases must list exact admin/UI `style.css` subpaths before package-root aliases so Vite loads and watches the real source stylesheets.
 - Keep auth in a single in-memory `Ref<AdminAuthStatus>`. Login trims username/password and rejects either empty value; successful login uses the username only as a rendering label. Logout routes home and changes auth to the signed-out anonymous state.
 - Build the final `MenuOption[]` with plain labels in the demo and pass its exact reference to `AdminShell`. The shell gets no router, route object, visibility input, session, or backend-shaped value.
-- Keep one stable `AdminShellNavigation`. Its `active` getter combines the confirmed Vue Router route with `adminShellPageInstanceId` from browser history state, allocating and replacing a bootstrap ID when absent. `handleNavigation` resolves destination snapshots, writes the requested ID through Vue Router `state`, forces identical-location opens, and returns the confirmed descriptor. Do not duplicate shell-local membership.
+- Keep one stable `AdminShellNavigation`. Its `active` getter reads the complete public descriptor directly from browser history state and derives a transient bootstrap descriptor for an unstamped route. `handleNavigation` adds host presentation to open candidates, persists that complete descriptor as Vue Router `state`, forces identical-location opens, and returns the confirmed descriptor. Destination `params` remain descriptor state, are not implicitly mapped to URL query parameters, and are forwarded separately to the active routed component as props. Do not mutate `window.history.state` behind Vue Router or duplicate shell-local membership.
 - Initialize only `useAdminShellPreferencesStore` in `main.ts`; provide runtime locale options there. Application theme/font presentation reads that same store reactively. Do not add a store, storage adapter, or persistence implementation.
 
 ## 4. Validation & Error Matrix
@@ -45,8 +45,8 @@ Production-focused commands have an admin-build prerequisite, while Vite serve m
 | --- | --- |
 | Username or password trims to empty | Reject login; packaged login UI shows its generic safe error and stays anonymous. |
 | Non-empty credentials | Navigate home and render authenticated shell with the trimmed username label; no network request. |
-| Route or history changes | Reactive `navigation.active` reports the exact history-backed page instance; sidebar selection follows a matching `navKey`. |
-| Shell closes a tab | The close request navigates to its destination-bearing fallback and preserves that fallback ID before shell removal. |
+| Route or history changes | Reactive `navigation.active` reports the complete history-backed descriptor; sidebar selection follows a matching `navKey`. |
+| Shell closes a tab | The close request navigates to its destination-bearing fallback and preserves the complete fallback descriptor before shell removal. |
 | OS color scheme changes in system mode | Reactive media listener updates application theme; remove listener on unmount. |
 | Focused production command from a clean checkout | Its `pre*` hook builds admin JS, CSS, and declarations first; dev serve instead transforms and watches exact admin/UI source aliases. |
 

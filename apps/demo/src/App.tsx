@@ -24,7 +24,7 @@ import {
   ref,
   type Component,
 } from "vue";
-import { RouterView, useRouter, type LocationQueryRaw } from "vue-router";
+import { RouterView, useRouter, type HistoryState } from "vue-router";
 
 import { demoRouteDefinitions, type DemoRouteDefinition } from "./routes";
 
@@ -33,25 +33,71 @@ const routeDefinitionsByName = Object.fromEntries(
   demoRouteDefinitions.map((definition) => [definition.name, definition]),
 ) as Record<string, DemoRouteDefinition>;
 
-/** Names the browser-history field that persists exact shell page-instance identity. */
-const pageInstanceStateKey = "adminShellPageInstanceId";
 
-/** Resolves a host-owned destination into a validated Vue Router location. */
-function resolveDestination(destination: AdminShellDestination): {
-  path: string;
-  query: LocationQueryRaw;
-} {
+/**
+ * Resolves current route metadata for a router-neutral destination.
+ *
+ * @param destination - Data-only destination whose params remain in tab state, not the URL.
+ * @returns The registered route definition matching the destination key.
+ */
+function resolveDefinition(destination: AdminShellDestination): DemoRouteDefinition {
   const definition = demoRouteDefinitions.find(
     ({ path }) => path === destination.navKey,
   );
   if (!definition) throw new Error("Unknown demo destination.");
-  const query = Object.fromEntries(
-    Object.entries(destination.params ?? {}).filter(
-      (entry): entry is [string, string | number] =>
-        typeof entry[1] === "string" || typeof entry[1] === "number",
-    ),
+  return definition;
+}
+
+/**
+ * Resolves a host-owned destination into a Vue Router path without coupling params to query.
+ *
+ * @param destination - Data-only destination interpreted by the demo route registry.
+ * @returns A path-only Vue Router location.
+ */
+function resolveDestination(destination: AdminShellDestination): { path: string } {
+  return { path: resolveDefinition(destination).path };
+}
+
+/**
+ * Adds current route presentation to one shell-owned page-instance identity and destination.
+ *
+ * @param id - Immutable page-instance identity generated or retained by the shell.
+ * @param nav - Serializable router-neutral destination retained in browser history.
+ * @returns A complete public descriptor suitable for shell confirmation and history state.
+ */
+function describeDestination(id: string, nav: AdminShellDestination): AdminShellTabDescriptor {
+  const definition = resolveDefinition(nav);
+  return { id, nav, label: definition.label, closable: definition.closable };
+}
+
+/**
+ * Detaches a descriptor into the plain JSON representation required by the navigation contract.
+ *
+ * @param descriptor - Public descriptor whose params are contractually a plain JSON object.
+ * @returns A detached descriptor safe for Vue Router and browser history state.
+ */
+function descriptorForHistory(
+  descriptor: AdminShellTabDescriptor,
+): AdminShellTabDescriptor {
+  return JSON.parse(JSON.stringify(descriptor)) as AdminShellTabDescriptor;
+}
+
+/**
+ * Checks the shallow public shape before trusting browser-owned history state.
+ *
+ * @param value - Unknown value read from the current browser-history entry.
+ * @returns Whether the value has the required public descriptor fields.
+ */
+function isTabDescriptor(value: unknown): value is AdminShellTabDescriptor {
+  if (!value || typeof value !== "object") return false;
+  const descriptor = value as Partial<AdminShellTabDescriptor>;
+  return Boolean(
+    typeof descriptor.id === "string" &&
+      typeof descriptor.label === "string" &&
+      descriptor.nav &&
+      typeof descriptor.nav.navKey === "string" &&
+      (descriptor.closable === undefined || typeof descriptor.closable === "boolean"),
   );
-  return { path: definition.path, query };
 }
 
 /** Maps each public font-size preference to its bounded Naive UI font-size override. */
@@ -78,6 +124,8 @@ export default defineComponent({
     const authStatus = ref<AdminAuthStatus>({ kind: "anonymous" });
     /** Holds system color-scheme media state so system theme mode remains reactive after mount. */
     const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    /** Retains one stable fallback only while the current route lacks persisted descriptor state. */
+    let unstampedDescriptor: AdminShellTabDescriptor | null = null;
     /** Reflects the browser's current dark-mode media-query match. */
     const systemUsesDark = ref(systemThemeQuery.matches);
 
@@ -145,8 +193,17 @@ export default defineComponent({
         throw new Error("Username and password are required.");
       }
 
+      const homeDescriptor = descriptorForHistory(
+        describeDestination(crypto.randomUUID(), {
+          navKey: demoRouteDefinitions[0].path,
+        }),
+      );
+      await router.replace({
+        path: demoRouteDefinitions[0].path,
+        force: true,
+        state: homeDescriptor as unknown as HistoryState,
+      });
       authStatus.value = { kind: "authenticated", userLabel: username };
-      await router.replace(demoRouteDefinitions[0].path);
     }
 
     /**
@@ -161,56 +218,72 @@ export default defineComponent({
 
     /** Holds the public callback contract used by the packaged anonymous login branch. */
     const authActions: AdminAuthActions = { login, logout };
-    /** Builds a confirmed descriptor from the current route and persisted history identity. */
+    /**
+     * Returns the current history-backed descriptor or derives one for an unstamped route.
+     *
+     * @param preferred - Host-confirmed descriptor for navigation that just completed.
+     * @returns The active public descriptor, or null when the route is not registered.
+     */
     function currentDescriptor(
-      preferredId?: string,
+      preferred?: AdminShellTabDescriptor,
     ): AdminShellTabDescriptor | null {
+      if (preferred) return preferred;
       const definition =
         routeDefinitionsByName[String(router.currentRoute.value.name ?? "")];
       if (!definition) return null;
       const state = window.history.state as Record<string, unknown> | null;
-      const storedId = state?.[pageInstanceStateKey];
-      const id =
-        preferredId ??
-        (typeof storedId === "string" ? storedId : crypto.randomUUID());
-      if (storedId !== id)
-        window.history.replaceState(
-          { ...state, [pageInstanceStateKey]: id },
-          "",
-        );
-      return {
-        id,
-        nav: {
+      if (isTabDescriptor(state) && state.nav.navKey === definition.path) {
+        unstampedDescriptor = null;
+        return state;
+      }
+      if (unstampedDescriptor?.nav.navKey !== definition.path) {
+        unstampedDescriptor = describeDestination(crypto.randomUUID(), {
           navKey: definition.path,
-          params: { ...router.currentRoute.value.query },
-        },
-        label: definition.label,
-        closable: definition.closable,
-      };
+        });
+      }
+      return unstampedDescriptor;
     }
 
     /** Holds one stable page-instance navigation adapter derived from confirmed router state. */
     const navigation: AdminShellNavigation = {
-      /** Returns the route plus exact browser-history page-instance identity. */
+      /** Returns the complete descriptor persisted on the current history entry. */
       get active() {
         return currentDescriptor();
       },
       /** Executes one shell-resolved operation and returns the confirmed active descriptor. */
       async handleNavigation(request) {
-        let descriptor: Pick<AdminShellTabDescriptor, "id" | "nav">;
-        if (request.kind === "open") descriptor = request.candidate;
-        else if (request.kind === "activate") descriptor = request.destination;
-        else if (request.destination) descriptor = request.destination;
-        else return { active: null };
+        let descriptor: AdminShellTabDescriptor;
+        if (request.kind === "open") {
+          descriptor = describeDestination(request.candidate.id, request.candidate.nav);
+        } else if (request.kind === "activate") {
+          descriptor = request.destination;
+        } else if (request.destination) {
+          descriptor = request.destination;
+        } else {
+          return { active: null };
+        }
+        const persistedDescriptor = descriptorForHistory(descriptor);
         await router.push({
-          ...resolveDestination(descriptor.nav),
+          ...resolveDestination(persistedDescriptor.nav),
           force: true,
-          state: { [pageInstanceStateKey]: descriptor.id },
+          state: persistedDescriptor as unknown as HistoryState,
           replace: request.kind === "open" && request.closeCurrent,
         });
-        return { active: currentDescriptor(descriptor.id) };
+        return { active: currentDescriptor(persistedDescriptor) };
       },
     };
+
+    /**
+     * Builds routed component props from the active descriptor without encoding params in the URL.
+     *
+     * @param navigate - Scoped shell navigation control forwarded to application pages.
+     * @returns Active descriptor params plus the navigation control as component props.
+     */
+    function currentPageProps(
+      navigate: AdminShellNavigate,
+    ): Record<string, unknown> {
+      return { ...(navigation.active?.nav.params ?? {}), navigate };
+    }
 
     return () => (
       <NConfigProvider
@@ -234,7 +307,10 @@ export default defineComponent({
                   Component: RouteComponent,
                 }: {
                   Component: Component | undefined;
-                }) => (RouteComponent ? h(RouteComponent, { navigate }) : null),
+                }) =>
+                  RouteComponent
+                    ? h(RouteComponent, currentPageProps(navigate))
+                    : null,
               }}
             />
           )}
