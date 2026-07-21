@@ -13,12 +13,8 @@
     },
     "./style.css": "./dist/style.css"
   },
-  "files": [
-    "dist"
-  ],
-  "sideEffects": [
-    "**/*.css"
-  ],
+  "files": ["dist"],
+  "sideEffects": ["**/*.css"],
   "scripts": {
     "prebuild": "pnpm --filter @noob-naive-ui/ui build",
     "build": "pnpm run clean && vite build && pnpm run build:types",
@@ -35,15 +31,6 @@
     "pinia": "^3.0.4",
     "pro-naive-ui": "^3.2.3",
     "vue": "^3.5.0"
-  },
-  "devDependencies": {
-    "@tailwindcss/vite": "^4.3.2",
-    "@vitejs/plugin-vue-jsx": "^5.1.6",
-    "happy-dom": "^20.10.6",
-    "pinia": "^3.0.4",
-    "pro-naive-ui": "^3.2.3",
-    "tailwindcss": "^4.3.2",
-    "vitest": "^4.1.10"
   },
   "dependencies": {
     "@noob-naive-ui/ui": "workspace:*",

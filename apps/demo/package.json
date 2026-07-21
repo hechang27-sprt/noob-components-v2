@@ -5,26 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "pnpm --filter @noob-naive-ui/admin build",
+    "prebuild": "pnpm --filter @noob-naive-ui/admin-vue-router build",
     "build": "vite build",
-    "pretypecheck": "pnpm --filter @noob-naive-ui/admin build",
+    "pretypecheck": "pnpm --filter @noob-naive-ui/admin-vue-router build",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@noob-naive-ui/admin": "workspace:*",
+    "@noob-naive-ui/admin-vue-router": "workspace:*",
     "naive-ui": "^2.43.1",
     "pinia": "^3.0.4",
     "pro-naive-ui": "^3.2.3",
     "vue": "^3.5.0",
     "vue-router": "^4.5.1"
-  },
-  "devDependencies": {
-    "@tailwindcss/vite": "^4.3.2",
-    "@vitejs/plugin-vue": "^6.0.8",
-    "@vitejs/plugin-vue-jsx": "^5.1.6",
-    "tailwindcss": "^4.3.2",
-    "typescript": "^7.0.2",
-    "vite": "^8.1.3",
-    "vite-plugin-vue-devtools": "^8.1.5"
   }
 }

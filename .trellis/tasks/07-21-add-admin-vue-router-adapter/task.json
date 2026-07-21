@@ -1,9 +1,9 @@
 {
-  "id": "move-login-out-of-admin-shell",
-  "name": "move-login-out-of-admin-shell",
-  "title": "Move login out of AdminShell",
+  "id": "add-admin-vue-router-adapter",
+  "name": "add-admin-vue-router-adapter",
+  "title": "Add Vue Router adapter for AdminShell",
   "description": "",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -18,11 +18,8 @@
   "commit": null,
   "pr_url": null,
   "subtasks": [],
-  "children": [
-    "07-21-remove-admin-shell-active-context",
-    "07-21-add-admin-vue-router-adapter"
-  ],
-  "parent": null,
+  "children": [],
+  "parent": "07-21-move-login-out-of-admin-shell",
   "relatedFiles": [],
   "notes": "",
   "meta": {}
