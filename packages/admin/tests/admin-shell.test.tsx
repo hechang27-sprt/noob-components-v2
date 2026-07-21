@@ -21,16 +21,16 @@ import { useAdminShellPreferencesStore } from "../src/stores/shell-preferences";
 /** Exercises descendant access to the nearest provided AdminShell context. */
 const ShellContextConsumer = defineComponent(
   /**
-   * Resolves shell context during descendant setup and renders its reactive state and action.
+   * Resolves shell context during descendant setup and renders its public keys and action.
    *
-   * @returns A render function exposing the active label and one destination request button.
+   * @returns A render function exposing the context keys and one destination request button.
    */
   () => {
     /** Retains the nearest shell's public descendant context. */
     const shell = useAdminShell();
     return () => (
       <section>
-        <span data-shell-active="">{shell.active.value?.label ?? "none"}</span>
+        <span data-shell-context-keys="">{Object.keys(shell).sort().join(",")}</span>
         <button
           data-shell-navigate=""
           onClick={() => void shell.navigate({ navKey: "settings" })}
@@ -326,15 +326,15 @@ describe("AdminShell", () => {
     expect(authActions.logout).toHaveBeenCalledTimes(1);
   });
 
-  it("provides reactive active state and navigation to descendants", async () => {
+  it("provides only navigation control to descendants", async () => {
     const home = { id: "home", nav: { navKey: "home" }, label: "Home" };
-    const report = { id: "report", nav: { navKey: "reports" }, label: "Report" };
     const navigation = reactive<AdminShellNavigation>({
       active: home,
       handleNavigation: vi.fn(async (request) => ({
-        active: request.kind === "open"
-          ? { ...request.candidate, label: "Report" }
-          : request.destination,
+        active:
+          request.kind === "open"
+            ? { id: request.candidate.id, nav: request.candidate.nav, label: "Settings" }
+            : null,
       })),
     });
     const container = mountShell({ kind: "authenticated" }, createAuthActions(), {
@@ -342,17 +342,16 @@ describe("AdminShell", () => {
       defaultSlot: () => h(ShellContextConsumer),
     });
     await settle();
-    expect(container.querySelector("[data-shell-active]")?.textContent).toBe("Home");
-    navigation.active = report;
-    await settle();
-    expect(container.querySelector("[data-shell-active]")?.textContent).toBe("Report");
+    expect(container.querySelector("[data-shell-context-keys]")?.textContent).toBe(
+      "navigate",
+    );
     container.querySelector<HTMLButtonElement>("[data-shell-navigate]")!.click();
     await settle();
     const request = vi.mocked(navigation.handleNavigation).mock.calls.at(-1)?.[0];
     expect(request?.kind).toBe("open");
     if (request?.kind !== "open") throw new Error("Expected open request.");
     expect(request.candidate.nav).toEqual({ navKey: "settings" });
-    expect(request.current).toEqual(report);
+    expect(request.current).toEqual(home);
   });
 
   it("isolates descendant context between concurrently mounted shells", async () => {
@@ -373,8 +372,8 @@ describe("AdminShell", () => {
       defaultSlot: () => h(ShellContextConsumer),
     });
     await settle();
-    expect(first.querySelector("[data-shell-active]")?.textContent).toBe("First");
-    expect(second.querySelector("[data-shell-active]")?.textContent).toBe("Second");
+    expect(first.querySelector("[data-shell-context-keys]")?.textContent).toBe("navigate");
+    expect(second.querySelector("[data-shell-context-keys]")?.textContent).toBe("navigate");
     second.querySelector<HTMLButtonElement>("[data-shell-navigate]")!.click();
     await settle();
     expect(firstNavigation.handleNavigation).not.toHaveBeenCalled();

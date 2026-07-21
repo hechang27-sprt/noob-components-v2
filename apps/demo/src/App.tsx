@@ -21,39 +21,22 @@ import {
   onBeforeUnmount,
   ref,
 } from "vue";
-import { RouterView, useRouter, type HistoryState } from "vue-router";
+import {
+  RouterView,
+  useRouter,
+  type HistoryState,
+} from "vue-router";
 
-import { demoRouteDefinitions, type DemoRouteDefinition } from "./routes";
+import {
+  demoRouteDefinitions,
+  destinationToRouteLocation,
+  getDemoRouteDefinition,
+  routeLocationToDestination,
+  type DemoNavKey,
+  type DemoRouteDefinition,
+} from "./routes";
 
-/** Maps each stable demo route name to its route and tab presentation metadata. */
-const routeDefinitionsByName = Object.fromEntries(
-  demoRouteDefinitions.map((definition) => [definition.name, definition]),
-) as Record<string, DemoRouteDefinition>;
 
-
-/**
- * Resolves current route metadata for a router-neutral destination.
- *
- * @param destination - Data-only destination whose params remain in tab state, not the URL.
- * @returns The registered route definition matching the destination key.
- */
-function resolveDefinition(destination: AdminShellDestination): DemoRouteDefinition {
-  const definition = demoRouteDefinitions.find(
-    ({ path }) => path === destination.navKey,
-  );
-  if (!definition) throw new Error("Unknown demo destination.");
-  return definition;
-}
-
-/**
- * Resolves a host-owned destination into a Vue Router path without coupling params to query.
- *
- * @param destination - Data-only destination interpreted by the demo route registry.
- * @returns A path-only Vue Router location.
- */
-function resolveDestination(destination: AdminShellDestination): { path: string } {
-  return { path: resolveDefinition(destination).path };
-}
 
 /**
  * Adds current route presentation to one shell-owned page-instance identity and destination.
@@ -63,7 +46,7 @@ function resolveDestination(destination: AdminShellDestination): { path: string 
  * @returns A complete public descriptor suitable for shell confirmation and history state.
  */
 function describeDestination(id: string, nav: AdminShellDestination): AdminShellTabDescriptor {
-  const definition = resolveDefinition(nav);
+  const definition = getDemoRouteDefinition(nav.navKey);
   return { id, nav, label: definition.label, closable: definition.closable };
 }
 
@@ -165,13 +148,13 @@ export default defineComponent(
     );
     /** Supplies a stable, router-aware menu tree without shell-owned selection callbacks. */
     const menuOptions: MenuOption[] = [
-      createMenuOption(demoRouteDefinitions[0]),
+      createMenuOption("dashboard", demoRouteDefinitions.dashboard),
       {
         key: "workspace",
         label: "Workspace",
         children: [
-          createMenuOption(demoRouteDefinitions[1]),
-          createMenuOption(demoRouteDefinitions[2]),
+          createMenuOption("reports", demoRouteDefinitions.reports),
+          createMenuOption("settings", demoRouteDefinitions.settings),
         ],
       },
     ];
@@ -191,11 +174,11 @@ export default defineComponent(
 
       const homeDescriptor = descriptorForHistory(
         describeDestination(crypto.randomUUID(), {
-          navKey: demoRouteDefinitions[0].path,
+          navKey: "dashboard",
         }),
       );
       await router.replace({
-        path: demoRouteDefinitions[0].path,
+        name: "dashboard",
         force: true,
         state: homeDescriptor as unknown as HistoryState,
       });
@@ -208,7 +191,7 @@ export default defineComponent(
      * @returns A promise that resolves after local home-route navigation completes.
      */
     async function logout(): Promise<void> {
-      await router.replace(demoRouteDefinitions[0].path);
+      await router.replace({ name: "dashboard" });
       authStatus.value = { kind: "anonymous", reason: "signed-out" };
     }
 
@@ -224,18 +207,18 @@ export default defineComponent(
       preferred?: AdminShellTabDescriptor,
     ): AdminShellTabDescriptor | null {
       if (preferred) return preferred;
-      const definition =
-        routeDefinitionsByName[String(router.currentRoute.value.name ?? "")];
-      if (!definition) return null;
+      const route = router.currentRoute.value;
+      const destination = routeLocationToDestination(route);
+      if (!destination) return null;
       const state = window.history.state as Record<string, unknown> | null;
-      if (isTabDescriptor(state) && state.nav.navKey === definition.path) {
+      if (isTabDescriptor(state) && state.nav.navKey === destination.navKey) {
         unstampedDescriptor = null;
-        return state;
+        return { ...state, nav: destination };
       }
-      if (unstampedDescriptor?.nav.navKey !== definition.path) {
-        unstampedDescriptor = describeDestination(crypto.randomUUID(), {
-          navKey: definition.path,
-        });
+      if (unstampedDescriptor?.nav.navKey === destination.navKey) {
+        unstampedDescriptor = { ...unstampedDescriptor, nav: destination };
+      } else {
+        unstampedDescriptor = describeDestination(crypto.randomUUID(), destination);
       }
       return unstampedDescriptor;
     }
@@ -260,7 +243,7 @@ export default defineComponent(
         }
         const persistedDescriptor = descriptorForHistory(descriptor);
         await router.push({
-          ...resolveDestination(persistedDescriptor.nav),
+          ...destinationToRouteLocation(persistedDescriptor.nav),
           force: true,
           state: persistedDescriptor as unknown as HistoryState,
           replace: request.kind === "open" && request.closeCurrent,
@@ -290,14 +273,18 @@ export default defineComponent(
 );
 
 /**
- * Creates one plain Naive UI menu option while preserving app-owned route identity.
+ * Creates one plain Naive UI menu option while preserving host-owned nav-key identity.
  *
+ * @param navKey - Stable shell navigation key mapped by the host route registry.
  * @param definition - The local route metadata used to render the menu label.
  * @returns The opaque menu option passed unchanged to the public shell.
  */
-function createMenuOption(definition: DemoRouteDefinition): MenuOption {
+function createMenuOption(
+  navKey: DemoNavKey,
+  definition: DemoRouteDefinition,
+): MenuOption {
   return {
-    key: definition.path,
+    key: navKey,
     label: definition.label,
   };
 }

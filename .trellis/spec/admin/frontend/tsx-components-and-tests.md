@@ -36,7 +36,7 @@ Prefer direct Naive UI primitives over hand-authored native controls. In `AdminS
 
 Do not turn binary actions into menus. The theme button directly toggles `dark` against explicit `light`, while font size and locale remain dropdown choices. `NDropdown` emits a `string | number` option key; guard or narrow that value before calling a typed store action. Its option menu renders in the document-level popup layer, so component tests must open the trigger, await Vue rendering, and query `document` for the visible option rather than limiting queries to the mounted shell container.
 
-Render the shell tab strip with controlled `NTabs type="card"` and direct `NTab` children. Do not use `NTabPane`: routed content remains in `ProLayout`'s default slot. Key tabs by immutable page-instance ID, derive selection from `navigation.active.id`, and route menu/tab/close operations through the single discriminated `handleNavigation` boundary. Descendants use `useAdminShell()` for reactive active public state and `navigate(destination)`; the scoped default slot retains the same navigation control for compatibility.
+Render the shell tab strip with controlled `NTabs type="card"` and direct `NTab` children. Do not use `NTabPane`: routed content remains in `ProLayout`'s default slot. Key tabs by immutable page-instance ID, derive selection from `navigation.active.id`, and route menu/tab/close operations through the single discriminated `handleNavigation` boundary. Descendants use command-only `useAdminShell().navigate(destination)`; host-authoritative active state is not provided to pages, and the scoped default slot retains the same navigation control for compatibility.
 
 ## Auth UI behavior
 

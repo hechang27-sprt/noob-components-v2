@@ -45,3 +45,5 @@ semantically simpler controls.
   pro-naive-ui peer/dev dependency and externalization are consistent.
 - pnpm-lock.yaml was excluded as requested.
 - Reviewers used jj diff/jj show equivalents because this is a JJ-managed repository.
+
+# pass AdminShellDestination.params into `router.push` in the implementation of handleNavigation in demo's App.tsx

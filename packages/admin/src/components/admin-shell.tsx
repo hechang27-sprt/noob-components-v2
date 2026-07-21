@@ -22,7 +22,6 @@ import {
 } from "@vicons/ionicons5";
 import { ProLayout } from "pro-naive-ui";
 import {
-  computed,
   defineComponent,
   inject,
   onBeforeUnmount,
@@ -31,7 +30,6 @@ import {
   ref,
   shallowRef,
   watch,
-  type ComputedRef,
   type InjectionKey,
   type PropType,
 } from "vue";
@@ -83,10 +81,8 @@ export type AdminShellNavigate = (
   resolveTabNavigation?: AdminShellTabNavigationResolver,
 ) => Promise<void>;
 
-/** Exposes the nearest AdminShell's public navigation state and destination control. */
+/** Exposes the nearest AdminShell's public destination control. */
 export type AdminShellContext = {
-  /** Reactively reports the host-authoritative active public page descriptor. */
-  active: ComputedRef<AdminShellTabDescriptor | null>;
   /** Requests navigation through this shell instance's existing resolution path. */
   navigate: AdminShellNavigate;
 };
@@ -97,9 +93,9 @@ const adminShellContextKey: InjectionKey<AdminShellContext> = Symbol(
 );
 
 /**
- * Resolves the public context supplied by the nearest ancestor AdminShell.
+ * Resolves the public navigation control supplied by the nearest ancestor AdminShell.
  *
- * @returns The nearest shell's reactive active descriptor and destination control.
+ * @returns The nearest shell's destination control.
  * @throws When the caller is not rendered beneath an AdminShell provider.
  */
 export function useAdminShell(): AdminShellContext {
@@ -352,11 +348,8 @@ export const AdminShell = defineComponent(
       }
     }
 
-    /** Reactively projects only the host-authoritative public active descriptor. */
-    const active = computed(() => props.navigation?.active ?? null);
     /** Retains one stable descendant context for this mounted shell instance. */
     const shellContext: AdminShellContext = {
-      active,
       navigate: requestDestination,
     };
     provide(adminShellContextKey, shellContext);

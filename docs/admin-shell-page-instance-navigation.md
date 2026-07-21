@@ -28,8 +28,8 @@ Record the architecture direction that supersedes the original one-tab-per-route
 
 ## Implemented integration notes
 
-- Plain Naive UI menu selection supplies scalar `navKey`; the host resolves its route registry and confirms presentation before shell membership commit.
-- `useAdminShell()` is the rich descendant seam: routed pages read its readonly computed `active` descriptor and invoke `navigate(destination, resolveTabNavigation?)` without `RouterView` prop forwarding. It resolves the nearest shell and throws when no ancestor `AdminShell` exists. The scoped default-slot navigation control remains compatible.
+- Plain Naive UI menu selection supplies scalar `navKey`; the host resolves its route registry and confirms presentation before shell membership commit. In the demo, each registry key is both `navKey` and Vue Router route name, while its route definition owns a bidirectional URL codec. The codec maps destination params into explicit path/query/hash state during navigation and reconstructs canonical params from the current URL; parameterless routes reject hidden params.
+- `useAdminShell()` is a command-only descendant seam: routed pages invoke `navigate(destination, resolveTabNavigation?)` without receiving host-authoritative active descriptor state. Destination-defining inputs are consumed through route props after the host URL codec maps them. The composable resolves the nearest shell and throws when no ancestor `AdminShell` exists; the scoped default-slot navigation control remains compatible.
 - First-time opens use an uncommitted candidate whose object identity invalidates stale completion across auth or adapter replacement.
 - An unstamped direct URL derives a transient host descriptor; shell-originated open, activation, and close-fallback navigations persist complete public descriptors through Vue Router state. Hosts must not mutate browser history behind their router.
 - Navigation keys are not tab primary keys; requests therefore carry both immutable page-instance ID and destination-bearing public snapshots.
