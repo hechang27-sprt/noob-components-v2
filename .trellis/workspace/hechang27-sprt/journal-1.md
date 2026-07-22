@@ -170,3 +170,35 @@ Completed the AdminShell page-instance navigation redesign across all changes si
 ### Next Steps
 
 - None - task complete
+
+
+## Session 5: Schema-driven admin Vue Router navigation
+
+**Date**: 2026-07-22
+**Task**: Schema-driven admin Vue Router navigation
+
+### Summary
+
+Renamed destination params to payload, added Zod-owned URL/history codecs and metadata-only AdminShell Vue Router navigation, migrated demo, and verified adapter tests, workspace types, builds, lint, formatting, and authenticated browser startup.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a2a0c98a` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
