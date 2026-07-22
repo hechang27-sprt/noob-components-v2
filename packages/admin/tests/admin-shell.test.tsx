@@ -2,7 +2,15 @@
 
 import type { MenuOption } from "naive-ui";
 import { createPinia, setActivePinia } from "pinia";
-import { createApp, defineComponent, h, nextTick, reactive, type App, type VNodeChild } from "vue";
+import {
+  createApp,
+  defineComponent,
+  h,
+  nextTick,
+  reactive,
+  type App,
+  type VNodeChild,
+} from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AdminShell, useAdminShell } from "../src/components/admin-shell";
@@ -17,7 +25,6 @@ import type {
 } from "../src/runtime-contract";
 import { useAdminShellPreferencesStore } from "../src/stores/shell-preferences";
 
-
 /** Exercises descendant access to the nearest provided AdminShell context. */
 const ShellContextConsumer = defineComponent(
   /**
@@ -30,7 +37,9 @@ const ShellContextConsumer = defineComponent(
     const shell = useAdminShell();
     return () => (
       <section>
-        <span data-shell-context-keys="">{Object.keys(shell).sort().join(",")}</span>
+        <span data-shell-context-keys="">
+          {Object.keys(shell).sort().join(",")}
+        </span>
         <button
           data-shell-navigate=""
           onClick={() => void shell.navigate({ navKey: "settings" })}
@@ -91,7 +100,8 @@ function mountShell(
   preferences.initialize();
   /** Deliberately passes non-default slots to prove that AdminShell ignores them. */
   const slots = {
-    default: options.defaultSlot ??
+    default:
+      options.defaultSlot ??
       (options.content
         ? () => h("div", { "data-slot": options.content })
         : undefined),
@@ -333,21 +343,33 @@ describe("AdminShell", () => {
       handleNavigation: vi.fn(async (request) => ({
         active:
           request.kind === "open"
-            ? { id: request.candidate.id, nav: request.candidate.nav, label: "Settings" }
+            ? {
+                id: request.candidate.id,
+                nav: request.candidate.nav,
+                label: "Settings",
+              }
             : null,
       })),
     });
-    const container = mountShell({ kind: "authenticated" }, createAuthActions(), {
-      navigation,
-      defaultSlot: () => h(ShellContextConsumer),
-    });
-    await settle();
-    expect(container.querySelector("[data-shell-context-keys]")?.textContent).toBe(
-      "navigate",
+    const container = mountShell(
+      { kind: "authenticated" },
+      createAuthActions(),
+      {
+        navigation,
+        defaultSlot: () => h(ShellContextConsumer),
+      },
     );
-    container.querySelector<HTMLButtonElement>("[data-shell-navigate]")!.click();
     await settle();
-    const request = vi.mocked(navigation.handleNavigation).mock.calls.at(-1)?.[0];
+    expect(
+      container.querySelector("[data-shell-context-keys]")?.textContent,
+    ).toBe("navigate");
+    container
+      .querySelector<HTMLButtonElement>("[data-shell-navigate]")!
+      .click();
+    await settle();
+    const request = vi
+      .mocked(navigation.handleNavigation)
+      .mock.calls.at(-1)?.[0];
     expect(request?.kind).toBe("open");
     if (request?.kind !== "open") throw new Error("Expected open request.");
     expect(request.candidate.nav).toEqual({ navKey: "settings" });
@@ -372,8 +394,12 @@ describe("AdminShell", () => {
       defaultSlot: () => h(ShellContextConsumer),
     });
     await settle();
-    expect(first.querySelector("[data-shell-context-keys]")?.textContent).toBe("navigate");
-    expect(second.querySelector("[data-shell-context-keys]")?.textContent).toBe("navigate");
+    expect(first.querySelector("[data-shell-context-keys]")?.textContent).toBe(
+      "navigate",
+    );
+    expect(second.querySelector("[data-shell-context-keys]")?.textContent).toBe(
+      "navigate",
+    );
     second.querySelector<HTMLButtonElement>("[data-shell-navigate]")!.click();
     await settle();
     expect(firstNavigation.handleNavigation).not.toHaveBeenCalled();
@@ -390,21 +416,39 @@ describe("AdminShell", () => {
   });
 
   it("commits a menu open candidate only after host confirmation", async () => {
-    let resolveOpen: ((value: { active: AdminShellNavigation["active"] }) => void) | undefined;
-    const home = { id: "home-1", nav: { navKey: "home" }, label: "Home", closable: false };
+    let resolveOpen:
+      | ((value: { active: AdminShellNavigation["active"] }) => void)
+      | undefined;
+    const home = {
+      id: "home-1",
+      nav: { navKey: "home" },
+      label: "Home",
+      closable: false,
+    };
     const navigation = reactive<AdminShellNavigation>({
       active: home,
       handleNavigation: vi.fn(
-        () => new Promise((resolve) => { resolveOpen = resolve; }),
+        () =>
+          new Promise((resolve) => {
+            resolveOpen = resolve;
+          }),
       ),
     });
-    const container = mountShell({ kind: "authenticated" }, createAuthActions(), {
-      menuOptions: [{ key: "home", label: "Home" }, { key: "settings", label: "Settings" }],
-      navigation,
-    });
+    const container = mountShell(
+      { kind: "authenticated" },
+      createAuthActions(),
+      {
+        menuOptions: [
+          { key: "home", label: "Home" },
+          { key: "settings", label: "Settings" },
+        ],
+        navigation,
+      },
+    );
     await settle();
     [...container.querySelectorAll<HTMLElement>(".n-menu-item-content")]
-      .find((item) => item.textContent?.includes("Settings"))!.click();
+      .find((item) => item.textContent?.includes("Settings"))!
+      .click();
     await settle();
     const request = vi.mocked(navigation.handleNavigation).mock.calls[0]![0];
     expect(request.kind).toBe("open");
@@ -412,21 +456,35 @@ describe("AdminShell", () => {
     expect(request.candidate.nav).toEqual({ navKey: "settings" });
     expect(request.current).toEqual(home);
     expect(container.querySelectorAll("[data-admin-tab-key]")).toHaveLength(1);
-    const confirmed = { id: request.candidate.id, nav: request.candidate.nav, label: "Settings", closable: true };
+    const confirmed = {
+      id: request.candidate.id,
+      nav: request.candidate.nav,
+      label: "Settings",
+      closable: true,
+    };
     navigation.active = confirmed;
     resolveOpen!({ active: confirmed });
     await settle();
-    expect(container.querySelector(`[data-admin-tab-key="${confirmed.id}"]`)).not.toBeNull();
+    expect(
+      container.querySelector(`[data-admin-tab-key="${confirmed.id}"]`),
+    ).not.toBeNull();
   });
 
   it("does not commit a rejected open candidate", async () => {
     const navigation: AdminShellNavigation = {
       active: { id: "home-1", nav: { navKey: "home" }, label: "Home" },
-      handleNavigation: vi.fn(async () => { throw new Error("private failure"); }),
+      handleNavigation: vi.fn(async () => {
+        throw new Error("private failure");
+      }),
     };
-    const container = mountShell({ kind: "authenticated" }, createAuthActions(), {
-      menuOptions: [{ key: "settings", label: "Settings" }], navigation,
-    });
+    const container = mountShell(
+      { kind: "authenticated" },
+      createAuthActions(),
+      {
+        menuOptions: [{ key: "settings", label: "Settings" }],
+        navigation,
+      },
+    );
     await settle();
     container.querySelector<HTMLElement>(".n-menu-item-content")!.click();
     await settle();
@@ -438,8 +496,16 @@ describe("AdminShell", () => {
 
   it("activates the newest matching navKey while ignoring parameters", async () => {
     const home = { id: "home", nav: { navKey: "home" }, label: "Home" };
-    const older = { id: "report-1", nav: { navKey: "reports", params: { id: 1 } }, label: "Report 1" };
-    const newer = { id: "report-2", nav: { navKey: "reports", params: { id: 2 } }, label: "Report 2" };
+    const older = {
+      id: "report-1",
+      nav: { navKey: "reports", params: { id: 1 } },
+      label: "Report 1",
+    };
+    const newer = {
+      id: "report-2",
+      nav: { navKey: "reports", params: { id: 2 } },
+      label: "Report 2",
+    };
     const navigation = reactive<AdminShellNavigation>({
       active: home,
       handleNavigation: vi.fn(async (request) => {
@@ -448,9 +514,14 @@ describe("AdminShell", () => {
         return { active };
       }),
     });
-    const container = mountShell({ kind: "authenticated" }, createAuthActions(), {
-      menuOptions: [{ key: "reports", label: "Reports" }], navigation,
-    });
+    const container = mountShell(
+      { kind: "authenticated" },
+      createAuthActions(),
+      {
+        menuOptions: [{ key: "reports", label: "Reports" }],
+        navigation,
+      },
+    );
     await settle();
     navigation.active = older;
     await settle();
@@ -460,28 +531,42 @@ describe("AdminShell", () => {
     await settle();
     container.querySelector<HTMLElement>(".n-menu-item-content")!.click();
     await settle();
-    expect(navigation.handleNavigation).toHaveBeenLastCalledWith({ kind: "activate", destination: newer, current: home });
+    expect(navigation.handleNavigation).toHaveBeenLastCalledWith({
+      kind: "activate",
+      destination: newer,
+      current: home,
+    });
   });
 
   it("accepts a call-specific resolver without storing it in the destination", async () => {
     const home = { id: "home", nav: { navKey: "home" }, label: "Home" };
-    const report = { id: "report-1", nav: { navKey: "reports" }, label: "Report" };
+    const report = {
+      id: "report-1",
+      nav: { navKey: "reports" },
+      label: "Report",
+    };
     const navigation = reactive<AdminShellNavigation>({
       active: home,
       handleNavigation: vi.fn(async (request) => ({
-        active: request.kind === "open"
-          ? { ...request.candidate, label: "New report" }
-          : request.destination,
+        active:
+          request.kind === "open"
+            ? { ...request.candidate, label: "New report" }
+            : request.destination,
       })),
     });
     const resolver = vi.fn(() => ({ kind: "open" as const }));
-    const container = mountShell({ kind: "authenticated" }, createAuthActions(), {
-      navigation,
-      defaultSlot: ({ navigate }) => h("button", {
-        "data-open-report": "",
-        onClick: () => void navigate({ navKey: "reports" }, resolver),
-      }),
-    });
+    const container = mountShell(
+      { kind: "authenticated" },
+      createAuthActions(),
+      {
+        navigation,
+        defaultSlot: ({ navigate }) =>
+          h("button", {
+            "data-open-report": "",
+            onClick: () => void navigate({ navKey: "reports" }, resolver),
+          }),
+      },
+    );
     await settle();
     navigation.active = report;
     await settle();
@@ -489,26 +574,57 @@ describe("AdminShell", () => {
     await settle();
     container.querySelector<HTMLElement>("[data-open-report]")!.click();
     await settle();
-    expect(resolver).toHaveBeenCalledWith([home, report], { navKey: "reports" });
-    expect(vi.mocked(navigation.handleNavigation).mock.calls.at(-1)?.[0].kind).toBe("open");
+    expect(resolver).toHaveBeenCalledWith([home, report], {
+      navKey: "reports",
+    });
+    expect(
+      vi.mocked(navigation.handleNavigation).mock.calls.at(-1)?.[0].kind,
+    ).toBe("open");
   });
 
   it("keeps duplicate destinations as independently closable page instances", async () => {
-    const first = { id: "same-1", nav: { navKey: "reports", params: { id: 1 } }, label: "First", closable: true };
-    const second = { id: "same-2", nav: { navKey: "reports", params: { id: 1 } }, label: "Second", closable: true };
+    const first = {
+      id: "same-1",
+      nav: { navKey: "reports", params: { id: 1 } },
+      label: "First",
+      closable: true,
+    };
+    const second = {
+      id: "same-2",
+      nav: { navKey: "reports", params: { id: 1 } },
+      label: "Second",
+      closable: true,
+    };
     const navigation = reactive<AdminShellNavigation>({
       active: first,
-      handleNavigation: vi.fn(async (request) => ({ active: request.kind === "close" ? request.destination : request.kind === "open" ? null : request.destination })),
+      handleNavigation: vi.fn(async (request) => ({
+        active:
+          request.kind === "close"
+            ? request.destination
+            : request.kind === "open"
+              ? null
+              : request.destination,
+      })),
     });
-    const container = mountShell({ kind: "authenticated" }, createAuthActions(), { navigation });
+    const container = mountShell(
+      { kind: "authenticated" },
+      createAuthActions(),
+      { navigation },
+    );
     await settle();
     navigation.active = second;
     await settle();
     getTabClose(container, "same-1")!.click();
     await settle();
-    expect(navigation.handleNavigation).toHaveBeenLastCalledWith({ kind: "close", closing: first, destination: second });
+    expect(navigation.handleNavigation).toHaveBeenLastCalledWith({
+      kind: "close",
+      closing: first,
+      destination: second,
+    });
     expect(container.querySelector('[data-admin-tab-key="same-1"]')).toBeNull();
-    expect(container.querySelector('[data-admin-tab-key="same-2"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-admin-tab-key="same-2"]'),
+    ).not.toBeNull();
   });
 
   it("clears page instances when auth or the navigation boundary changes", async () => {

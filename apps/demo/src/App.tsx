@@ -4,7 +4,6 @@ import {
   type AdminAuthActions,
   type AdminAuthStatus,
   type AdminLoginValues,
-  type AdminShellDestination,
   type AdminShellNavigation,
   type AdminShellTabDescriptor,
 } from "@noob-naive-ui/admin";
@@ -15,23 +14,11 @@ import {
   type GlobalThemeOverrides,
   type MenuOption,
 } from "naive-ui";
-import {
-  computed,
-  defineComponent,
-  onBeforeUnmount,
-  ref,
-} from "vue";
-import {
-  RouterView,
-  useRouter,
-  type HistoryState,
-} from "vue-router";
+import { computed, defineComponent, onBeforeUnmount, ref } from "vue";
+import { RouterView, useRouter, type HistoryState } from "vue-router";
 
 import { describeDemoDestination } from "./admin-navigation";
 import { demoRouteRegistry, type DemoNavKey } from "./routes";
-
-
-
 
 /**
  * Detaches a descriptor into the plain JSON representation required by the navigation contract.
@@ -56,10 +43,11 @@ function isTabDescriptor(value: unknown): value is AdminShellTabDescriptor {
   const descriptor = value as Partial<AdminShellTabDescriptor>;
   return Boolean(
     typeof descriptor.id === "string" &&
-      typeof descriptor.label === "string" &&
-      descriptor.nav &&
-      typeof descriptor.nav.navKey === "string" &&
-      (descriptor.closable === undefined || typeof descriptor.closable === "boolean"),
+    typeof descriptor.label === "string" &&
+    descriptor.nav &&
+    typeof descriptor.nav.navKey === "string" &&
+    (descriptor.closable === undefined ||
+      typeof descriptor.closable === "boolean"),
   );
 }
 
@@ -195,7 +183,10 @@ export default defineComponent(
       if (unstampedDescriptor?.nav.navKey === destination.navKey) {
         unstampedDescriptor = { ...unstampedDescriptor, nav: destination };
       } else {
-        unstampedDescriptor = describeDemoDestination(crypto.randomUUID(), destination);
+        unstampedDescriptor = describeDemoDestination(
+          crypto.randomUUID(),
+          destination,
+        );
       }
       return unstampedDescriptor;
     }
@@ -210,7 +201,10 @@ export default defineComponent(
       async handleNavigation(request) {
         let descriptor: AdminShellTabDescriptor;
         if (request.kind === "open") {
-          descriptor = describeDemoDestination(request.candidate.id, request.candidate.nav);
+          descriptor = describeDemoDestination(
+            request.candidate.id,
+            request.candidate.nav,
+          );
         } else if (request.kind === "activate") {
           descriptor = request.destination;
         } else if (request.destination) {
@@ -226,21 +220,18 @@ export default defineComponent(
           replace: request.kind === "open" && request.closeCurrent,
         });
         return { active: currentDescriptor() };
-      }
+      },
     };
-
 
     return () => (
       <NConfigProvider
         theme={theme.value}
-        themeOverrides={themeOverrides.value}
-      >
+        themeOverrides={themeOverrides.value}>
         <AdminShell
           authStatus={authStatus.value}
           authActions={authActions}
           menuOptions={menuOptions}
-          navigation={navigation}
-        >
+          navigation={navigation}>
           <RouterView />
         </AdminShell>
       </NConfigProvider>

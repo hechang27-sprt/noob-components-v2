@@ -94,10 +94,14 @@ describe("defineAdminRouteRegistry", () => {
   it("silently drops params for a route without a codec and reconstructs no params", () => {
     const registry = createRegistry();
 
-    expect(registry.toLocation({ navKey: "dashboard", params: { ignored: true } })).toEqual({
+    expect(
+      registry.toLocation({ navKey: "dashboard", params: { ignored: true } }),
+    ).toEqual({
       name: "dashboard",
     });
-    expect(registry.fromRoute(resolveRoute("/"))).toEqual({ navKey: "dashboard" });
+    expect(registry.fromRoute(resolveRoute("/"))).toEqual({
+      navKey: "dashboard",
+    });
   });
 
   it("returns null for unregistered routes and throws clear errors for unknown destinations", () => {

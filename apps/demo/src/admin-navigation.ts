@@ -3,7 +3,7 @@ import type {
   AdminShellTabDescriptor,
 } from "@noob-naive-ui/admin";
 
-import { demoRouteRegistry, type DemoNavKey } from "./routes";
+import { type DemoNavKey } from "./routes";
 
 /** Describes host-owned presentation assigned when one destination opens as an AdminShell tab. */
 type DemoTabPresentation = Pick<AdminShellTabDescriptor, "label" | "closable">;

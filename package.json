@@ -5,8 +5,10 @@
   "scripts": {
     "build": "pnpm -r --if-present build",
     "typecheck": "pnpm -r --if-present typecheck",
-    "lint": "pnpm -r --if-present lint",
-    "format": "prettier --write .",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
     "dev": "pnpm --filter admin-starter dev"
   },
   "devDependencies": {
@@ -16,8 +18,9 @@
     "@vitejs/plugin-vue-jsx": "^5.1.6",
     "happy-dom": "^20.10.6",
     "naive-ui": "^2.44.1",
+    "oxfmt": "^0.59.0",
+    "oxlint": "^1.74.0",
     "pinia": "^3.0.4",
-    "prettier": "^3.9.4",
     "pro-naive-ui": "^3.2.3",
     "tailwindcss": "^4.3.2",
     "typescript": "^7.0.2",

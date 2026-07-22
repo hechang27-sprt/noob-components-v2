@@ -7,7 +7,6 @@ import {
   NTab,
   NTabs,
   NThing,
-  useThemeVars,
   type DropdownOption,
   type MenuOption,
 } from "naive-ui";
@@ -65,7 +64,8 @@ const accountOptions = [
 
 /** Selects whether one navigation call opens a page or activates an existing page instance. */
 export type AdminShellTabNavigationDecision =
-  { kind: "open" } | { kind: "activate"; tabId: string };
+  | { kind: "open" }
+  | { kind: "activate"; tabId: string };
 
 /** Resolves one destination against all currently opened public tab snapshots. */
 export type AdminShellTabNavigationResolver = (
@@ -88,9 +88,8 @@ export type AdminShellContext = {
 };
 
 /** Identifies shell context privately while preserving typed hierarchical injection. */
-const adminShellContextKey: InjectionKey<AdminShellContext> = Symbol(
-  "AdminShellContext",
-);
+const adminShellContextKey: InjectionKey<AdminShellContext> =
+  Symbol("AdminShellContext");
 
 /**
  * Resolves the public navigation control supplied by the nearest ancestor AdminShell.
@@ -509,8 +508,7 @@ export const AdminShell = defineComponent(
           <main
             class="grid min-h-dvh place-items-center"
             role="status"
-            aria-busy="true"
-          >
+            aria-busy="true">
             <p>Checking your session…</p>
           </main>
         );
@@ -538,7 +536,7 @@ export const AdminShell = defineComponent(
         preferences.locale;
       const themeIcon =
         preferences.themeMode === "dark" ? SunnyOutline : MoonOutline;
-      const theme = useThemeVars();
+
       const layoutSlots = {
         "nav-left": () => (
           <div class="flex items-center h-full" data-admin-nav-left>
@@ -554,8 +552,9 @@ export const AdminShell = defineComponent(
                   : "Collapse sidebar"
               }
               aria-pressed={preferences.sidebarCollapsed}
-              onClick={() => setSidebarCollapsed(!preferences.sidebarCollapsed)}
-            >
+              onClick={() =>
+                setSidebarCollapsed(!preferences.sidebarCollapsed)
+              }>
               <NIcon size={18}>
                 <MenuOutline />
               </NIcon>
@@ -578,8 +577,7 @@ export const AdminShell = defineComponent(
                   ? "Switch to light theme"
                   : "Switch to dark theme"
               }
-              onClick={toggleThemeMode}
-            >
+              onClick={toggleThemeMode}>
               <NIcon component={themeIcon} size={18} />
             </NButton>
             <NDropdown
@@ -587,16 +585,14 @@ export const AdminShell = defineComponent(
               delay={0}
               value={preferences.fontSize}
               options={fontSizeOptions}
-              onSelect={setFontSize}
-            >
+              onSelect={setFontSize}>
               <NButton
                 attr-type="button"
                 quaternary
                 circle
                 size="large"
                 data-admin-control="font-size"
-                aria-label={`Font size: ${fontSizeLabel}`}
-              >
+                aria-label={`Font size: ${fontSizeLabel}`}>
                 <NIcon size={18}>
                   <TextOutline />
                 </NIcon>
@@ -608,8 +604,7 @@ export const AdminShell = defineComponent(
               value={preferences.locale}
               options={localeOptions}
               disabled={localeOptions.length === 0}
-              onSelect={setLocale}
-            >
+              onSelect={setLocale}>
               <NButton
                 attr-type="button"
                 quaternary
@@ -617,8 +612,7 @@ export const AdminShell = defineComponent(
                 size="large"
                 data-admin-control="locale"
                 disabled={localeOptions.length === 0}
-                aria-label={`Language: ${localeLabel}`}
-              >
+                aria-label={`Language: ${localeLabel}`}>
                 <NIcon size={18}>
                   <LanguageOutline />
                 </NIcon>
@@ -629,8 +623,7 @@ export const AdminShell = defineComponent(
               delay={0}
               disabled={logoutPending.value}
               options={accountOptions}
-              onSelect={selectAccountAction}
-            >
+              onSelect={selectAccountAction}>
               <NButton
                 attr-type="button"
                 quaternary
@@ -639,8 +632,7 @@ export const AdminShell = defineComponent(
                 data-admin-control="account"
                 disabled={logoutPending.value}
                 loading={logoutPending.value}
-                aria-label={`Account: ${userLabel}`}
-              >
+                aria-label={`Account: ${userLabel}`}>
                 <NThing>
                   {{
                     avatar: () => (
@@ -691,8 +683,7 @@ export const AdminShell = defineComponent(
                     void activateTab(String(key))
                   }
                   onClose={(key: string | number) => void closeTab(String(key))}
-                  tabClass="data-[admin-tab-active=true]:h-9/10 h-4/5 self-end rounded-t-xl!"
-                >
+                  tabClass="data-[admin-tab-active=true]:h-9/10 h-4/5 self-end rounded-t-xl!">
                   {visibleTabs.value.map((id) => {
                     const tab = tabs.get(id);
                     const active = activeId === tab?.id;

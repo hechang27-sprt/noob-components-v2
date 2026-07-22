@@ -1,0 +1,10 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "singleQuote": false,
+  "trailingComma": "all",
+  "bracketSameLine": true,
+  "singleAttributePerLine": false,
+  "printWidth": 80,
+  "sortPackageJson": false,
+  "ignorePatterns": [".omp/**", ".trellis/**", "docs/**"]
+}

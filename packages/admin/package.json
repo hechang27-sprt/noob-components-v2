@@ -13,8 +13,12 @@
     },
     "./style.css": "./dist/style.css"
   },
-  "files": ["dist"],
-  "sideEffects": ["**/*.css"],
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
   "scripts": {
     "prebuild": "pnpm --filter @noob-naive-ui/ui build",
     "build": "pnpm run clean && vite build && pnpm run build:types",

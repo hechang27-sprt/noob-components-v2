@@ -57,7 +57,8 @@ const ReportsDemoPage = defineComponent(
       <main class="p-6">
         <h1 class="m-0 text-2xl font-semibold">Reports</h1>
         <p class="mt-3 max-w-2xl text-base leading-6">
-          Open a report detail page that is intentionally absent from the sidebar menu.
+          Open a report detail page that is intentionally absent from the
+          sidebar menu.
         </p>
         <NButton type="primary" onClick={openDetail}>
           Open quarterly report detail
@@ -78,9 +79,12 @@ const DetailDemoPage = defineComponent(
    */
   (props: { reportId: string }) => () => (
     <main class="p-6">
-      <h1 class="m-0 text-2xl font-semibold">Report detail: {props.reportId}</h1>
+      <h1 class="m-0 text-2xl font-semibold">
+        Report detail: {props.reportId}
+      </h1>
       <p class="mt-3 max-w-2xl text-base leading-6">
-        Report {props.reportId} was opened by a page-owned action and has no sidebar menu item.
+        Report {props.reportId} was opened by a page-owned action and has no
+        sidebar menu item.
       </p>
     </main>
   ),

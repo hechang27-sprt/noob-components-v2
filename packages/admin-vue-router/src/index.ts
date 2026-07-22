@@ -44,11 +44,14 @@ export type AdminRouteDefinition = {
 };
 
 /** Describes the input map accepted by a bound admin route registry. */
-export type AdminRouteDefinitions = Readonly<Record<string, AdminRouteDefinition>>;
+export type AdminRouteDefinitions = Readonly<
+  Record<string, AdminRouteDefinition>
+>;
 
 /** Extracts the stable nav-key union from a route registry definition map. */
-export type AdminRouteRegistryNavKey<TDefinitions extends AdminRouteDefinitions> =
-  keyof TDefinitions & string;
+export type AdminRouteRegistryNavKey<
+  TDefinitions extends AdminRouteDefinitions,
+> = keyof TDefinitions & string;
 
 /** Provides a reusable bound conversion API for one host-owned route registry. */
 export type AdminRouteRegistry<TDefinitions extends AdminRouteDefinitions> = {
@@ -117,9 +120,9 @@ const parameterlessCodec: AdminRouteUrlCodec = {
  * @returns One immutable registry API bound to the supplied definitions.
  * @throws When a route record attempts to declare a second route name.
  */
-export function defineAdminRouteRegistry<TDefinitions extends AdminRouteDefinitions>(
-  definitions: TDefinitions,
-): AdminRouteRegistry<TDefinitions> {
+export function defineAdminRouteRegistry<
+  TDefinitions extends AdminRouteDefinitions,
+>(definitions: TDefinitions): AdminRouteRegistry<TDefinitions> {
   const entries = Object.entries(definitions) as [
     AdminRouteRegistryNavKey<TDefinitions>,
     AdminRouteDefinition,
@@ -148,7 +151,9 @@ export function defineAdminRouteRegistry<TDefinitions extends AdminRouteDefiniti
   }
 
   /** Converts one destination to its generated named Vue Router location. */
-  function toLocation(destination: AdminShellDestination): RouteLocationNamedRaw {
+  function toLocation(
+    destination: AdminShellDestination,
+  ): RouteLocationNamedRaw {
     return {
       name: destination.navKey,
       ...getCodec(destination.navKey).encode(destination.params),

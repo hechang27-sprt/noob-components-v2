@@ -12,7 +12,9 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "prebuild": "pnpm --filter @noob-naive-ui/admin build",
     "build": "pnpm run clean && vite build && pnpm run build:types",
