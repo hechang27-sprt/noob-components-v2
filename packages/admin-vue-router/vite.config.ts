@@ -10,7 +10,7 @@ export default defineConfig({
       fileName: "index",
     },
     rollupOptions: {
-      external: ["@noob-naive-ui/admin", "vue", "vue-router"],
+      external: ["@noob-naive-ui/admin", "vue", "vue-router", "zod"],
     },
   },
   test: {

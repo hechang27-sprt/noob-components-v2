@@ -21,6 +21,13 @@ export default defineConfig(({ command }) => {
       ? {
           alias: [
             {
+              find: "@noob-naive-ui/admin-vue-router",
+              replacement: resolve(
+                __dirname,
+                "../../packages/admin-vue-router/src/index.ts",
+              ),
+            },
+            {
               find: "@noob-naive-ui/admin/style.css",
               replacement: resolve(
                 __dirname,

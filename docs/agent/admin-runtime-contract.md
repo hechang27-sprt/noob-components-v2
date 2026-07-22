@@ -64,6 +64,14 @@ Backend-specific starters or app code must own:
 - route registry, domain page modules, and router integration
 - derivation of the final `MenuOption[]` tree, including visibility, hierarchy, and router-aware link/rendered-label content
 
+### Vue Router adapter boundary
+
+`@noob-naive-ui/admin` remains router-free. Applications own their router, `AdminRouteRegistry`, route definitions/codecs, and tab-presentation policy. `@noob-naive-ui/admin-vue-router` provides the higher-level `createAdminShellVueRouterNavigation` factory, which accepts those host-owned inputs and returns `AdminShellNavigation`; it neither creates/proxies a router nor registers routes or guards.
+
+`AdminShellDestination.payload` is router-neutral plain-object application navigation data. A payload-bearing codec owns Zod validation plus its reversible representation: Vue Router dynamic path `params`, `query`, `hash`, browser-history `state`, or a mix with codec-defined reconstruction precedence. The adapter preserves codec-owned state and adds only `id`, `label`, and optional `closable` under `_noobAdminShell`; it never persists a complete descriptor, `navKey`, payload, or shell-private state.
+
+The adapter reads `router.options.history.state`, keeping browser and memory history behind Vue Router's common abstraction. Vue Router documents `RouterHistory.state` as Alpha; its use is intentionally isolated to this adapter rather than exposed through core admin. Sources: [RouterHistory.state](https://router.vuejs.org/api/interfaces/routerhistory#state), [RouterHistory.push](https://router.vuejs.org/api/interfaces/routerhistory#push), [MDN `History.pushState()`](https://developer.mozilla.org/en-US/docs/Web/API/History/pushState), and [MDN `structuredClone()`](https://developer.mozilla.org/en-US/docs/Web/API/Window/structuredClone).
+
 ## Contract design rule
 
 The shared runtime consumes only **frontend-ready state and callbacks**.

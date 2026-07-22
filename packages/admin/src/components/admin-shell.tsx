@@ -109,8 +109,8 @@ export function useAdminShell(): AdminShellContext {
 export type AdminShellDestination = {
   /** Supplies the stable host-defined navigation key. */
   navKey: string;
-  /** Supplies an optional plain JSON object that callers must keep browser-state serializable. */
-  params?: Readonly<Record<string, unknown>>;
+  /** Supplies optional router-neutral application data as a plain JSON object. */
+  payload?: Readonly<Record<string, unknown>>;
 };
 
 /** Describes one immutable opened page-instance snapshot exposed to the host. */

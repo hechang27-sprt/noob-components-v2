@@ -18,7 +18,7 @@ const tabPresentation = {
   settings: () => ({ label: "Settings", closable: true }),
   /** Supplies a parameter-aware title for one report-detail tab. */
   detail: (destination: AdminShellDestination) => ({
-    label: `Report ${String(destination.params?.reportId ?? "detail")}`,
+    label: `Report ${String(destination.payload?.reportId ?? "detail")}`,
     closable: true,
   }),
 } satisfies Record<

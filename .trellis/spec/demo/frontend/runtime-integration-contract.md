@@ -20,13 +20,13 @@ const menuOptions: MenuOption[];
 const navigation: AdminShellNavigation;
 ```
 
-Production-focused commands have an admin-build prerequisite, while Vite serve mode resolves admin and UI source directly:
+Production-focused commands build the adapter and its dependencies first, while Vite serve mode resolves admin, admin-vue-router, and UI source directly:
 
 ```json
 {
   "dev": "vite",
-  "prebuild": "pnpm --filter @noob-naive-ui/admin build",
-  "pretypecheck": "pnpm --filter @noob-naive-ui/admin build"
+  "prebuild": "pnpm --filter @noob-naive-ui/admin-vue-router build",
+  "pretypecheck": "pnpm --filter @noob-naive-ui/admin-vue-router build"
 }
 ```
 
@@ -36,7 +36,7 @@ Production-focused commands have an admin-build prerequisite, while Vite serve m
 - Import `@noob-naive-ui/admin/style.css` explicitly in the app entrypoint. Serve-mode aliases must list exact admin/UI `style.css` subpaths before package-root aliases so Vite loads and watches the real source stylesheets.
 - Keep auth in a single in-memory `Ref<AdminAuthStatus>`. Login trims username/password and rejects either empty value; successful login uses the username only as a rendering label. Logout routes home and changes auth to the signed-out anonymous state.
 - Build the final `MenuOption[]` with plain labels in the demo and pass its exact reference to `AdminShell`. The shell gets no router, route object, visibility input, session, or backend-shaped value.
-- Keep one stable `AdminShellNavigation`. Its `active` getter reads the complete public descriptor directly from browser history state and derives a transient bootstrap descriptor for an unstamped route. `handleNavigation` adds host presentation to open candidates, persists that complete descriptor as Vue Router `state`, forces identical-location opens, and returns the confirmed descriptor. Destination `params` remain descriptor state, are not implicitly mapped to URL query parameters, and are forwarded separately to the active routed component as props. Do not mutate `window.history.state` behind Vue Router or duplicate shell-local membership.
+- Build one stable `AdminShellNavigation` with `createAdminShellVueRouterNavigation({ router, registry, describeDestination, createPageId })`. The factory owns generic Vue Router/history orchestration; `admin-navigation.ts` retains host tab-presentation policy. Each payload-bearing route codec validates and maps `AdminShellDestination.payload` to explicit Vue Router `params`, `query`, `hash`, `state`, or a mix, then reconstructs canonical payload from the normalized route and current history state. Codec state remains host-owned; the adapter adds only `id`, `label`, and optional `closable` beneath `_noobAdminShell`, never a complete descriptor, `navKey`, or payload. Do not mutate `window.history.state` behind Vue Router or duplicate shell-local membership.
 - Initialize only `useAdminShellPreferencesStore` in `main.ts`; provide runtime locale options there. Application theme/font presentation reads that same store reactively. Do not add a store, storage adapter, or persistence implementation.
 
 ## 4. Validation & Error Matrix
@@ -45,14 +45,14 @@ Production-focused commands have an admin-build prerequisite, while Vite serve m
 | --- | --- |
 | Username or password trims to empty | Reject login; packaged login UI shows its generic safe error and stays anonymous. |
 | Non-empty credentials | Navigate home and render authenticated shell with the trimmed username label; no network request. |
-| Route or history changes | Reactive `navigation.active` reports the complete history-backed descriptor; sidebar selection follows a matching `navKey`. |
-| Shell closes a tab | The close request navigates to its destination-bearing fallback and preserves the complete fallback descriptor before shell removal. |
+| Route or history changes | Reactive `navigation.active` combines codec-reconstructed canonical payload with persisted adapter tab metadata; sidebar selection follows a matching `navKey`. |
+| Shell closes a tab | The close request navigates to its destination-bearing fallback and preserves only the fallback tab metadata (`id`, `label`, optional `closable`) before shell removal. |
 | OS color scheme changes in system mode | Reactive media listener updates application theme; remove listener on unmount. |
 | Focused production command from a clean checkout | Its `pre*` hook builds admin JS, CSS, and declarations first; dev serve instead transforms and watches exact admin/UI source aliases. |
 
 ## 5. Good, Base, and Bad Cases
 
-- **Good:** `routes.tsx` registers host page records/codecs through `@noob-naive-ui/admin-vue-router`'s bound registry; registry keys are both stable shell `navKey` values and generated Vue Router route names, while URL paths remain separate. The adapter's codecs map `AdminShellDestination.params` into explicit path/query/hash state for `handleNavigation()` and reconstruct canonical destinations from normalized routes for `currentDescriptor()`. Omitted codecs silently omit params and decode none. `App.tsx` uses only bound adapter conversion methods and contains no route-specific parameter branching or reverse index. `admin-navigation.ts` separately owns exhaustive tab labels/closability and descriptor construction. It creates plain menu labels, passes one stable navigation adapter, renders `RouterView` directly beneath `AdminShell`, and supplies its existing `logout` callback. Routed pages call command-only `useAdminShell().navigate(...)`; destination-defining values are consumed as route props rather than read from shell active state. A page-owned button may open a registered destination omitted from `menuOptions`; pass a second-argument resolver returning `{ kind: "open" }` when each click must create a distinct page instance. Destinations remain data-only.
+- **Good:** `routes.tsx` registers host page records/codecs through `@noob-naive-ui/admin-vue-router`'s bound registry; registry keys are both stable shell `navKey` values and generated Vue Router route names, while URL paths remain separate. A payload-bearing codec owns a Zod `payloadSchema`, maps canonical `AdminShellDestination.payload` to Vue Router `params`, `query`, `hash`, `state`, or a mix, and defines reconstruction precedence from normalized route/history state; omitted codecs silently omit payload and decode none. `App.tsx` constructs `createAdminShellVueRouterNavigation` once and contains no generic cloning, history parsing, active restoration, request handling, route-specific payload branching, or reverse index. `admin-navigation.ts` separately owns exhaustive tab labels/closability and descriptor construction.
 - **Base:** static local route pages with no data fetching, request models, or session restoration.
 - **Bad:** a mock `login()` HTTP endpoint, a `SessionDto`, `localStorage` auth restoration, a router prop passed to `AdminShell`, a second preferences store, or importing admin source files directly.
 

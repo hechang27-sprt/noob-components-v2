@@ -4,9 +4,8 @@ import {
   type AdminAuthActions,
   type AdminAuthStatus,
   type AdminLoginValues,
-  type AdminShellNavigation,
-  type AdminShellTabDescriptor,
 } from "@noob-naive-ui/admin";
+import { createAdminShellVueRouterNavigation } from "@noob-naive-ui/admin-vue-router";
 import {
   darkTheme,
   NConfigProvider,
@@ -15,41 +14,10 @@ import {
   type MenuOption,
 } from "naive-ui";
 import { computed, defineComponent, onBeforeUnmount, ref } from "vue";
-import { RouterView, useRouter, type HistoryState } from "vue-router";
+import { RouterView, useRouter } from "vue-router";
 
 import { describeDemoDestination } from "./admin-navigation";
 import { demoRouteRegistry, type DemoNavKey } from "./routes";
-
-/**
- * Detaches a descriptor into the plain JSON representation required by the navigation contract.
- *
- * @param descriptor - Public descriptor whose params are contractually a plain JSON object.
- * @returns A detached descriptor safe for Vue Router and browser history state.
- */
-function descriptorForHistory(
-  descriptor: AdminShellTabDescriptor,
-): AdminShellTabDescriptor {
-  return JSON.parse(JSON.stringify(descriptor)) as AdminShellTabDescriptor;
-}
-
-/**
- * Checks the shallow public shape before trusting browser-owned history state.
- *
- * @param value - Unknown value read from the current browser-history entry.
- * @returns Whether the value has the required public descriptor fields.
- */
-function isTabDescriptor(value: unknown): value is AdminShellTabDescriptor {
-  if (!value || typeof value !== "object") return false;
-  const descriptor = value as Partial<AdminShellTabDescriptor>;
-  return Boolean(
-    typeof descriptor.id === "string" &&
-    typeof descriptor.label === "string" &&
-    descriptor.nav &&
-    typeof descriptor.nav.navKey === "string" &&
-    (descriptor.closable === undefined ||
-      typeof descriptor.closable === "boolean"),
-  );
-}
 
 /** Maps each public font-size preference to its bounded Naive UI font-size override. */
 const fontSizeOverrides = {
@@ -74,8 +42,6 @@ export default defineComponent(
     const authStatus = ref<AdminAuthStatus>({ kind: "anonymous" });
     /** Holds system color-scheme media state so system theme mode remains reactive after mount. */
     const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    /** Retains one stable fallback only while the current route lacks persisted descriptor state. */
-    let unstampedDescriptor: AdminShellTabDescriptor | null = null;
     /** Reflects the browser's current dark-mode media-query match. */
     const systemUsesDark = ref(systemThemeQuery.matches);
 
@@ -129,6 +95,13 @@ export default defineComponent(
         ],
       },
     ];
+    /** Coordinates shell requests with the existing application router and host presentation policy. */
+    const navigation = createAdminShellVueRouterNavigation({
+      router,
+      registry: demoRouteRegistry,
+      describeDestination: describeDemoDestination,
+      createPageId: () => crypto.randomUUID(),
+    });
 
     /**
      * Accepts only trimmed non-empty credentials and promotes local auth state without I/O.
@@ -143,14 +116,7 @@ export default defineComponent(
         throw new Error("Username and password are required.");
       }
 
-      const homeDescriptor = descriptorForHistory(
-        describeDemoDestination(crypto.randomUUID(), { navKey: "dashboard" }),
-      );
-      await router.replace({
-        ...demoRouteRegistry.toLocation(homeDescriptor.nav),
-        force: true,
-        state: homeDescriptor as unknown as HistoryState,
-      });
+      await router.replace({ name: "dashboard" });
       authStatus.value = { kind: "authenticated", userLabel: username };
     }
 
@@ -166,62 +132,6 @@ export default defineComponent(
 
     /** Holds the public callback contract used by the packaged anonymous login branch. */
     const authActions: AdminAuthActions = { login, logout };
-    /**
-     * Returns the current history-backed descriptor or derives one for an unstamped route.
-     *
-     * @returns The active public descriptor, or null when the route is not registered.
-     */
-    function currentDescriptor(): AdminShellTabDescriptor | null {
-      const route = router.currentRoute.value;
-      const destination = demoRouteRegistry.fromRoute(route);
-      if (!destination) return null;
-      const state = window.history.state as Record<string, unknown> | null;
-      if (isTabDescriptor(state) && state.nav.navKey === destination.navKey) {
-        unstampedDescriptor = null;
-        return { ...state, nav: destination } as AdminShellTabDescriptor;
-      }
-      if (unstampedDescriptor?.nav.navKey === destination.navKey) {
-        unstampedDescriptor = { ...unstampedDescriptor, nav: destination };
-      } else {
-        unstampedDescriptor = describeDemoDestination(
-          crypto.randomUUID(),
-          destination,
-        );
-      }
-      return unstampedDescriptor;
-    }
-
-    /** Holds one stable page-instance navigation adapter derived from confirmed router state. */
-    const navigation: AdminShellNavigation = {
-      /** Returns the complete descriptor persisted on the current history entry. */
-      get active() {
-        return currentDescriptor();
-      },
-      /** Executes one shell-resolved operation and returns the confirmed active descriptor. */
-      async handleNavigation(request) {
-        let descriptor: AdminShellTabDescriptor;
-        if (request.kind === "open") {
-          descriptor = describeDemoDestination(
-            request.candidate.id,
-            request.candidate.nav,
-          );
-        } else if (request.kind === "activate") {
-          descriptor = request.destination;
-        } else if (request.destination) {
-          descriptor = request.destination;
-        } else {
-          return { active: null };
-        }
-        const persistedDescriptor = descriptorForHistory(descriptor);
-        await router.push({
-          ...demoRouteRegistry.toLocation(persistedDescriptor.nav),
-          force: true,
-          state: persistedDescriptor as unknown as HistoryState,
-          replace: request.kind === "open" && request.closeCurrent,
-        });
-        return { active: currentDescriptor() };
-      },
-    };
 
     return () => (
       <NConfigProvider
@@ -243,9 +153,9 @@ export default defineComponent(
 /**
  * Creates one plain Naive UI menu option while preserving host-owned nav-key identity.
  *
- * @param navKey - Stable shell navigation key equivalent to the generated route name.
- * @param label - Application-owned label rendered by the sidebar menu.
- * @returns The opaque menu option passed unchanged to the public shell.
+ * @param navKey - Stable application destination key.
+ * @param label - Visible menu label.
+ * @returns One unchanged Naive UI menu option.
  */
 function createMenuOption(navKey: DemoNavKey, label: string): MenuOption {
   return { key: navKey, label };

@@ -1,11 +1,11 @@
-import { NButton } from "naive-ui";
-import { defineComponent } from "vue";
-
+import { useAdminShell } from "@noob-naive-ui/admin";
 import {
   defineAdminRouteRegistry,
-  type AdminRouteUrlCodec,
+  defineAdminRouteUrlCodec,
 } from "@noob-naive-ui/admin-vue-router";
-import { useAdminShell } from "@noob-naive-ui/admin";
+import { NButton } from "naive-ui";
+import { defineComponent } from "vue";
+import { z } from "zod";
 
 /**
  * Renders a concise demonstration page with a semantic title and explanatory copy.
@@ -47,7 +47,7 @@ const ReportsDemoPage = defineComponent(
       void navigate(
         {
           navKey: "detail",
-          params: { reportId: `quarterly-${randomYear}` },
+          payload: { reportId: `quarterly-${randomYear}` },
         },
         () => ({ kind: "open" }),
       );
@@ -60,7 +60,7 @@ const ReportsDemoPage = defineComponent(
           Open a report detail page that is intentionally absent from the
           sidebar menu.
         </p>
-        <NButton type="primary" onClick={openDetail}>
+        <NButton type="primary" onClick={() => openDetail()}>
           Open quarterly report detail
         </NButton>
       </main>
@@ -96,35 +96,8 @@ const DetailDemoPage = defineComponent(
   },
 );
 
-/** Converts report-detail shell params to and from the explicit URL path segment. */
-const detailUrlCodec: AdminRouteUrlCodec = {
-  /**
-   * Validates and maps the requested report identity to the detail route path parameter.
-   *
-   * @param params - Destination params expected to contain reportId.
-   * @returns Explicit named-route path params.
-   */
-  encode(params) {
-    const reportId = params?.reportId;
-    if (typeof reportId !== "string" || !reportId) {
-      throw new Error("Report detail requires a reportId.");
-    }
-    return { params: { reportId } };
-  },
-  /**
-   * Reconstructs report-detail shell params from the normalized detail URL.
-   *
-   * @param route - Normalized route whose path declares reportId.
-   * @returns Canonical report-detail destination params.
-   */
-  decode(route) {
-    const reportId = route.params.reportId;
-    if (typeof reportId !== "string" || !reportId) {
-      throw new Error("Report detail requires a reportId.");
-    }
-    return { reportId };
-  },
-};
+/** Validates the router-neutral payload for a report-detail destination. */
+const detailPayloadSchema = z.object({ reportId: z.string().min(1) });
 
 /** Binds demo page routes and URL codecs to the shared AdminShell/Vue Router adapter. */
 export const demoRouteRegistry = defineAdminRouteRegistry({
@@ -161,7 +134,17 @@ export const demoRouteRegistry = defineAdminRouteRegistry({
       component: DetailDemoPage,
       props: true,
     },
-    codec: detailUrlCodec,
+    codec: defineAdminRouteUrlCodec(detailPayloadSchema, {
+      /** Maps the validated report identity to the detail route path parameter. */
+      encode(payload) {
+        return { params: { reportId: payload.reportId } };
+      },
+      /** Reconstructs raw report-detail payload from the normalized detail URL. */
+      decode(route, _state) {
+        const reportId = route.params.reportId;
+        return { reportId: typeof reportId === "string" ? reportId : "" };
+      },
+    }),
   },
 });
 

@@ -29,6 +29,7 @@
   "peerDependencies": {
     "@noob-naive-ui/admin": "workspace:*",
     "vue": "^3.5.0",
-    "vue-router": "^4.5.1"
+    "vue-router": "^4.5.1",
+    "zod": "^4.4.3"
   }
 }
