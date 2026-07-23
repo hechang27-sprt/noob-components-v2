@@ -2,9 +2,10 @@ import { resolve } from "node:path";
 
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
+import dts from "unplugin-dts/vite";
 
 export default defineConfig({
-  plugins: [tailwindcss()],
+  plugins: [tailwindcss(), dts()],
   build: {
     lib: {
       entry: resolve(__dirname, "src/index.ts"),
@@ -12,7 +13,7 @@ export default defineConfig({
       fileName: "index",
       cssFileName: "style",
     },
-    rollupOptions: {
+    rolldownOptions: {
       external: ["naive-ui", "vue"],
     },
   },

@@ -20,9 +20,9 @@
     "**/*.css"
   ],
   "scripts": {
-    "prebuild": "pnpm --filter @noob-naive-ui/ui build",
-    "build": "pnpm run clean && vite build && pnpm run build:types",
-    "build:types": "tsc -p tsconfig.json --emitDeclarationOnly",
+    "build": "run-s build:deps build:vite",
+    "build:deps": "pnpm --filter @noob-naive-ui/ui build",
+    "build:vite": "vite build",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "pretest": "pnpm --filter @noob-naive-ui/ui build",
     "test": "vitest run",

@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "pnpm --filter @noob-naive-ui/admin-vue-router build",
-    "build": "vite build",
+    "build": "run-s build:deps build:vite",
+    "build:deps": "pnpm --filter @noob-naive-ui/admin-vue-router build",
+    "build:vite": "vite build",
     "pretypecheck": "pnpm --filter @noob-naive-ui/admin-vue-router build",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
