@@ -202,3 +202,35 @@ Renamed destination params to payload, added Zod-owned URL/history codecs and me
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: Scope AdminShell history navigation
+
+**Date**: 2026-07-23
+**Task**: Scope AdminShell history navigation
+
+### Summary
+
+Scoped Vue Router tab metadata to transient auth sessions, added history-healing navigation, corrected inactive-tab close history writes, and added adapter regressions.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d021e044` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
