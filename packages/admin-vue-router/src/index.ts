@@ -156,6 +156,7 @@ export function defineAdminRouteRegistry<
     AdminRouteRegistryNavKey<TDefinitions>,
     AdminRouteDefinition,
   ][];
+  const definitionsByNavKey = new Map<string, AdminRouteDefinition>(entries);
 
   for (const [navKey, definition] of entries) {
     if ("name" in definition.route) {
@@ -167,7 +168,7 @@ export function defineAdminRouteRegistry<
 
   /** Resolves a definition or reports the invalid host destination key clearly. */
   function getDefinition(navKey: string): AdminRouteDefinition {
-    const definition = definitions[navKey];
+    const definition = definitionsByNavKey.get(navKey);
     if (!definition) {
       throw new Error(`Unknown admin route navKey "${navKey}".`);
     }
@@ -189,7 +190,8 @@ export function defineAdminRouteRegistry<
     route: RouteLocationNormalizedLoaded,
     state: HistoryState,
   ): AdminShellDestination | null {
-    if (typeof route.name !== "string" || !definitions[route.name]) return null;
+    if (typeof route.name !== "string" || !definitionsByNavKey.has(route.name))
+      return null;
     const definition = getDefinition(route.name);
     if (!definition.codec) return { navKey: route.name };
     const payload = definition.codec.payloadSchema.parse(
@@ -225,6 +227,15 @@ const persistedAdminShellTabSchema = z.object({
   closable: z.boolean().optional(),
 });
 
+/** Validates adapter-owned history metadata for one authenticated navigation scope. */
+const persistedAdminShellStateSchema = z.object({
+  scopeId: z.string(),
+  tab: persistedAdminShellTabSchema,
+});
+
+/** Describes validated adapter metadata stored in one history entry. */
+type PersistedAdminShellState = z.output<typeof persistedAdminShellStateSchema>;
+
 /** Describes the minimal tab presentation persisted by the adapter. */
 type PersistedAdminShellTab = z.output<typeof persistedAdminShellTabSchema>;
 
@@ -243,6 +254,16 @@ export type AdminShellVueRouterNavigationOptions<
   ) => AdminShellTabDescriptor;
   /** Creates page-instance identity for direct routes without persisted metadata. */
   createPageId: () => string;
+  /** Returns the host-owned transient scope for the current authenticated session. */
+  getNavigationScopeId: () => string;
+};
+
+/** Extends shell navigation with host-guard location construction. */
+export type AdminShellVueRouterNavigation = AdminShellNavigation & {
+  /** Builds a route location stamped for the current navigation scope. */
+  toScopedLocation: (
+    descriptor: AdminShellTabDescriptor,
+  ) => RouteLocationNamedRaw;
 };
 
 /**
@@ -255,21 +276,28 @@ export function createAdminShellVueRouterNavigation<
   TDefinitions extends AdminRouteDefinitions,
 >(
   options: AdminShellVueRouterNavigationOptions<TDefinitions>,
-): AdminShellNavigation {
-  const { router, registry, describeDestination, createPageId } = options;
+): AdminShellVueRouterNavigation {
+  const {
+    router,
+    registry,
+    describeDestination,
+    createPageId,
+    getNavigationScopeId,
+  } = options;
   const historyStateKey = DEFAULT_ADMIN_SHELL_HISTORY_STATE_KEY;
-  const fallbackDescriptors = new Map<string, AdminShellTabDescriptor>();
+  const fallbackPageIds = new Map<string, string>();
 
-  /** Reads and validates only adapter-owned tab metadata from current history state. */
-  function readPersistedTab(
+  /** Reads and validates adapter metadata from the current navigation scope. */
+  function readPersistedState(
     state: HistoryState,
-  ): PersistedAdminShellTab | null {
-    const namespace = state[historyStateKey];
-    if (!namespace || typeof namespace !== "object") return null;
-    const parsed = persistedAdminShellTabSchema.safeParse(
-      (namespace as Record<string, unknown>).tab,
+  ): PersistedAdminShellState | null {
+    const parsed = persistedAdminShellStateSchema.safeParse(
+      state[historyStateKey],
     );
-    return parsed.success ? parsed.data : null;
+    if (!parsed.success || parsed.data.scopeId !== getNavigationScopeId()) {
+      return null;
+    }
+    return parsed.data;
   }
 
   /** Derives stable identity for one unstamped browser-history entry. */
@@ -287,14 +315,15 @@ export function createAdminShellVueRouterNavigation<
     const state = router.options.history.state;
     const destination = registry.fromRoute(route, state);
     if (!destination) return null;
-    const persisted = readPersistedTab(state);
+    const persisted = readPersistedState(state)?.tab;
     if (persisted) return { ...persisted, nav: destination };
     const entryKey = fallbackEntryKey(route, state);
-    const existingDescriptor = fallbackDescriptors.get(entryKey);
-    if (existingDescriptor) return existingDescriptor;
-    const descriptor = describeDestination(createPageId(), destination);
-    fallbackDescriptors.set(entryKey, descriptor);
-    return descriptor;
+    let pageId = fallbackPageIds.get(entryKey);
+    if (!pageId) {
+      pageId = createPageId();
+      fallbackPageIds.set(entryKey, pageId);
+    }
+    return describeDestination(pageId, destination);
   }
 
   /** Converts one shell request into the exact descriptor that must become active. */
@@ -308,11 +337,10 @@ export function createAdminShellVueRouterNavigation<
     return request.destination;
   }
 
-  /** Persists one destination and adapter-owned tab metadata through Vue Router. */
-  async function navigateToDescriptor(
+  /** Builds one destination with adapter metadata for the current scope. */
+  function toScopedLocation(
     descriptor: AdminShellTabDescriptor,
-    replace: boolean,
-  ): Promise<void> {
+  ): RouteLocationNamedRaw {
     const location = registry.toLocation(descriptor.nav);
     const codecState = location.state ?? {};
     if (Object.hasOwn(codecState, historyStateKey)) {
@@ -327,12 +355,22 @@ export function createAdminShellVueRouterNavigation<
         ? {}
         : { closable: descriptor.closable }),
     });
-    await router.push({
+    return {
       ...location,
       force: true,
-      replace,
-      state: { ...codecState, [historyStateKey]: { tab } },
-    });
+      state: {
+        ...codecState,
+        [historyStateKey]: { scopeId: getNavigationScopeId(), tab },
+      },
+    };
+  }
+
+  /** Persists one scoped descriptor through Vue Router. */
+  async function navigateToDescriptor(
+    descriptor: AdminShellTabDescriptor,
+    replace: boolean,
+  ): Promise<void> {
+    await router.push({ ...toScopedLocation(descriptor), replace });
   }
 
   return {
@@ -340,9 +378,16 @@ export function createAdminShellVueRouterNavigation<
     get active() {
       return currentDescriptor();
     },
+    toScopedLocation,
     /** Executes open, activate, and close requests through one router effect. */
     async handleNavigation(request) {
       const descriptor = descriptorForRequest(request);
+      if (
+        request.kind === "close" &&
+        currentDescriptor()?.id !== request.closing.id
+      ) {
+        return { active: currentDescriptor() };
+      }
       if (!descriptor) return { active: null };
       await navigateToDescriptor(
         descriptor,

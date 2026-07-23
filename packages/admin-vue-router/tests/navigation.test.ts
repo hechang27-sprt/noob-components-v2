@@ -2,7 +2,7 @@ import type {
   AdminShellDestination,
   AdminShellTabDescriptor,
 } from "@noob-naive-ui/admin";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { defineComponent } from "vue";
 import { createMemoryHistory, createRouter } from "vue-router";
 import { z } from "zod";
@@ -10,6 +10,7 @@ import { z } from "zod";
 import {
   createAdminShellVueRouterNavigation,
   defineAdminRouteRegistry,
+  defineAdminRouteUrlCodec,
 } from "../src";
 
 /** Creates a route component suitable for navigation tests. */
@@ -22,15 +23,15 @@ function createPage() {
 
 /** Creates the registry used to test URL and history-state composition. */
 function createRegistry() {
+  const payloadSchema = z.object({
+    reportId: z.string(),
+    section: z.string().default("summary"),
+  });
   return defineAdminRouteRegistry({
     dashboard: { route: { path: "/", component: createPage() } },
     detail: {
       route: { path: "/detail/:reportId", component: createPage() },
-      codec: {
-        payloadSchema: z.object({
-          reportId: z.string(),
-          section: z.string().default("summary"),
-        }),
+      codec: defineAdminRouteUrlCodec(payloadSchema, {
         /** Encodes identity in URL and section in host-owned history state. */
         encode(payload) {
           return {
@@ -40,9 +41,13 @@ function createRegistry() {
         },
         /** Decodes URL identity and host-owned section state. */
         decode(route, state) {
-          return { reportId: route.params.reportId, section: state.section };
+          const reportId =
+            typeof route.params.reportId === "string"
+              ? route.params.reportId
+              : "";
+          return { reportId, section: state.section as string };
         },
-      },
+      }),
     },
   });
 }
@@ -76,6 +81,8 @@ async function createHarness() {
     describeDestination,
     /** Returns a deterministic page ID for direct unstamped entries. */
     createPageId: () => `generated-${++nextId}`,
+    /** Returns the deterministic authenticated navigation scope under test. */
+    getNavigationScopeId: () => "scope-1",
   });
   return { navigation, router };
 }
@@ -87,6 +94,46 @@ describe("createAdminShellVueRouterNavigation", () => {
     expect(navigation.active?.id).toBe("generated-1");
     expect(navigation.active?.id).toBe("generated-1");
     expect(navigation.active?.nav).toEqual({ navKey: "dashboard" });
+  });
+
+  it("refreshes fallback destination data while preserving page identity", async () => {
+    const { navigation, router } = await createHarness();
+    await router.replace({
+      name: "detail",
+      params: { reportId: "r-1" },
+      state: { section: "summary" },
+    });
+    const first = navigation.active;
+
+    await router.replace({
+      name: "detail",
+      params: { reportId: "r-1" },
+      force: true,
+      state: { section: "details" },
+    });
+
+    expect(navigation.active).toEqual({
+      id: first?.id,
+      label: "detail:r-1",
+      closable: true,
+      nav: {
+        navKey: "detail",
+        payload: { reportId: "r-1", section: "details" },
+      },
+    });
+  });
+
+  it("rejects inherited route-definition keys", () => {
+    const registry = defineAdminRouteRegistry({
+      dashboard: { route: { path: "/", component: createPage() } },
+    });
+
+    expect(() => registry.getDefinition("constructor")).toThrow(
+      'Unknown admin route navKey "constructor".',
+    );
+    expect(
+      registry.fromRoute({ name: "toString" } as never, {} as never),
+    ).toBeNull();
   });
 
   it("restores the same fallback identity after leaving and returning by browser history", async () => {
@@ -159,6 +206,7 @@ describe("createAdminShellVueRouterNavigation", () => {
       state: {
         section: "details",
         _noobAdminShell: {
+          scopeId: "scope-1",
           tab: {
             id: "persisted",
             label: "Persisted",
@@ -183,7 +231,10 @@ describe("createAdminShellVueRouterNavigation", () => {
       params: { reportId: "r-3" },
       state: {
         section: "summary",
-        _noobAdminShell: { tab: { id: 3, label: false } },
+        _noobAdminShell: {
+          scopeId: "scope-1",
+          tab: { id: 3, label: false },
+        },
       },
     });
     expect(navigation.active?.id).toBe("generated-1");
@@ -224,6 +275,62 @@ describe("createAdminShellVueRouterNavigation", () => {
         destination: null,
       }),
     ).toEqual({ active: null });
+  });
+
+  it("does not add history when closing an inactive tab", async () => {
+    const { navigation, router } = await createHarness();
+    const inactive = describeDestination("inactive", {
+      navKey: "detail",
+      payload: { reportId: "r-inactive" },
+    });
+    const active = describeDestination("active", {
+      navKey: "detail",
+      payload: { reportId: "r-active" },
+    });
+    await navigation.handleNavigation({
+      kind: "activate",
+      destination: inactive,
+      current: navigation.active,
+    });
+    await navigation.handleNavigation({
+      kind: "activate",
+      destination: active,
+      current: navigation.active,
+    });
+    const push = vi.spyOn(router, "push");
+    push.mockClear();
+    const positionBeforeClose = router.options.history.state.position;
+
+    const result = await navigation.handleNavigation({
+      kind: "close",
+      closing: inactive,
+      destination: active,
+    });
+    expect(push).not.toHaveBeenCalled();
+    expect(router.options.history.state.position).toBe(positionBeforeClose);
+    expect(result.active?.id).toBe("active");
+  });
+  it("preserves an existing Dashboard identity when restamping a scoped entry", async () => {
+    const { navigation } = await createHarness();
+    const dashboard = describeDestination("dashboard-session", {
+      navKey: "dashboard",
+    });
+
+    const first = navigation.toScopedLocation(dashboard);
+    const second = navigation.toScopedLocation(dashboard);
+
+    expect(first.state).toMatchObject({
+      _noobAdminShell: {
+        scopeId: "scope-1",
+        tab: { id: "dashboard-session" },
+      },
+    });
+    expect(second.state).toMatchObject({
+      _noobAdminShell: {
+        scopeId: "scope-1",
+        tab: { id: "dashboard-session" },
+      },
+    });
   });
 
   it("replaces current history entry for close-current opens", async () => {
@@ -269,6 +376,7 @@ describe("createAdminShellVueRouterNavigation", () => {
       registry,
       describeDestination,
       createPageId: () => "fallback",
+      getNavigationScopeId: () => "scope-1",
     });
 
     await expect(

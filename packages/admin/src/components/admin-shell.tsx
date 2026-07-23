@@ -374,12 +374,17 @@ export const AdminShell = defineComponent(
       tab.closePending = true;
       tabError.value = undefined;
       try {
-        await navigation.handleNavigation({
+        const { active } = await navigation.handleNavigation({
           kind: "close",
           closing: snapshotTab(tab),
           destination: getCloseDestination(tab),
         });
-        if (tabs.get(id) === tab) {
+
+        if (
+          props.navigation === navigation && // the same navigation adapter still owns the completion
+          tab === tabs.get(id) && // the exact tab record that initiated the close is still committed
+          tab.id !== active?.id // the host no longer reports that tab as active
+        ) {
           tabs.delete(id);
           const index = visibleTabs.value.indexOf(id);
           if (index !== -1) visibleTabs.value.splice(index, 1);

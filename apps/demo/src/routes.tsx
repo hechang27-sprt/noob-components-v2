@@ -44,13 +44,15 @@ const ReportsDemoPage = defineComponent(
     /** Opens a new detail page instance even when the same destination is already open. */
     function openDetail(): void {
       const randomYear = Math.round(Math.random() * 40 + 2000);
-      void navigate(
+      navigate(
         {
           navKey: "detail",
           payload: { reportId: `quarterly-${randomYear}` },
         },
         () => ({ kind: "open" }),
-      );
+      ).catch((error: unknown) => {
+        console.error("Navigation failed:", error);
+      });
     }
 
     return () => (

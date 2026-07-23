@@ -156,8 +156,8 @@ Notes:
 
 - this avoids inventing a parallel menu-node type that would mostly duplicate Naive UI
 - the starter/app owns deriving the final `MenuOption[]` from its route registry and backend-derived state
-- `@noob-naive-ui/admin` passes the tree unchanged to direct `NMenu` composition; it does not filter, normalize keys, own selection/navigation, or interpret route visibility
-- starter-owned router behavior belongs in its supplied link/rendered-label content; the runtime never receives a router object
+- `@noob-naive-ui/admin` passes the tree unchanged to direct `NMenu` composition; it does not filter, normalize keys, or interpret route visibility
+- the runtime converts a selected scalar menu key to `{ navKey: String(key) }` and sends that destination through the host-supplied `AdminShellNavigation`; host-confirmed active descriptors own menu and tab selection, and the runtime never receives a router object
 - this is an acceptable Naive-specific dependency because the navigation layer is already part of the chosen Naive-based runtime
 
 ### 4. Theme / language / shell preferences

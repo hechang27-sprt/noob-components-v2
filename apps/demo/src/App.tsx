@@ -40,6 +40,12 @@ export default defineComponent(
     const preferences = useAdminShellPreferencesStore();
     /** Holds the complete in-memory frontend authentication state for this browser session. */
     const authStatus = ref<AdminAuthStatus>({ kind: "anonymous" });
+    /** Identifies history entries created for the current authenticated demo session. */
+    const navigationScopeId = ref(crypto.randomUUID());
+    /** Retains one Dashboard page identity throughout the current auth scope. */
+    let dashboardDescriptor = describeDemoDestination(crypto.randomUUID(), {
+      navKey: "dashboard",
+    });
     /** Holds system color-scheme media state so system theme mode remains reactive after mount. */
     const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
     /** Reflects the browser's current dark-mode media-query match. */
@@ -101,7 +107,46 @@ export default defineComponent(
       registry: demoRouteRegistry,
       describeDestination: describeDemoDestination,
       createPageId: () => crypto.randomUUID(),
+      getNavigationScopeId: () => navigationScopeId.value,
     });
+
+    /** Allows the scoped replacement emitted by the guard to complete exactly once. */
+    let scopedReplacementPending = false;
+    /** Replaces protected history entries that do not belong to the current auth scope. */
+    const removeHistoryScopeGuard = router.beforeEach(() => {
+      if (scopedReplacementPending) {
+        scopedReplacementPending = false;
+        return true;
+      }
+      const namespace = router.options.history.state._noobAdminShell;
+      const historyScopeId =
+        namespace && typeof namespace === "object"
+          ? (namespace as Record<string, unknown>).scopeId
+          : undefined;
+      if (
+        authStatus.value.kind === "authenticated" &&
+        historyScopeId === navigationScopeId.value
+      ) {
+        return true;
+      }
+      scopedReplacementPending = true;
+      return {
+        ...navigation.toScopedLocation(dashboardDescriptor),
+        replace: true,
+      };
+    });
+    onBeforeUnmount(removeHistoryScopeGuard);
+
+    /** Replaces the current route with this auth scope's Dashboard page instance. */
+    async function navigateHome(): Promise<void> {
+      const candidate = dashboardDescriptor;
+      await navigation.handleNavigation({
+        kind: "open",
+        candidate,
+        current: navigation.active,
+        closeCurrent: true,
+      });
+    }
 
     /**
      * Accepts only trimmed non-empty credentials and promotes local auth state without I/O.
@@ -116,7 +161,11 @@ export default defineComponent(
         throw new Error("Username and password are required.");
       }
 
-      await router.replace({ name: "dashboard" });
+      navigationScopeId.value = crypto.randomUUID();
+      dashboardDescriptor = describeDemoDestination(crypto.randomUUID(), {
+        navKey: "dashboard",
+      });
+      await navigateHome();
       authStatus.value = { kind: "authenticated", userLabel: username };
     }
 
@@ -126,7 +175,7 @@ export default defineComponent(
      * @returns A promise that resolves after local home-route navigation completes.
      */
     async function logout(): Promise<void> {
-      await router.replace({ name: "dashboard" });
+      await navigateHome();
       authStatus.value = { kind: "anonymous", reason: "signed-out" };
     }
 
