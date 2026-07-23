@@ -463,26 +463,23 @@ export const AdminShell = defineComponent(
 
     /** Tracks auth/navigation boundaries and records each host-confirmed page instance. */
     watch(
-      () => [
-        props.authStatus.kind,
-        props.navigation,
-        props.navigation?.active?.id,
-        props.navigation?.active?.nav,
-        props.navigation?.active?.label,
-        props.navigation?.active?.closable,
-      ],
+      () => ({
+        authStatus: props.authStatus.kind,
+        navigation: props.navigation,
+        activeTabId: props.navigation?.active?.id,
+        activeTabDest: props.navigation?.active?.nav,
+        activeTabLabel: props.navigation?.active?.label,
+        activeTabClosable: props.navigation?.active?.closable,
+      }),
       (next, previous) => {
-        const [kind, navigation] = next as [
-          AdminAuthStatus["kind"],
-          AdminShellNavigation | undefined,
-        ];
-        const [previousKind, previousNavigation] = (previous ?? []) as [
-          AdminAuthStatus["kind"] | undefined,
-          AdminShellNavigation | undefined,
-        ];
-        const authenticated = kind === "authenticated" && Boolean(navigation);
+        const { authStatus, navigation } = next;
+        const { authStatus: prevAuthStatus, navigation: previousNavigation } =
+          previous ?? {};
+
+        const authenticated =
+          authStatus === "authenticated" && Boolean(navigation);
         const previousAuthenticated =
-          previousKind === "authenticated" && Boolean(previousNavigation);
+          prevAuthStatus === "authenticated" && Boolean(previousNavigation);
         if (
           !authenticated ||
           !previousAuthenticated ||

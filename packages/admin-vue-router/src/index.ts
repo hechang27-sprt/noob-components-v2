@@ -258,9 +258,7 @@ export function createAdminShellVueRouterNavigation<
 ): AdminShellNavigation {
   const { router, registry, describeDestination, createPageId } = options;
   const historyStateKey = DEFAULT_ADMIN_SHELL_HISTORY_STATE_KEY;
-  let fallbackRoute: RouteLocationNormalizedLoaded | null = null;
-  let fallbackState: HistoryState | null = null;
-  let fallbackDescriptor: AdminShellTabDescriptor | null = null;
+  const fallbackDescriptors = new Map<string, AdminShellTabDescriptor>();
 
   /** Reads and validates only adapter-owned tab metadata from current history state. */
   function readPersistedTab(
@@ -274,6 +272,15 @@ export function createAdminShellVueRouterNavigation<
     return parsed.success ? parsed.data : null;
   }
 
+  /** Derives stable identity for one unstamped browser-history entry. */
+  function fallbackEntryKey(
+    route: RouteLocationNormalizedLoaded,
+    state: HistoryState,
+  ): string {
+    const position = state.position;
+    return `${typeof position === "number" ? position : "initial"}:${route.fullPath}`;
+  }
+
   /** Resolves the current canonical descriptor from router and history authority. */
   function currentDescriptor(): AdminShellTabDescriptor | null {
     const route = router.currentRoute.value;
@@ -281,23 +288,13 @@ export function createAdminShellVueRouterNavigation<
     const destination = registry.fromRoute(route, state);
     if (!destination) return null;
     const persisted = readPersistedTab(state);
-    if (persisted) {
-      fallbackDescriptor = null;
-      fallbackRoute = null;
-      fallbackState = null;
-      return { ...persisted, nav: destination };
-    }
-    if (
-      fallbackDescriptor &&
-      fallbackRoute === route &&
-      fallbackState === state
-    ) {
-      return fallbackDescriptor;
-    }
-    fallbackRoute = route;
-    fallbackState = state;
-    fallbackDescriptor = describeDestination(createPageId(), destination);
-    return fallbackDescriptor;
+    if (persisted) return { ...persisted, nav: destination };
+    const entryKey = fallbackEntryKey(route, state);
+    const existingDescriptor = fallbackDescriptors.get(entryKey);
+    if (existingDescriptor) return existingDescriptor;
+    const descriptor = describeDestination(createPageId(), destination);
+    fallbackDescriptors.set(entryKey, descriptor);
+    return descriptor;
   }
 
   /** Converts one shell request into the exact descriptor that must become active. */

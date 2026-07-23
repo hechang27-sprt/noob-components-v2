@@ -89,6 +89,31 @@ describe("createAdminShellVueRouterNavigation", () => {
     expect(navigation.active?.nav).toEqual({ navKey: "dashboard" });
   });
 
+  it("restores the same fallback identity after leaving and returning by browser history", async () => {
+    const { navigation, router } = await createHarness();
+    const initialDashboard = navigation.active;
+
+    await navigation.handleNavigation({
+      kind: "open",
+      candidate: {
+        id: "detail-tab",
+        nav: { navKey: "detail", payload: { reportId: "r-1" } },
+      },
+      current: initialDashboard,
+      closeCurrent: false,
+    });
+    await new Promise<void>((resolve) => {
+      const removeAfterEach = router.afterEach(() => {
+        removeAfterEach();
+        resolve();
+      });
+      router.back();
+    });
+
+    expect(router.currentRoute.value.name).toBe("dashboard");
+    expect(navigation.active).toEqual(initialDashboard);
+  });
+
   it("opens with canonical payload and persists metadata without duplicating destination", async () => {
     const { navigation, router } = await createHarness();
 
