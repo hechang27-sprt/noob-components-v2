@@ -8,9 +8,10 @@ import { createMemoryHistory, createRouter } from "vue-router";
 import { z } from "zod";
 
 import {
-  createAdminShellVueRouterNavigation,
+  createAdminShellVueRouterRuntime,
   defineAdminRouteRegistry,
   defineAdminRouteUrlCodec,
+  type AdminShellVueRouterRuntime,
 } from "../src";
 
 /** Creates a route component suitable for navigation tests. */
@@ -65,7 +66,7 @@ function describeDestination(
   };
 }
 
-/** Creates a ready memory router and its navigation adapter. */
+/** Creates a ready memory router and its separated navigation runtime. */
 async function createHarness() {
   const registry = createRegistry();
   const router = createRouter({
@@ -75,7 +76,7 @@ async function createHarness() {
   let nextId = 0;
   await router.push("/");
   await router.isReady();
-  const navigation = createAdminShellVueRouterNavigation({
+  const runtime = createAdminShellVueRouterRuntime({
     router,
     registry,
     describeDestination,
@@ -84,10 +85,261 @@ async function createHarness() {
     /** Returns the deterministic authenticated navigation scope under test. */
     getNavigationScopeId: () => "scope-1",
   });
-  return { navigation, router };
+  return { navigation: runtime.navigation, runtime, router };
 }
 
-describe("createAdminShellVueRouterNavigation", () => {
+describe("createAdminShellVueRouterRuntime", () => {
+  describe("scope guard", () => {
+    const scopeIds = { current: "scope-active" };
+
+    /**
+     * Creates a harness with homeDestination configured for scope-guard tests.
+     * The guard is NOT pre-installed; each test controls installation.
+     *
+     * @returns A navigation runtime, router, and home descriptor.
+     */
+    async function createScopeHarness() {
+      const registry = createRegistry();
+      const router = createRouter({
+        history: createMemoryHistory(),
+        routes: [
+          ...registry.toRouteRecords(),
+          /** Simulates a public login route outside the admin registry. */
+          { path: "/login", name: "login", component: createPage() },
+        ],
+      });
+      let nextId = 0;
+      await router.push("/");
+      await router.isReady();
+      const home: AdminShellDestination = { navKey: "dashboard" };
+      const runtime = createAdminShellVueRouterRuntime({
+        router,
+        registry,
+        describeDestination,
+        createPageId: () => `scoped-${++nextId}`,
+        getNavigationScopeId: () => scopeIds.current,
+        homeDestination: home,
+      });
+      return { runtime, router, home };
+    }
+
+    /**
+     * Seeds a scoped history entry so the guard recognizes the current scope.
+     * enterScope now navigates, so no separate push is needed.
+     *
+     * @param runtime - The Vue Router lifecycle runtime.
+     * @returns A promise that resolves after the scoped entry is established.
+     */
+    async function seedScope(
+      runtime: AdminShellVueRouterRuntime,
+    ): Promise<void> {
+      await runtime.enterScope({ navKey: "dashboard" });
+    }
+
+    /**
+     * Pushes a route with scoped adapter metadata.
+     *
+     * @param router - The memory router to push on.
+     * @param name - Route name.
+     * @param scopeId - Scope identifier to stamp.
+     * @param params - Optional route params for parameterized routes.
+     * @returns A promise that resolves after navigation completes.
+     */
+    async function pushScoped(
+      router: ReturnType<typeof createRouter>,
+      name: string,
+      scopeId: string,
+      params?: Record<string, string>,
+    ): Promise<void> {
+      await router.push({
+        name,
+        params,
+        state: {
+          _noobAdminShell: {
+            scopeId,
+            tab: { id: "stale-tab", label: "Stale" },
+          },
+        },
+      });
+    }
+
+    /** Resolves after the next afterEach hook fires. */
+    function afterNextNavigation(
+      router: ReturnType<typeof createRouter>,
+    ): Promise<void> {
+      return new Promise<void>((resolve) => {
+        const removeAfter = router.afterEach(() => {
+          removeAfter();
+          resolve();
+        });
+      });
+    }
+
+    it("allows forward navigation when the current entry has the right scope", async () => {
+      const { runtime, router } = await createScopeHarness();
+      const remove = runtime.installScopeGuard();
+
+      await seedScope(runtime);
+      await pushScoped(router, "detail", scopeIds.current, {
+        reportId: "r-1",
+      });
+      expect(router.currentRoute.value.name).toBe("detail");
+
+      remove();
+    });
+
+    it("replaces stale-scope entries during Back navigation", async () => {
+      const { runtime, router, home } = await createScopeHarness();
+      const remove = runtime.installScopeGuard();
+
+      await seedScope(runtime);
+      await pushScoped(router, "detail", "old-scope", { reportId: "r-1" });
+      await pushScoped(router, "detail", scopeIds.current, { reportId: "r-2" });
+
+      router.back();
+      await afterNextNavigation(router);
+
+      expect(router.currentRoute.value.name).toBe("dashboard");
+      expect(router.options.history.state).toMatchObject({
+        _noobAdminShell: expect.objectContaining({
+          scopeId: scopeIds.current,
+        }),
+      });
+      expect(
+        (router.options.history.state as Record<string, unknown>)
+          ._noobAdminShell,
+      ).toMatchObject({
+        tab: { id: expect.any(String), label: expect.any(String) },
+      });
+
+      remove();
+    });
+
+    it("replaces missing-scope entries during Back navigation", async () => {
+      const { runtime, router } = await createScopeHarness();
+      const remove = runtime.installScopeGuard();
+
+      await seedScope(runtime);
+      await router.push({ name: "detail", params: { reportId: "r-1" } });
+      await pushScoped(router, "detail", scopeIds.current, { reportId: "r-2" });
+
+      router.back();
+      await afterNextNavigation(router);
+
+      expect(router.currentRoute.value.name).toBe("dashboard");
+      expect(router.options.history.state).toMatchObject({
+        _noobAdminShell: expect.objectContaining({
+          scopeId: scopeIds.current,
+        }),
+      });
+
+      remove();
+    });
+
+    it("stamps the configured home descriptor when repairing scope", async () => {
+      const { runtime, router, home } = await createScopeHarness();
+      const remove = runtime.installScopeGuard();
+
+      await seedScope(runtime);
+      await pushScoped(router, "detail", "old-scope", { reportId: "r-1" });
+      await pushScoped(router, "detail", scopeIds.current, { reportId: "r-2" });
+
+      router.back();
+      await afterNextNavigation(router);
+
+      expect(router.currentRoute.value.name).toBe("dashboard");
+      const repairedState = router.options.history.state as Record<
+        string,
+        unknown
+      >;
+      const repairedTab = (
+        repairedState._noobAdminShell as { tab: { id: string; label: string } }
+      ).tab;
+      expect(typeof repairedTab.id).toBe("string");
+      expect(repairedTab.id.length).toBeGreaterThan(0);
+
+      remove();
+    });
+
+    it("bypasses non-admin routes (e.g. /login) without repairing", async () => {
+      const { runtime, router } = await createScopeHarness();
+      const remove = runtime.installScopeGuard();
+
+      await router.push({ name: "login" });
+      expect(router.currentRoute.value.name).toBe("login");
+
+      remove();
+    });
+
+    it("prevents replacement loops after one repair", async () => {
+      const { runtime, router } = await createScopeHarness();
+      const remove = runtime.installScopeGuard();
+
+      await seedScope(runtime);
+      await pushScoped(router, "detail", "old-scope", { reportId: "r-1" });
+      await pushScoped(router, "detail", scopeIds.current, { reportId: "r-2" });
+
+      router.back();
+      await afterNextNavigation(router);
+      expect(router.currentRoute.value.name).toBe("dashboard");
+
+      // Forward navigation should work normally after repair
+      await pushScoped(router, "detail", scopeIds.current, { reportId: "r-3" });
+      expect(router.currentRoute.value.name).toBe("detail");
+
+      // Back to the repaired dashboard should pass through (has current scope)
+      router.back();
+      await afterNextNavigation(router);
+      expect(router.currentRoute.value.name).toBe("dashboard");
+
+      remove();
+    });
+
+    it("admits an explicit scope entry via enterScope", async () => {
+      const { runtime, router } = await createScopeHarness();
+      const remove = runtime.installScopeGuard();
+
+      // enterScope navigates to the destination with the correct scope
+      await runtime.enterScope({
+        navKey: "detail",
+        payload: { reportId: "r-deep" },
+      });
+      expect(router.currentRoute.value.name).toBe("detail");
+      expect(router.currentRoute.value.params.reportId).toBe("r-deep");
+
+      remove();
+    });
+
+    it("returns a removal function that unregisters the guard", async () => {
+      const { runtime, router } = await createScopeHarness();
+      const remove = runtime.installScopeGuard();
+      remove();
+
+      // After removal, stale scope back-navigation should pass through un-repaired
+      await seedScope(runtime);
+      await pushScoped(router, "detail", "old-scope", { reportId: "r-1" });
+      await pushScoped(router, "detail", scopeIds.current, { reportId: "r-2" });
+
+      router.back();
+      await afterNextNavigation(router);
+      expect(router.currentRoute.value.name).toBe("detail");
+    });
+
+    it("throws when installScopeGuard is used without homeDestination", async () => {
+      const { runtime } = await createHarness();
+
+      expect(() => runtime.installScopeGuard()).toThrow(
+        "installScopeGuard and enterScope require homeDestination to be configured.",
+      );
+    });
+    it("throws when enterScope is used without homeDestination", async () => {
+      const { runtime } = await createHarness();
+
+      await expect(runtime.enterScope({ navKey: "dashboard" })).rejects.toThrow(
+        "installScopeGuard and enterScope require homeDestination to be configured.",
+      );
+    });
+  });
   it("provides stable fallback identity for one unstamped route snapshot", async () => {
     const { navigation } = await createHarness();
 
@@ -311,13 +563,13 @@ describe("createAdminShellVueRouterNavigation", () => {
     expect(result.active?.id).toBe("active");
   });
   it("preserves an existing Dashboard identity when restamping a scoped entry", async () => {
-    const { navigation } = await createHarness();
+    const { runtime } = await createHarness();
     const dashboard = describeDestination("dashboard-session", {
       navKey: "dashboard",
     });
 
-    const first = navigation.toScopedLocation(dashboard);
-    const second = navigation.toScopedLocation(dashboard);
+    const first = runtime.toScopedLocation(dashboard);
+    const second = runtime.toScopedLocation(dashboard);
 
     expect(first.state).toMatchObject({
       _noobAdminShell: {
@@ -371,7 +623,7 @@ describe("createAdminShellVueRouterNavigation", () => {
       routes: registry.toRouteRecords(),
     });
     await router.push("/collision");
-    const navigation = createAdminShellVueRouterNavigation({
+    const runtime = createAdminShellVueRouterRuntime({
       router,
       registry,
       describeDestination,
@@ -380,13 +632,13 @@ describe("createAdminShellVueRouterNavigation", () => {
     });
 
     await expect(
-      navigation.handleNavigation({
+      runtime.navigation.handleNavigation({
         kind: "open",
         candidate: {
           id: "collision",
           nav: { navKey: "collision", payload: {} },
         },
-        current: navigation.active,
+        current: runtime.navigation.active,
         closeCurrent: false,
       }),
     ).rejects.toThrow("_noobAdminShell");

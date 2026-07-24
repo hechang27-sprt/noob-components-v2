@@ -8,18 +8,12 @@ import {
   NResult,
   NSpin,
 } from "naive-ui";
-import { defineComponent, ref, useId, type PropType } from "vue";
+import { defineComponent, ref, useId } from "vue";
 
-import type {
-  AdminAuthActions,
-  AdminAuthStatus,
-  AdminLoginValues,
-} from "../runtime-contract";
+import type { AdminAuthStatus, AdminLoginValues } from "../runtime-contract";
+import { useAdminAuthStore } from "../stores/auth";
 
-export type AdminLoginPageProps = {
-  authStatus: AdminAuthStatus;
-  authActions: AdminAuthActions;
-};
+export type AdminLoginPageProps = Record<string, never>;
 
 function getAnonymousStatusMessage(
   reason: Extract<AdminAuthStatus, { kind: "anonymous" }>["reason"],
@@ -39,27 +33,21 @@ function getAnonymousStatusMessage(
 }
 
 export const AdminLoginPage = defineComponent(
-  (props: AdminLoginPageProps) => {
+  () => {
+    const store = useAdminAuthStore();
     const formId = useId();
     const username = ref("");
     const password = ref("");
     const remember = ref(false);
-    const isPending = ref(false);
-    const errorMessage = ref<string>();
-    const isSuccessful = ref(false);
 
     function clearFeedback(): void {
-      errorMessage.value = undefined;
-      isSuccessful.value = false;
+      store.loginError = undefined;
     }
 
     async function submit(): Promise<void> {
-      if (isPending.value) {
-        return;
-      }
+      if (store.loginPending) return;
 
       clearFeedback();
-      isPending.value = true;
 
       const values: AdminLoginValues = {
         username: username.value,
@@ -68,17 +56,17 @@ export const AdminLoginPage = defineComponent(
       };
 
       try {
-        await props.authActions.login(values);
-        isSuccessful.value = true;
+        await store.login(values);
       } catch {
-        errorMessage.value = "Unable to sign in. Please try again.";
-      } finally {
-        isPending.value = false;
+        // Error is already stored in store.loginError by the store action.
       }
     }
 
     return () => {
-      if (props.authStatus.kind === "loading") {
+      const status = store.status;
+      const pending = store.loginPending;
+
+      if (status.kind === "loading") {
         return (
           <main
             class="grid min-h-dvh place-items-center p-6 max-sm:items-start max-sm:p-4"
@@ -96,9 +84,9 @@ export const AdminLoginPage = defineComponent(
         );
       }
 
-      if (props.authStatus.kind === "authenticated") {
-        const description = props.authStatus.userLabel
-          ? `Signed in as ${props.authStatus.userLabel}.`
+      if (status.kind === "authenticated") {
+        const description = status.userLabel
+          ? `Signed in as ${status.userLabel}.`
           : "You are already signed in.";
 
         return (
@@ -118,16 +106,13 @@ export const AdminLoginPage = defineComponent(
         );
       }
 
-      const anonymousStatusMessage = getAnonymousStatusMessage(
-        props.authStatus.reason,
-      );
+      const anonymousStatusMessage = getAnonymousStatusMessage(status.reason);
 
       return (
         <main class="grid min-h-dvh place-items-center p-6 max-sm:items-start max-sm:p-4">
           <NCard class="w-full max-w-md">
             <h1 class="mb-5 text-xl font-semibold">Sign in</h1>
             <NForm
-              aria-busy={isPending.value}
               onSubmit={(event: Event) => {
                 event.preventDefault();
                 void submit();
@@ -142,7 +127,7 @@ export const AdminLoginPage = defineComponent(
                 label-props={{ for: `${formId}-username` }}>
                 <NInput
                   value={username.value}
-                  disabled={isPending.value}
+                  disabled={pending}
                   input-props={{
                     id: `${formId}-username`,
                     name: "username",
@@ -161,7 +146,7 @@ export const AdminLoginPage = defineComponent(
                 <NInput
                   type="password"
                   value={password.value}
-                  disabled={isPending.value}
+                  disabled={pending}
                   input-props={{
                     id: `${formId}-password`,
                     name: "password",
@@ -177,7 +162,7 @@ export const AdminLoginPage = defineComponent(
               <NFormItem>
                 <NCheckbox
                   checked={remember.value}
-                  disabled={isPending.value}
+                  disabled={pending}
                   onUpdateChecked={(checked) => {
                     remember.value = checked as boolean;
                     clearFeedback();
@@ -185,23 +170,18 @@ export const AdminLoginPage = defineComponent(
                   Remember me
                 </NCheckbox>
               </NFormItem>
-              {errorMessage.value ? (
+              {store.loginError ? (
                 <p class="mb-4 text-sm" role="alert">
-                  {errorMessage.value}
-                </p>
-              ) : null}
-              {isSuccessful.value ? (
-                <p class="mb-4 text-sm" role="status">
-                  Sign-in request completed.
+                  {store.loginError}
                 </p>
               ) : null}
               <NButton
                 attr-type="submit"
                 type="primary"
                 block
-                loading={isPending.value}
-                disabled={isPending.value}>
-                {isPending.value ? "Signing in…" : "Sign in"}
+                loading={pending}
+                disabled={pending}>
+                {pending ? "Signing in…" : "Sign in"}
               </NButton>
             </NForm>
           </NCard>
@@ -211,15 +191,5 @@ export const AdminLoginPage = defineComponent(
   },
   {
     name: "AdminLoginPage",
-    props: {
-      authStatus: {
-        type: Object as PropType<AdminAuthStatus>,
-        required: true,
-      },
-      authActions: {
-        type: Object as PropType<AdminAuthActions>,
-        required: true,
-      },
-    },
   },
 );

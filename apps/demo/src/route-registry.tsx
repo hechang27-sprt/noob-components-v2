@@ -105,7 +105,7 @@ const detailPayloadSchema = z.object({ reportId: z.string().min(1) });
 export const demoRouteRegistry = defineAdminRouteRegistry({
   dashboard: {
     route: {
-      path: "/",
+      path: "",
       component: createDemoPage(
         "Dashboard",
         "This local page demonstrates the non-closable home tab in the public admin shell.",
@@ -115,14 +115,14 @@ export const demoRouteRegistry = defineAdminRouteRegistry({
   },
   reports: {
     route: {
-      path: "/reports",
+      path: "reports",
       component: ReportsDemoPage,
       props: false,
     },
   },
   settings: {
     route: {
-      path: "/settings",
+      path: "settings",
       component: createDemoPage(
         "Settings",
         "Use the runtime controls in the shell header to try its persisted frontend preferences.",
@@ -132,7 +132,7 @@ export const demoRouteRegistry = defineAdminRouteRegistry({
   },
   detail: {
     route: {
-      path: "/detail/:reportId",
+      path: "detail/:reportId",
       component: DetailDemoPage,
       props: true,
     },
@@ -152,6 +152,3 @@ export const demoRouteRegistry = defineAdminRouteRegistry({
 
 /** Identifies one demo destination and its equivalent generated Vue Router route name. */
 export type DemoNavKey = (typeof demoRouteRegistry.navKeys)[number];
-
-/** Supplies the host-owned route records registered by the demo router. */
-export const demoRoutes = demoRouteRegistry.toRouteRecords();

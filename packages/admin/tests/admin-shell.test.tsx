@@ -19,11 +19,10 @@ import type {
   AdminShellNavigation,
   AdminShellTabNavigationResolver,
 } from "../src/components/admin-shell";
-import type {
-  AdminAuthActions,
-  AdminAuthStatus,
-} from "../src/runtime-contract";
+import { useAdminAuthStore } from "../src/stores/auth";
 import { useAdminShellPreferencesStore } from "../src/stores/shell-preferences";
+import { useAdminShellNavigationStore } from "../src/stores/navigation";
+import { useAdminShellMenuStore } from "../src/stores/menu";
 
 /** Exercises descendant access to the nearest provided AdminShell context. */
 const ShellContextConsumer = defineComponent(
@@ -67,17 +66,14 @@ function cleanMountedApps(): void {
 afterEach(cleanMountedApps);
 
 /**
- * Mounts AdminShell with an initialized Pinia store and caller-owned synthetic
- * slots, so each test can observe only the intended public content seam.
+ * Mounts AdminShell with an initialized Pinia store, configured auth store,
+ * and caller-owned synthetic slots, so each test can observe only the intended
+ * public content seam.
  *
- * @param authStatus - Frontend auth state supplied to the shell.
- * @param authActions - Starter-owned login/logout callbacks.
  * @param options - Optional opaque menu, navigation adapter, and synthetic slots.
  * @returns The mounted application container.
  */
 function mountShell(
-  authStatus: AdminAuthStatus,
-  authActions: AdminAuthActions,
   options: {
     menuOptions?: MenuOption[];
     navigation?: AdminShellNavigation;
@@ -97,7 +93,23 @@ function mountShell(
   const pinia = createPinia();
   setActivePinia(pinia);
   const preferences = useAdminShellPreferencesStore();
-  preferences.initialize();
+  if (options.menuOptions) {
+    useAdminShellMenuStore().configure(options.menuOptions);
+  }
+  if (options.navigation) {
+    useAdminShellNavigationStore().configure(options.navigation);
+  }
+  // Configure auth store for authenticated context
+  useAdminAuthStore().configure({
+    login: vi.fn(() => Promise.resolve({})),
+    logout: vi.fn(),
+  });
+  // Set status to authenticated since shell now always renders layout
+  const auth = useAdminAuthStore();
+  (auth as unknown as Record<string, unknown>).status = {
+    kind: "authenticated",
+    userLabel: "Ada",
+  };
   /** Deliberately passes non-default slots to prove that AdminShell ignores them. */
   const slots = {
     default:
@@ -113,31 +125,12 @@ function mountShell(
       : undefined,
   };
   const app = createApp({
-    setup: () => () =>
-      h(
-        AdminShell,
-        {
-          authStatus,
-          authActions,
-          menuOptions: options.menuOptions,
-          navigation: options.navigation,
-        },
-        slots,
-      ),
+    setup: () => () => h(AdminShell, {}, slots),
   });
   app.use(pinia);
   app.mount(target);
   mountedApps.push(app);
   return target;
-}
-
-/**
- * Creates the minimal frontend-only auth callback contract used by shell tests.
- *
- * @returns Login and logout spies with no backend coupling.
- */
-function createAuthActions(): AdminAuthActions {
-  return { login: vi.fn(), logout: vi.fn() };
 }
 
 /**
@@ -171,7 +164,7 @@ function getTabClose(
  *
  * @param trigger - The button that owns the dropdown to open.
  * @param label - The exact label of the option to select.
- * @returns A promise that resolves after option selection and Vue rendering settle.
+ * @returns A promise that resolves after the option body emits a click event.
  */
 async function selectDropdownOption(
   trigger: HTMLElement,
@@ -180,55 +173,31 @@ async function selectDropdownOption(
   trigger.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
   await settle();
   const option = [
-    ...document.querySelectorAll<HTMLElement>(".n-dropdown-option-body__label"),
-  ]
-    .find((element) => element.textContent === label)
-    ?.closest<HTMLElement>(".n-dropdown-option-body");
-
-  expect(option).toBeTruthy();
-  option!.click();
+    ...document.body.querySelectorAll(".n-dropdown-option-body"),
+  ].find((el) => el.textContent === label);
+  if (!option) throw new Error(`Dropdown option "${label}" not found.`);
+  option.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   await settle();
 }
 
 describe("AdminShell", () => {
-  it("renders an isolated loading layout without authenticated content", () => {
-    const container = mountShell({ kind: "loading" }, createAuthActions(), {
-      content: "loading-content",
-      menuOptions: [{ key: "loading", label: "Should not render" }],
+  it("renders the authenticated shell layout", () => {
+    const container = mountShell({
+      content: "shell-content",
+      menuOptions: [{ key: "home", label: "Home" }],
     });
 
-    expect(container.querySelector('[role="status"]')).not.toBeNull();
-    expect(container.querySelector('[data-slot="loading-content"]')).toBeNull();
-    expect(container.querySelector(".n-pro-layout")).toBeNull();
-    expect(container.textContent).not.toContain("Should not render");
-  });
-
-  it("delegates anonymous rendering to AdminLoginPage without shell content", () => {
-    const authActions = createAuthActions();
-    const container = mountShell({ kind: "anonymous" }, authActions, {
-      content: "anonymous-content",
-      menuOptions: [{ key: "anonymous", label: "Should not render" }],
-    });
-
-    expect(container.textContent).toContain("Sign in");
-    expect(container.querySelector("form")).not.toBeNull();
+    expect(container.querySelector(".h-dvh")).not.toBeNull();
+    expect(container.querySelector(".n-pro-layout")).not.toBeNull();
     expect(
-      container.querySelector('[data-slot="anonymous-content"]'),
-    ).toBeNull();
-    expect(container.querySelector(".n-pro-layout")).toBeNull();
-    expect(container.textContent).not.toContain("Should not render");
+      container.querySelector('[data-slot="shell-content"]'),
+    ).not.toBeNull();
+    expect(container.querySelector(".n-menu")).not.toBeNull();
   });
 
   it("does not render a sidebar menu when menu input is absent or empty", () => {
-    const withoutMenu = mountShell(
-      { kind: "authenticated" },
-      createAuthActions(),
-    );
-    const withEmptyMenu = mountShell(
-      { kind: "authenticated" },
-      createAuthActions(),
-      { menuOptions: [] },
-    );
+    const withoutMenu = mountShell();
+    const withEmptyMenu = mountShell({ menuOptions: [] });
 
     expect(withoutMenu.querySelector(".n-menu")).toBeNull();
     expect(withEmptyMenu.querySelector(".n-menu")).toBeNull();
@@ -255,17 +224,12 @@ describe("AdminShell", () => {
         ],
       },
     ];
-    const authActions = createAuthActions();
-    const container = mountShell(
-      { kind: "authenticated", userLabel: "Ada" },
-      authActions,
-      {
-        content: "router-view",
-        menuOptions,
-        sidebarContent: "outside-sidebar",
-        tabbarContent: "outside-tabbar",
-      },
-    );
+    const container = mountShell({
+      content: "router-view",
+      menuOptions,
+      sidebarContent: "outside-sidebar",
+      tabbarContent: "outside-tabbar",
+    });
 
     expect(container.querySelector(".h-dvh")).not.toBeNull();
     expect(container.querySelector(".n-pro-layout")).not.toBeNull();
@@ -332,8 +296,11 @@ describe("AdminShell", () => {
     expect(preferences.sidebarCollapsed).toBe(true);
     expect(sidebarButton?.getAttribute("aria-pressed")).toBe("true");
 
+    // Verify logout calls the auth store's logout action
+    const auth = useAdminAuthStore();
+    const logoutSpy = vi.spyOn(auth, "logout");
     await selectDropdownOption(account!, "Sign out");
-    expect(authActions.logout).toHaveBeenCalledTimes(1);
+    expect(logoutSpy).toHaveBeenCalledTimes(1);
   });
 
   it("provides only navigation control to descendants", async () => {
@@ -351,14 +318,10 @@ describe("AdminShell", () => {
             : null,
       })),
     });
-    const container = mountShell(
-      { kind: "authenticated" },
-      createAuthActions(),
-      {
-        navigation,
-        defaultSlot: () => h(ShellContextConsumer),
-      },
-    );
+    const container = mountShell({
+      navigation,
+      defaultSlot: () => h(ShellContextConsumer),
+    });
     await settle();
     expect(
       container.querySelector("[data-shell-context-keys]")?.textContent,
@@ -385,11 +348,11 @@ describe("AdminShell", () => {
       active: { id: "second", nav: { navKey: "second" }, label: "Second" },
       handleNavigation: vi.fn(async () => ({ active: null })),
     };
-    const first = mountShell({ kind: "authenticated" }, createAuthActions(), {
+    const first = mountShell({
       navigation: firstNavigation,
       defaultSlot: () => h(ShellContextConsumer),
     });
-    const second = mountShell({ kind: "authenticated" }, createAuthActions(), {
+    const second = mountShell({
       navigation: secondNavigation,
       defaultSlot: () => h(ShellContextConsumer),
     });
@@ -434,17 +397,13 @@ describe("AdminShell", () => {
           }),
       ),
     });
-    const container = mountShell(
-      { kind: "authenticated" },
-      createAuthActions(),
-      {
-        menuOptions: [
-          { key: "home", label: "Home" },
-          { key: "settings", label: "Settings" },
-        ],
-        navigation,
-      },
-    );
+    const container = mountShell({
+      menuOptions: [
+        { key: "home", label: "Home" },
+        { key: "settings", label: "Settings" },
+      ],
+      navigation,
+    });
     await settle();
     [...container.querySelectorAll<HTMLElement>(".n-menu-item-content")]
       .find((item) => item.textContent?.includes("Settings"))!
@@ -477,14 +436,10 @@ describe("AdminShell", () => {
         throw new Error("private failure");
       }),
     };
-    const container = mountShell(
-      { kind: "authenticated" },
-      createAuthActions(),
-      {
-        menuOptions: [{ key: "settings", label: "Settings" }],
-        navigation,
-      },
-    );
+    const container = mountShell({
+      menuOptions: [{ key: "settings", label: "Settings" }],
+      navigation,
+    });
     await settle();
     container.querySelector<HTMLElement>(".n-menu-item-content")!.click();
     await settle();
@@ -514,14 +469,10 @@ describe("AdminShell", () => {
         return { active };
       }),
     });
-    const container = mountShell(
-      { kind: "authenticated" },
-      createAuthActions(),
-      {
-        menuOptions: [{ key: "reports", label: "Reports" }],
-        navigation,
-      },
-    );
+    const container = mountShell({
+      menuOptions: [{ key: "reports", label: "Reports" }],
+      navigation,
+    });
     await settle();
     navigation.active = older;
     await settle();
@@ -555,18 +506,14 @@ describe("AdminShell", () => {
       })),
     });
     const resolver = vi.fn(() => ({ kind: "open" as const }));
-    const container = mountShell(
-      { kind: "authenticated" },
-      createAuthActions(),
-      {
-        navigation,
-        defaultSlot: ({ navigate }) =>
-          h("button", {
-            "data-open-report": "",
-            onClick: () => void navigate({ navKey: "reports" }, resolver),
-          }),
-      },
-    );
+    const container = mountShell({
+      navigation,
+      defaultSlot: ({ navigate }) =>
+        h("button", {
+          "data-open-report": "",
+          onClick: () => void navigate({ navKey: "reports" }, resolver),
+        }),
+    });
     await settle();
     navigation.active = report;
     await settle();
@@ -606,11 +553,7 @@ describe("AdminShell", () => {
               : request.destination,
       })),
     });
-    const container = mountShell(
-      { kind: "authenticated" },
-      createAuthActions(),
-      { navigation },
-    );
+    const container = mountShell({ navigation });
     await settle();
     navigation.active = second;
     await settle();
@@ -626,37 +569,88 @@ describe("AdminShell", () => {
       container.querySelector('[data-admin-tab-key="same-2"]'),
     ).not.toBeNull();
   });
+});
 
-  it("clears page instances when auth or the navigation boundary changes", async () => {
+describe("useAdminShellNavigationStore", () => {
+  it("returns null navigation before configuration", () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const store = useAdminShellNavigationStore();
+    expect(store.navigation).toBeNull();
+  });
+
+  it("keeps the navigation controller out of serializable Pinia state", () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const navigation: AdminShellNavigation = {
+      active: { id: "home", nav: { navKey: "home" }, label: "Home" },
+      handleNavigation: vi.fn(async () => ({ active: null })),
+    };
+
+    useAdminShellNavigationStore().configure(navigation);
+
+    expect(pinia.state.value["admin-shell-navigation"]).toEqual({});
+  });
+
+  it("configures navigation once per Pinia instance", () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const store = useAdminShellNavigationStore();
     const first: AdminShellNavigation = {
       active: { id: "one", nav: { navKey: "one" }, label: "One" },
       handleNavigation: vi.fn(async () => ({ active: null })),
     };
-    const props = reactive({
-      authStatus: { kind: "authenticated" } as AdminAuthStatus,
-      authActions: createAuthActions(),
-      navigation: first as AdminShellNavigation | undefined,
-    });
-    const target = document.createElement("div");
-    document.body.append(target);
-    const pinia = createPinia();
-    setActivePinia(pinia);
-    useAdminShellPreferencesStore().initialize();
-    const app = createApp({ setup: () => () => h(AdminShell, props) });
-    app.use(pinia);
-    app.mount(target);
-    mountedApps.push(app);
-    await settle();
-    props.authStatus = { kind: "anonymous" };
-    await settle();
-    expect(target.querySelector("[data-admin-tabs]")).toBeNull();
-    props.authStatus = { kind: "authenticated" };
-    props.navigation = {
+    store.configure(first);
+    expect(store.navigation).toBe(first);
+    const second: AdminShellNavigation = {
       active: { id: "two", nav: { navKey: "two" }, label: "Two" },
       handleNavigation: vi.fn(async () => ({ active: null })),
     };
-    await settle();
-    expect(target.querySelector('[data-admin-tab-key="one"]')).toBeNull();
-    expect(target.querySelector('[data-admin-tab-key="two"]')).not.toBeNull();
+    store.configure(second);
+    expect(store.navigation).toBe(first);
+  });
+
+  it("isolates navigation configuration between Pinia instances", () => {
+    const piniaA = createPinia();
+    setActivePinia(piniaA);
+    const navA: AdminShellNavigation = {
+      active: { id: "a", nav: { navKey: "a" }, label: "A" },
+      handleNavigation: vi.fn(async () => ({ active: null })),
+    };
+    useAdminShellNavigationStore().configure(navA);
+
+    const piniaB = createPinia();
+    setActivePinia(piniaB);
+    expect(useAdminShellNavigationStore().navigation).toBeNull();
+    const navB: AdminShellNavigation = {
+      active: { id: "b", nav: { navKey: "b" }, label: "B" },
+      handleNavigation: vi.fn(async () => ({ active: null })),
+    };
+    useAdminShellNavigationStore().configure(navB);
+    expect(useAdminShellNavigationStore().navigation).toBe(navB);
+
+    setActivePinia(piniaA);
+    expect(useAdminShellNavigationStore().navigation).toBe(navA);
+  });
+
+  it("reactively reflects navigation active changes", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const home = { id: "home", nav: { navKey: "home" }, label: "Home" };
+    const navigation = reactive<AdminShellNavigation>({
+      active: home,
+      handleNavigation: vi.fn(async () => ({ active: null })),
+    });
+    useAdminShellNavigationStore().configure(navigation);
+    const store = useAdminShellNavigationStore();
+    expect(store.navigation!.active).toEqual(home);
+    const updated = {
+      id: "settings",
+      nav: { navKey: "settings" },
+      label: "Settings",
+    };
+    navigation.active = updated;
+    await nextTick();
+    expect(store.navigation!.active).toEqual(updated);
   });
 });

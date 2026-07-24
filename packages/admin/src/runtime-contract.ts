@@ -12,6 +12,11 @@ export type AdminAuthStatus =
       avatarUrl?: string;
       subtitle?: string;
     };
+export type AdminAuthIdentity = {
+  userLabel?: string;
+  avatarUrl?: string;
+  subtitle?: string;
+};
 
 export type AdminLoginValues = {
   username: string;

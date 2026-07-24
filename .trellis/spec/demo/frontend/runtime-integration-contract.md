@@ -2,74 +2,79 @@
 
 ## 1. Scope / Trigger
 
-Use this contract when changing `apps/demo` application assembly, its public admin-runtime integration, or its focused commands. The demo is frontend-only: it proves the starter boundary without backend transport, session persistence, DTOs, tokens, or a fake API.
+Use this contract when changing `apps/demo` assembly, auth callbacks, route nesting, guards, or admin navigation. The demo is frontend-only: no backend transport, session persistence, DTOs, tokens, or fake API.
 
 ## 2. Signatures
 
 ```ts
-import type {
-  AdminAuthActions,
-  AdminAuthStatus,
-  AdminShellNavigation,
-} from "@noob-naive-ui/admin";
-import type { MenuOption } from "naive-ui";
+const auth = useAdminAuthStore(pinia);
+auth.configure({
+  login(values): Promise<AdminAuthIdentity>,
+  logout(): Promise<void> | void,
+});
 
-const authStatus: Ref<AdminAuthStatus>;
-const authActions: AdminAuthActions;
-const menuOptions: MenuOption[];
-const navigation: AdminShellNavigation;
+const navigation = createAdminShellVueRouterNavigation({
+  router,
+  registry: demoRouteRegistry,
+  describeDestination,
+  createPageId,
+  getNavigationScopeId,
+  homeDestination: { navKey: "dashboard" },
+});
+
+navigation.installScopeGuard();
+await navigation.enterScope(destination);
 ```
 
-Production-focused commands build the adapter and its dependencies first, while Vite serve mode resolves admin, admin-vue-router, and UI source directly:
-
-```json
-{
-  "dev": "vite",
-  "prebuild": "pnpm --filter @noob-naive-ui/admin-vue-router build",
-  "pretypecheck": "pnpm --filter @noob-naive-ui/admin-vue-router build"
-}
-```
+Registry route paths are relative children (`""`, `"reports"`, `"detail/:reportId"`). The host wraps them beneath the shell layout and keeps `/login` as a public sibling.
 
 ## 3. Contracts
 
-- Import runtime values and types from `@noob-naive-ui/admin`; never use application-source relative imports into `packages/admin`. Demo Vite serve mode may resolve the package specifier to workspace source aliases so library edits participate in HMR, but production build mode must retain artifact resolution.
-- Import `@noob-naive-ui/admin/style.css` explicitly in the app entrypoint. Serve-mode aliases must list exact admin/UI `style.css` subpaths before package-root aliases so Vite loads and watches the real source stylesheets.
-- Keep auth in a single in-memory `Ref<AdminAuthStatus>`. Login trims username/password and rejects either empty value; successful login uses the username only as a rendering label. Logout routes home and changes auth to the signed-out anonymous state.
-- Build the final `MenuOption[]` with plain labels in the demo and pass its exact reference to `AdminShell`. The shell gets no router, route object, visibility input, session, or backend-shaped value.
-- Build one stable `AdminShellNavigation` with `createAdminShellVueRouterNavigation({ router, registry, describeDestination, createPageId, getNavigationScopeId })`. The demo creates a fresh in-memory scope ID for every login, stamps it beside adapter tab metadata, and uses a host route guard to replace protected Back/Forward entries from another scope with Dashboard. The scope controls history continuity only; it is not authentication. Codecs retain ownership of payload mapping, and adapter metadata remains limited to the scope ID plus `id`, `label`, and optional `closable` beneath `_noobAdminShell`.
-- Initialize only `useAdminShellPreferencesStore` in `main.ts`; provide runtime locale options there. Application theme/font presentation reads that same store reactively. Do not add a store, storage adapter, or persistence implementation.
+- Import public package APIs and `@noob-naive-ui/admin/style.css`; never reach into package source.
+- Package auth state is non-persistent Pinia state. Demo callbacks validate fake credentials and return presentation identity; they never set auth status.
+- `App.tsx` owns shared providers plus the outer `RouterView`. `DemoLoginRoute` renders `AdminLoginPage`; `DemoShellRoute` renders `AdminShell` plus an inner `RouterView`.
+- The host auth guard runs before adapter scope repair. Anonymous protected routes redirect to `/login?redirectUrl=<fullPath>`; authenticated `/login` redirects home.
+- Redirect restoration accepts only a root-relative URL resolving to a matched protected registry route. Login, external, malformed, and public targets fall back to Dashboard.
+- `@noob-naive-ui/admin-vue-router` parses `_noobAdminShell`, bypasses non-registry routes, repairs stale/missing protected scope to one stable home descriptor per scope, and stamps explicit post-login entries through `enterScope`.
+- The host owns route tree, login path, auth callbacks, scope ID rotation, redirect validation, menus, codecs, and tab presentation. The adapter owns no auth state.
+- Initialize `useAdminShellPreferencesStore` once; theme/font presentation consumes that same store.
 
 ## 4. Validation & Error Matrix
 
 | Condition | Required behavior |
 | --- | --- |
-| Username or password trims to empty | Reject login; packaged login UI shows its generic safe error and stays anonymous. |
-| Non-empty credentials | Navigate home and render authenticated shell with the trimmed username label; no network request. |
-| Route or history changes | Reactive `navigation.active` combines codec-reconstructed canonical payload with persisted adapter tab metadata; sidebar selection follows a matching `navKey`. |
-| Shell closes a tab | The close request navigates to its destination-bearing fallback and preserves only the fallback tab metadata (`id`, `label`, optional `closable`) before shell removal. |
-| OS color scheme changes in system mode | Reactive media listener updates application theme; remove listener on unmount. |
-| Focused production command from a clean checkout | Its `pre*` hook builds admin JS, CSS, and declarations first; dev serve instead transforms and watches exact admin/UI source aliases. |
+| Empty trimmed username/password | Callback rejects; package stays anonymous and shows generic feedback. |
+| Valid credentials | Callback returns `AdminAuthIdentity`; package becomes authenticated; route restores a safe target. |
+| Anonymous protected deep link | Redirect to standalone login with encoded original full path. |
+| External, login, malformed, or unmatched redirect | Enter a scoped Dashboard route. |
+| Current-scope protected history | Proceed unchanged. |
+| Stale/missing protected scope | Adapter replaces with scoped Dashboard. |
+| `/login` or unrelated route | Scope guard bypasses it. |
+| Successful logout | Package becomes anonymous; host shell route replaces to `/login`. |
 
 ## 5. Good, Base, and Bad Cases
 
-- **Good:** `routes.tsx` registers host page records/codecs through `@noob-naive-ui/admin-vue-router`'s bound registry; registry keys are both stable shell `navKey` values and generated Vue Router route names, while URL paths remain separate. A payload-bearing codec owns a Zod `payloadSchema`, maps canonical `AdminShellDestination.payload` to Vue Router `params`, `query`, `hash`, `state`, or a mix, and defines reconstruction precedence from normalized route/history state; omitted codecs silently omit payload and decode none. `App.tsx` constructs `createAdminShellVueRouterNavigation` once and contains no generic cloning, history parsing, active restoration, request handling, route-specific payload branching, or reverse index. `admin-navigation.ts` separately owns exhaustive tab labels/closability and descriptor construction.
-- **Base:** static local route pages with no data fetching, request models, or session restoration.
-- **Bad:** a mock `login()` HTTP endpoint, a `SessionDto`, `localStorage` auth restoration, a router prop passed to `AdminShell`, a second preferences store, or importing admin source files directly.
+- **Good:** relative registry leaves nested under host shell route; package-owned auth state; host callbacks; one shared adapter; adapter-owned scope repair.
+- **Base:** backend-free in-memory login with static pages and no session restoration.
+- **Bad:** root-local `Ref<AdminAuthStatus>`, auth props on shell/login, direct `_noobAdminShell` parsing in demo, absolute registry child paths, adapter-owned `/login`, or persisted fake auth.
 
 ## 6. Tests Required
 
-- `pnpm --filter @noob-naive-ui/admin test` guards the public shell/login contract.
-- `pnpm --filter demo typecheck` proves public declarations resolve from a clean state.
-- `pnpm --filter demo build` proves the public admin stylesheet and app styles bundle.
-- Browser assertions: whitespace rejection; non-empty login; menu route render; a page-owned button opens the non-menu detail route and exact tab; tab activation and close; sign out; theme/font/locale/sidebar controls; no console warnings/errors; no application API request.
+- `pnpm --filter @noob-naive-ui/admin test`
+- `pnpm --filter @noob-naive-ui/admin-vue-router test`
+- `pnpm --filter demo typecheck`
+- `pnpm --filter demo build`
+- Browser: anonymous deep link, no shell on login, successful redirect restoration, authenticated shell, logout to login, safe redirect fallback, history-scope repair, no console warnings/errors, no application API request.
 
 ## 7. Wrong vs Correct
 
-```tsx
-// Wrong: bypasses the library public boundary and makes CSS/tooling behavior diverge.
-import { AdminShell } from "../../../packages/admin/src";
+```ts
+// Wrong: host parses package-private history and mutates auth state.
+router.beforeEach(() => router.options.history.state._noobAdminShell);
+authStatus.value = { kind: "authenticated" };
 
-// Correct: consumes the declared runtime and explicit public stylesheet artifact.
-import { AdminShell } from "@noob-naive-ui/admin";
-import "@noob-naive-ui/admin/style.css";
+// Correct: package action owns status; adapter owns generic scope metadata.
+auth.configure({ login, logout });
+navigation.installScopeGuard();
+await navigation.enterScope({ navKey: "dashboard" });
 ```

@@ -1,7 +1,7 @@
 import "./style.css";
 
 export type {
-  AdminAuthActions,
+  AdminAuthIdentity,
   AdminAuthStatus,
   AdminFontSize,
   AdminLocaleOption,
@@ -12,7 +12,13 @@ export type {
   AdminThemeMode,
 } from "./runtime-contract";
 
+export { useAdminAuthStore } from "./stores/auth";
+export type { AdminAuthStoreConfig } from "./stores/auth";
+
 export { useAdminShellPreferencesStore } from "./stores/shell-preferences";
+export { useAdminShellMenuStore } from "./stores/menu";
+
+export { useAdminShellNavigationStore } from "./stores/navigation";
 
 export {
   AdminLoginPage,
@@ -27,7 +33,6 @@ export {
   type AdminShellNavigation,
   type AdminShellNavigationRequest,
   type AdminShellNavigationResult,
-  type AdminShellProps,
   type AdminShellTab,
   type AdminShellTabCandidate,
   type AdminShellTabDescriptor,

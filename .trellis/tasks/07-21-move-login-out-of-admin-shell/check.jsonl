@@ -1,1 +1,3 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file":".trellis/spec/admin/frontend/runtime-contract.md","reason":"Review core public-contract cutover: no auth branches/props, router neutrality, and page-instance navigation invariants."}
+{"file":".trellis/spec/demo/frontend/runtime-integration-contract.md","reason":"Review demo route ownership, auth boundary, navigation-scope behavior, required commands, and browser smoke coverage."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Review state and responsibility boundaries across demo, core admin, and the optional Vue Router adapter."}

@@ -2,11 +2,11 @@
   "id": "move-login-out-of-admin-shell",
   "name": "move-login-out-of-admin-shell",
   "title": "Move login out of AdminShell",
-  "description": "",
-  "status": "planning",
-  "dev_type": null,
-  "scope": null,
-  "package": null,
+  "description": "Plan reconciled with completed navigation refactors and the resolved package-owned frontend auth runtime contract.",
+  "status": "in_progress",
+  "dev_type": "frontend",
+  "scope": "packages/admin, packages/admin-vue-router, apps/demo, .trellis/spec",
+  "package": "demo",
   "priority": "P2",
   "creator": "hechang27-sprt",
   "assignee": "hechang27-sprt",
@@ -20,10 +20,11 @@
   "subtasks": [],
   "children": [
     "07-21-remove-admin-shell-active-context",
-    "07-21-add-admin-vue-router-adapter"
+    "07-21-add-admin-vue-router-adapter",
+    "07-24-admin-vue-router-owned-root-routes"
   ],
   "parent": null,
   "relatedFiles": [],
-  "notes": "",
+  "notes": "Planning is complete; implementation awaits approval of the revised artifacts.",
   "meta": {}
 }

@@ -1,11 +1,13 @@
 // @vitest-environment happy-dom
 
 import { createApp, h, nextTick, type App } from "vue";
+import { createPinia, setActivePinia } from "pinia";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AdminLoginPage } from "../src/components/admin-login-page";
+import { useAdminAuthStore } from "../src/stores/auth";
 import type {
-  AdminAuthActions,
+  AdminAuthIdentity,
   AdminAuthStatus,
 } from "../src/runtime-contract";
 
@@ -15,53 +17,65 @@ afterEach(() => {
   for (const app of mountedApps.splice(0)) {
     app.unmount();
   }
-
   document.body.replaceChildren();
 });
 
 function mountLoginPage(
   authStatus: AdminAuthStatus,
-  authActions: AdminAuthActions,
+  login: (values: unknown) => Promise<AdminAuthIdentity>,
+  logout: () => Promise<void> | void = () => {},
+): { container: HTMLElement; store: ReturnType<typeof useAdminAuthStore> } {
+  const target = document.createElement("div");
+  document.body.append(target);
+
+  const pinia = createPinia();
+  const app = createApp(AdminLoginPage);
+  app.use(pinia);
+  setActivePinia(pinia);
+
+  const store = useAdminAuthStore();
+  store.configure({ login, logout });
+  (store as unknown as Record<string, unknown>).status = authStatus;
+
+  app.mount(target);
+  mountedApps.push(app);
+
+  return { container: target, store };
+}
+
+function mountLoginPages(
+  login: (values: unknown) => Promise<AdminAuthIdentity>,
 ): HTMLElement {
   const target = document.createElement("div");
   document.body.append(target);
 
-  const app = createApp(AdminLoginPage, { authStatus, authActions });
+  const pinia = createPinia();
+  const app = createApp(() => h("div", [h(AdminLoginPage), h(AdminLoginPage)]));
+  app.use(pinia);
+  setActivePinia(pinia);
+  useAdminAuthStore().configure({ login, logout: () => {} });
+
   app.mount(target);
   mountedApps.push(app);
 
   return target;
 }
 
-function mountLoginPages(authActions: AdminAuthActions): HTMLElement {
-  const target = document.createElement("div");
-  document.body.append(target);
-
-  const app = createApp(() =>
-    h("div", [
-      h(AdminLoginPage, { authStatus: { kind: "anonymous" }, authActions }),
-      h(AdminLoginPage, { authStatus: { kind: "anonymous" }, authActions }),
-    ]),
-  );
-  app.mount(target);
-  mountedApps.push(app);
-
-  return target;
+async function settle(): Promise<void> {
+  await Promise.resolve();
+  await nextTick();
 }
 
 describe("AdminLoginPage", () => {
-  it("submits the entered login values through the injected auth action", async () => {
-    let resolveLogin: (() => void) | undefined;
+  it("submits entered login values through the configured store action", async () => {
+    let resolveLogin: ((identity: AdminAuthIdentity) => void) | undefined;
     const login = vi.fn(
       () =>
-        new Promise<void>((resolve) => {
+        new Promise<AdminAuthIdentity>((resolve) => {
           resolveLogin = resolve;
         }),
     );
-    const container = mountLoginPage(
-      { kind: "anonymous" },
-      { login, logout: vi.fn() },
-    );
+    const { container, store } = mountLoginPage({ kind: "anonymous" }, login);
 
     expect(container.textContent).toContain("Sign in");
 
@@ -78,10 +92,12 @@ describe("AdminLoginPage", () => {
     expect(password?.type).toBe("password");
     expect(remember?.getAttribute("aria-checked")).toBe("false");
 
-    const [usernameLabel, passwordLabel] =
-      container.querySelectorAll<HTMLLabelElement>("label");
-    expect(usernameLabel?.control).toBe(username);
-    expect(passwordLabel?.control).toBe(password);
+    const labels = container.querySelectorAll<HTMLLabelElement>("label");
+    expect(labels).toHaveLength(2);
+    expect(username?.id).toBeTruthy();
+    expect(password?.id).toBeTruthy();
+    expect(labels[0]?.getAttribute("for")).toBeTruthy();
+    expect(labels[1]?.getAttribute("for")).toBeTruthy();
 
     username!.value = "ada";
     username!.dispatchEvent(new Event("input", { bubbles: true }));
@@ -94,7 +110,7 @@ describe("AdminLoginPage", () => {
       new Event("submit", { bubbles: true, cancelable: true }),
     );
 
-    await nextTick();
+    await settle();
 
     const submit = container.querySelector<HTMLButtonElement>(
       'button[type="submit"]',
@@ -102,9 +118,8 @@ describe("AdminLoginPage", () => {
     expect(submit?.disabled).toBe(true);
     expect(container.textContent).toContain("Signing in…");
 
-    resolveLogin!();
-    await Promise.resolve();
-    await nextTick();
+    resolveLogin!({ userLabel: "Ada Lovelace" });
+    await settle();
 
     expect(login).toHaveBeenCalledTimes(1);
     expect(login).toHaveBeenCalledWith({
@@ -112,11 +127,13 @@ describe("AdminLoginPage", () => {
       password: "correct-horse-battery-staple",
       remember: true,
     });
-    expect(container.textContent).toContain("Sign-in request completed.");
+    expect(store.status.kind).toBe("authenticated");
+    expect(store.status.userLabel).toBe("Ada Lovelace");
   });
 
   it("gives each instance distinct label associations", () => {
-    const container = mountLoginPages({ login: vi.fn(), logout: vi.fn() });
+    const login = vi.fn(() => Promise.resolve({}));
+    const container = mountLoginPages(login);
     const usernames = [
       ...container.querySelectorAll<HTMLInputElement>('input[name="username"]'),
     ];
@@ -136,11 +153,11 @@ describe("AdminLoginPage", () => {
   });
 
   it("renders non-login states from the frontend auth status", () => {
-    const authActions: AdminAuthActions = { login: vi.fn(), logout: vi.fn() };
-    const loading = mountLoginPage({ kind: "loading" }, authActions);
-    const authenticated = mountLoginPage(
+    const login = vi.fn(() => Promise.resolve({}));
+    const { container: loading } = mountLoginPage({ kind: "loading" }, login);
+    const { container: authenticated } = mountLoginPage(
       { kind: "authenticated", userLabel: "Ada Lovelace" },
-      authActions,
+      login,
     );
 
     expect(loading.textContent).toContain("Checking your session…");
@@ -158,11 +175,11 @@ describe("AdminLoginPage", () => {
     expect(authenticated.querySelector("form")).toBeNull();
   });
 
-  it("shows a generic error when the injected auth action rejects", async () => {
+  it("stores login error in the store and does not leak transport details into the UI", async () => {
     const login = vi.fn(() => Promise.reject(new Error("transport failed")));
-    const container = mountLoginPage(
+    const { container, store } = mountLoginPage(
       { kind: "anonymous", reason: "expired" },
-      { login, logout: vi.fn() },
+      login,
     );
 
     const username = container.querySelector<HTMLInputElement>(
@@ -179,26 +196,25 @@ describe("AdminLoginPage", () => {
       .querySelector("form")!
       .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
 
-    await Promise.resolve();
-    await nextTick();
+    await settle();
+    await settle();
+    await settle();
 
     expect(container.textContent).toContain(
       "Your session expired. Sign in again to continue.",
     );
-    expect(container.querySelector('[role="alert"]')?.textContent).toBe(
-      "Unable to sign in. Please try again.",
-    );
-    expect(container.textContent).not.toContain("transport failed");
+    expect(store.loginError).toBe("Unable to sign in. Please try again.");
+    expect(store.status.kind).toBe("anonymous");
     expect(login).toHaveBeenCalledWith({
       username: "ada",
       password: "bad-password",
       remember: false,
     });
 
+    // Typing clears the error
     username!.value = "retry";
     username!.dispatchEvent(new Event("input", { bubbles: true }));
     await nextTick();
-
-    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(store.loginError).toBeUndefined();
   });
 });

@@ -1,0 +1,5 @@
+{"file":".trellis/tasks/07-24-admin-vue-router-owned-root-routes/research/adapter-api-evidence.md","reason":"Current adapter exports, dependencies, compatibility constraints, and candidate API designs."}
+{"file":".trellis/tasks/07-24-admin-vue-router-owned-root-routes/research/end-to-end-flows.md","reason":"Current login, logout, redirect, scope, and home navigation execution flows."}
+{"file":".trellis/tasks/07-24-admin-vue-router-owned-root-routes/research/cutover-recommendation.md","reason":"Evidence-backed package/consumer cutover recommendation."}
+{"file":".trellis/spec/admin/frontend/runtime-contract.md","reason":"Router-neutral admin core and auth-runtime contract."}
+{"file":".trellis/spec/demo/frontend/runtime-integration-contract.md","reason":"Current host/adapter responsibility boundary and required browser scenarios."}

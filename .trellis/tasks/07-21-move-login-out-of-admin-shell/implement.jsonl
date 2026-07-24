@@ -1,1 +1,3 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file":".trellis/spec/admin/frontend/runtime-contract.md","reason":"Current public AdminShell contract and test obligations; must be updated because it presently documents auth branches that this task removes."}
+{"file":".trellis/spec/demo/frontend/runtime-integration-contract.md","reason":"Demo integration boundary for fake auth, navigation scope, app composition, focused checks, and browser scenarios."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Ownership rules for app auth, admin runtime presentation, injected actions, and persisted preferences."}

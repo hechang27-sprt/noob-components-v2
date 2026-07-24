@@ -12,7 +12,7 @@ export default defineConfig({
       fileName: "index",
     },
     rolldownOptions: {
-      external: ["@noob-naive-ui/admin", "vue", "vue-router", "zod"],
+      external: ["@noob-naive-ui/admin", "pinia", "vue", "vue-router", "zod"],
     },
   },
   test: {

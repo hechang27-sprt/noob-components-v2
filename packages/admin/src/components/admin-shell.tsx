@@ -30,16 +30,13 @@ import {
   shallowRef,
   watch,
   type InjectionKey,
-  type PropType,
 } from "vue";
 
-import { AdminLoginPage } from "./admin-login-page";
-import type {
-  AdminAuthActions,
-  AdminAuthStatus,
-  AdminLocaleOption,
-} from "../runtime-contract";
+import type { AdminLocaleOption } from "../runtime-contract";
+import { useAdminAuthStore } from "../stores/auth";
 import { useAdminShellPreferencesStore } from "../stores/shell-preferences";
+import { useAdminShellMenuStore } from "../stores/menu";
+import { useAdminShellNavigationStore } from "../stores/navigation";
 
 /** Presents the fixed font-size choices without rebuilding dropdown options per render. */
 const fontSizeOptions = [
@@ -185,40 +182,30 @@ export type AdminShellNavigation = {
   ) => Promise<AdminShellNavigationResult>;
 };
 
-/** Defines the frontend-ready inputs accepted by the router-free shell. */
-export type AdminShellProps = {
-  /** Selects loading, anonymous, or authenticated top-level presentation. */
-  authStatus: AdminAuthStatus;
-  /** Supplies starter-owned login/logout callbacks to the anonymous branch. */
-  authActions: AdminAuthActions;
-  /** Supplies the starter-built menu tree without shell mutation. */
-  menuOptions?: MenuOption[];
-  /** Supplies optional host authority for page-instance navigation. */
-  navigation?: AdminShellNavigation;
-};
-
 /** Returns a public immutable snapshot without shell-private mutable fields. */
 function snapshotTab(tab: AdminShellTab): AdminShellTabDescriptor {
   return { id: tab.id, nav: tab.nav, label: tab.label, closable: tab.closable };
 }
 
-/** Renders the frontend-only authenticated shell and its runtime-owned controls. */
 export const AdminShell = defineComponent(
-  (props: AdminShellProps, { slots }) => {
+  (_, { slots }) => {
+    /** Reads the package-owned frontend auth runtime for identity and logout. */
+    const auth = useAdminAuthStore();
     /** Reads and mutates the one existing runtime preference store. */
     const preferences = useAdminShellPreferencesStore();
+    /** Reads the host-configured menu options from the admin package runtime. */
+    const menu = useAdminShellMenuStore();
+    /** Reads the host-configured navigation adapter from the admin package runtime. */
+    const nav = useAdminShellNavigationStore();
     /** Stores committed page instances by immutable ID. */
     const tabs = reactive(new Map<string, AdminShellTab>());
     /** Owns the sole user-visible page-instance ordering. */
     const visibleTabs = ref<string[]>([]);
+
     /** Holds sanitized navigation feedback for the current boundary. */
     const tabError = ref<string>();
     /** Identifies the only uncommitted open candidate still allowed to complete. */
     const pendingOpen = shallowRef<AdminShellTabCandidate>();
-    /** Prevents duplicate logout actions while the supplied callback settles. */
-    const logoutPending = ref(false);
-    /** Holds generic UI-safe feedback when logout rejects. */
-    const logoutError = ref<string>();
 
     /** Synchronizes retained tab indexes with visible order. */
     function reindexTabs(): void {
@@ -273,7 +260,7 @@ export const AdminShell = defineComponent(
 
     /** Requests activation for one exact committed page instance. */
     async function activateTab(id: string): Promise<void> {
-      const navigation = props.navigation;
+      const navigation = nav.navigation;
       const tab = tabs.get(id);
       if (
         !navigation ||
@@ -308,7 +295,7 @@ export const AdminShell = defineComponent(
       destination: AdminShellDestination,
       resolveTabNavigation?: AdminShellTabNavigationResolver,
     ): Promise<void> {
-      const navigation = props.navigation;
+      const navigation = nav.navigation;
       if (!navigation || pendingOpen.value) return;
       const opened = openedDescriptors();
       const newestMatch = [...opened]
@@ -334,13 +321,13 @@ export const AdminShell = defineComponent(
           closeCurrent: false,
         });
         if (
-          props.navigation === navigation &&
+          nav.navigation === navigation &&
           pendingOpen.value === candidate &&
           result.active?.id === candidate.id
         )
           recordCurrentTab(result.active);
       } catch {
-        if (props.navigation === navigation && pendingOpen.value === candidate)
+        if (nav.navigation === navigation && pendingOpen.value === candidate)
           tabError.value = "Unable to navigate.";
       } finally {
         if (pendingOpen.value === candidate) pendingOpen.value = undefined;
@@ -357,8 +344,8 @@ export const AdminShell = defineComponent(
     function getCloseDestination(
       tab: AdminShellTab,
     ): AdminShellTabDescriptor | null {
-      if (props.navigation?.active?.id !== tab.id)
-        return props.navigation?.active ?? null;
+      if (nav.navigation?.active?.id !== tab.id)
+        return nav.navigation?.active ?? null;
       const id =
         visibleTabs.value[tab.index + 1] ?? visibleTabs.value[tab.index - 1];
       const destination = id ? tabs.get(id) : undefined;
@@ -367,7 +354,7 @@ export const AdminShell = defineComponent(
 
     /** Requests closure and removes only the exact record that owned the completion. */
     async function closeTab(id: string): Promise<void> {
-      const navigation = props.navigation;
+      const navigation = nav.navigation;
       const tab = tabs.get(id);
       if (!navigation || !tab || tab.closable === false || tab.closePending)
         return;
@@ -381,7 +368,7 @@ export const AdminShell = defineComponent(
         });
 
         if (
-          props.navigation === navigation && // the same navigation adapter still owns the completion
+          nav.navigation === navigation && // the same navigation adapter still owns the completion
           tab === tabs.get(id) && // the exact tab record that initiated the close is still committed
           tab.id !== active?.id // the host no longer reports that tab as active
         ) {
@@ -451,47 +438,37 @@ export const AdminShell = defineComponent(
      * @returns A promise that settles after recording any safe local failure feedback.
      */
     async function selectAccountAction(value: string | number): Promise<void> {
-      if (value !== "logout" || logoutPending.value) {
-        return;
-      }
+      if (value !== "logout" || auth.logoutPending) return;
 
-      logoutPending.value = true;
-      logoutError.value = undefined;
       try {
-        await props.authActions.logout();
+        await auth.logout();
       } catch {
-        logoutError.value = "Unable to sign out.";
-      } finally {
-        logoutPending.value = false;
+        // Generic feedback is handled by the host; the store's status remains safe.
       }
     }
 
-    /** Tracks auth/navigation boundaries and records each host-confirmed page instance. */
+    /** Tracks navigation boundaries and records each host-confirmed page instance. */
     watch(
       () => ({
-        authStatus: props.authStatus.kind,
-        navigation: props.navigation,
-        activeTabId: props.navigation?.active?.id,
-        activeTabDest: props.navigation?.active?.nav,
-        activeTabLabel: props.navigation?.active?.label,
-        activeTabClosable: props.navigation?.active?.closable,
+        navigation: nav.navigation,
+        activeTabId: nav.navigation?.active?.id,
+        activeTabDest: nav.navigation?.active?.nav,
+        activeTabLabel: nav.navigation?.active?.label,
+        activeTabClosable: nav.navigation?.active?.closable,
       }),
       (next, previous) => {
-        const { authStatus, navigation } = next;
-        const { authStatus: prevAuthStatus, navigation: previousNavigation } =
-          previous ?? {};
+        const { navigation } = next;
+        const { navigation: previousNavigation } = previous ?? {};
 
-        const authenticated =
-          authStatus === "authenticated" && Boolean(navigation);
-        const previousAuthenticated =
-          prevAuthStatus === "authenticated" && Boolean(previousNavigation);
+        const hasNavigation = Boolean(navigation);
+        const previousHasNavigation = Boolean(previousNavigation);
         if (
-          !authenticated ||
-          !previousAuthenticated ||
+          !hasNavigation ||
+          !previousHasNavigation ||
           navigation !== previousNavigation
         )
           clearTabs();
-        if (authenticated) recordCurrentTab(navigation?.active ?? null);
+        if (hasNavigation) recordCurrentTab(navigation?.active ?? null);
       },
       { immediate: true, flush: "sync" },
     );
@@ -504,32 +481,18 @@ export const AdminShell = defineComponent(
     onBeforeUnmount(clearTabs);
 
     return () => {
-      const authStatus = props.authStatus;
-      if (authStatus.kind === "loading") {
-        return (
-          <main
-            class="grid min-h-dvh place-items-center"
-            role="status"
-            aria-busy="true">
-            <p>Checking your session…</p>
-          </main>
-        );
-      }
+      const status = auth.status;
+      const pending = auth.logoutPending;
 
-      if (authStatus.kind === "anonymous") {
-        return (
-          <AdminLoginPage
-            authStatus={authStatus}
-            authActions={props.authActions}
-          />
-        );
-      }
-
-      const activeId = props.navigation?.active?.id;
-      const activeMenuKey = props.navigation?.active?.nav.navKey;
+      const activeId = nav.navigation?.active?.id;
+      const activeMenuKey = nav.navigation?.active?.nav.navKey;
       const localeOptions: AdminLocaleOption[] = preferences.availableLocales;
-      const menuOptions = props.menuOptions;
-      const userLabel = authStatus.userLabel ?? "Signed in";
+      const menuOptions = menu.options as MenuOption[];
+      const userLabel =
+        status.kind === "authenticated"
+          ? (status.userLabel ?? "Signed in")
+          : "Signed in";
+
       const fontSizeLabel =
         fontSizeOptions.find(({ key }) => key === preferences.fontSize)
           ?.label ?? preferences.fontSize;
@@ -623,7 +586,7 @@ export const AdminShell = defineComponent(
             <NDropdown
               trigger="hover"
               delay={0}
-              disabled={logoutPending.value}
+              disabled={pending}
               options={accountOptions}
               onSelect={selectAccountAction}>
               <NButton
@@ -632,8 +595,8 @@ export const AdminShell = defineComponent(
                 size="large"
                 class="gap-1.5"
                 data-admin-control="account"
-                disabled={logoutPending.value}
-                loading={logoutPending.value}
+                disabled={pending}
+                loading={pending}
                 aria-label={`Account: ${userLabel}`}>
                 <NThing>
                   {{
@@ -653,11 +616,6 @@ export const AdminShell = defineComponent(
                 </NThing>
               </NButton>
             </NDropdown>
-            {logoutError.value ? (
-              <p role="alert" data-admin-logout-error>
-                {logoutError.value}
-              </p>
-            ) : null}
           </div>
         ),
         sidebar: menuOptions?.length
@@ -671,7 +629,7 @@ export const AdminShell = defineComponent(
               />
             )
           : undefined,
-        tabbar: props.navigation
+        tabbar: nav.navigation
           ? () => (
               <div class="min-w-0" role="tablist" aria-label="Open pages">
                 <NTabs
@@ -725,7 +683,7 @@ export const AdminShell = defineComponent(
             collapsed={preferences.sidebarCollapsed}
             onUpdateCollapsed={setSidebarCollapsed}
             showSidebar={Boolean(menuOptions?.length)}
-            showTabbar={Boolean(props.navigation)}
+            showTabbar={Boolean(nav.navigation)}
             v-slots={layoutSlots}
           />
         </div>
@@ -734,14 +692,5 @@ export const AdminShell = defineComponent(
   },
   {
     name: "AdminShell",
-    props: {
-      authStatus: { type: Object as PropType<AdminAuthStatus>, required: true },
-      authActions: {
-        type: Object as PropType<AdminAuthActions>,
-        required: true,
-      },
-      menuOptions: Array as PropType<MenuOption[]>,
-      navigation: Object as PropType<AdminShellNavigation>,
-    },
   },
 );

@@ -1,11 +1,21 @@
 # Implementation plan
 
-## 1. Change the admin shell contract
+> **Resolved contract:** the host login callback resolves `AdminAuthIdentity` (`userLabel?`, `avatarUrl?`, `subtitle?`). Package auth actions alone transition the internal status.
 
-- Update admin-shell tests to assert the authenticated-only contract and remove anonymous/loading delegation expectations.
-- Remove `authStatus` and `authActions` from `AdminShellProps` and delete auth branching/login delegation from `AdminShell`.
-- Preserve shell navigation, tabs, menu, preferences, logout interaction contract, default slot, and descendant context.
-- Update public-contract documentation/spec references affected by the clean cutover.
+## 1. Create the package auth runtime
+
+- Define `AdminAuthIdentity` and the host callback configuration contract: `login(values): Promise<AdminAuthIdentity>` plus `logout()`.
+- Add the non-persistent Pinia auth store/runtime with guarded configuration, observed status, package-owned login/logout actions, and safe success/failure transitions.
+- Keep state mutation private to package actions; do not expose a host setter.
+- Add unit tests for unconfigured use, login success, login rejection, logout success, logout rejection, pending protection, and safe anonymous reasons.
+
+## 2. Cut over package components
+
+- Remove `authStatus` and `authActions` from `AdminShell` and `AdminLoginPage` props and public usage.
+- Make `AdminLoginPage` read package auth status/action; retain its local form and generic feedback behavior.
+- Make `AdminShell` read package auth state for account presentation/logout, but always render shell layout when mounted. It must never delegate login or render a loading/anonymous shell branch.
+- Preserve router-neutral navigation, tabs, menu, preferences, slot API, and `useAdminShell()` behavior.
+- Update `packages/admin` public exports and affected runtime-contract/spec documentation.
 
 Validation:
 
@@ -15,57 +25,65 @@ pnpm --filter @noob-naive-ui/admin typecheck
 pnpm --filter @noob-naive-ui/admin build
 ```
 
-## 2. Introduce demo-owned authentication state
+## 3. Restructure demo route composition
 
-- Add a setup-style demo Pinia store for fake in-memory auth status and login/logout transitions.
-- Keep backend/session semantics out of `@noob-naive-ui/admin`.
-- Retain `AdminLoginPage`'s existing frontend callback contract unless implementation evidence requires a minimal contract correction.
+- Configure admin auth callbacks against the demo Pinia instance during startup. The fake callbacks validate trimmed credentials and resolve the approved presentation identity; they do not mutate auth status.
+- Reduce `App.tsx` to providers/theme bridge plus outer `RouterView`.
+- Add `DemoLoginRoute` that renders `AdminLoginPage` and routes after observed successful status.
+- Add `DemoShellRoute` that renders `AdminShell`, the existing navigation adapter/menu, and inner `RouterView`.
+- Nest registry domain records beneath the protected shell-layout route without changing URLs, names, codecs, or tab presentation. Add public `/login` outside the registry.
 
-## 3. Split demo route-level composition
+## 4. Move generic history-scope repair into the adapter
 
-- Reduce the root app component to shared providers plus the outer `RouterView`.
-- Add a starter-owned login route component that composes `AdminLoginPage` with the demo auth store.
-- Add a starter-owned shell route component that composes `AdminShell`, the existing menu/navigation adapter, and an inner `RouterView`.
-- Convert demo domain records into children of the shell-layout record while preserving public URLs and route names.
+- Extend `createAdminShellVueRouterNavigation` with optional designated `homeDestination` configuration, a scope-guard installer, and explicit `enterScope(destination)` support.
+- Recognize protected/admin routes through the bound registry; bypass `/login` and all unrelated routes without requiring auth metadata inside the adapter.
+- Internalize namespace parsing, current-scope comparison, one-shot loop prevention, and one stable home descriptor per scope.
+- Add adapter tests for current scope, stale/missing scope, public-route bypass, stable home identity, post-login scoped deep-link entry, and cleanup.
+- Remove direct `_noobAdminShell` parsing and the local replacement guard from the demo.
 
-## 4. Add host-owned route gating
+## 5. Add ordered router auth guards
 
-- Mark or otherwise identify the shell route branch as authentication-gated.
-- Redirect anonymous domain navigation to `/login` with `redirectUrl: to.fullPath`.
-- Validate `redirectUrl` through the router as a known internal non-login domain destination before restoring it.
-- Fall back to the default domain route for missing/invalid/external/login targets.
-- Redirect authenticated login-route navigation to the default domain route.
-- Make logout replace the current location with `/login` after clearing demo auth state.
 
-## 5. Verify end to end
+- Mark protected records with `meta.requiresAuth`.
+- Read package auth status in the host guard. Redirect anonymous protected targets to login and authenticated login targets to the default protected route.
+- Install the adapter scope guard after auth gating; because it recognizes only registry routes, login and unrelated routes bypass repair.
+- Validate login redirect restoration with `router.resolve`, accepting only internal matched protected non-login locations.
+- Observe successful logout and replace to `/login`; keep this router effect outside the package action.
 
-Run static checks:
+## 6. Verify
+
+Add observable tests for package callback/status transitions and demo route behavior:
+
+- standalone `/login` without an `AdminShell` mount;
+- login success/rejection and logout success/rejection;
+- anonymous deep-link redirect, valid restoration, invalid/external/login/public fallback, authenticated-login redirect;
+- same-session Back/Forward and stale protected history-scope replacement;
+- unchanged shell page-instance navigation on protected routes.
+
+Run:
 
 ```sh
 pnpm --filter @noob-naive-ui/admin test
 pnpm --filter @noob-naive-ui/admin typecheck
 pnpm --filter @noob-naive-ui/admin build
+pnpm --filter @noob-naive-ui/admin-vue-router test
+pnpm --filter @noob-naive-ui/admin-vue-router typecheck
+pnpm --filter @noob-naive-ui/admin-vue-router build
 pnpm --filter demo typecheck
 pnpm --filter demo build
 ```
 
-Run the demo and verify in Chromium:
-
-1. open a domain deep link while anonymous;
-2. observe `/login` plus encoded `redirectUrl` and confirm no shell is mounted;
-3. log in and observe restoration of the requested domain URL inside `AdminShell`;
-4. navigate directly to `/login` while authenticated and observe default-domain redirection;
-5. log out and observe `/login` without shell content;
-6. verify theme/font presentation remains coherent across login and shell routes.
+Browser smoke: anonymous protected deep link; standalone login; success restoration; invalid redirect fallback; authenticated `/login`; logout to login; current-session Back/Forward; prior-scope history repair; preference continuity; zero console errors and no application API request.
 
 ## Review gates
 
-- No Vue Router import or route record appears in the admin package.
-- No obsolete shell auth prop, branch, shim, or caller remains.
-- Redirect validation cannot navigate to an external URL or loop back to login.
-- Demo auth state is host-owned; package preferences remain package-owned.
-- Existing page-instance navigation and history-state behavior remains intact.
+- Auth transition ownership is package-internal; host callbacks provide effects only.
+- Admin core has no Vue Router import/dependency; the existing adapter owns no auth/guard policy.
+- Core renders no login page and no auth-status prop branch.
+- Login and logout failures retain safe state and generic presentation feedback.
+- Route guards neither loop on login nor repair valid current-session history.
+- No package auth state is persisted or backend-shaped.
 
-## Rollback points
+## Rollback
 
-The change has no data migration. If route composition fails, revert the shell contract and demo route split together; reverting only one side leaves incompatible callers.
+Revert core auth-runtime/component changes and the demo route split together. No data migration exists.

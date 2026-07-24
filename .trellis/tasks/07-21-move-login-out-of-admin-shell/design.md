@@ -1,66 +1,84 @@
-# Design: routed login outside `AdminShell`
+# Design: routed login with package-owned frontend auth state
 
-## Ownership model
+## Auth-runtime boundary
 
-The starter owns the complete Vue Router route tree, authentication/session integration, route guards, redirects, menu construction, domain pages, and mapping route state into the router-neutral shell navigation contract.
+`@noob-naive-ui/admin` adds one non-persistent Pinia auth runtime. It owns status transitions and safe frontend presentation identity; hosts supply effects only.
 
-`@noob-naive-ui/admin` owns reusable frontend presentation/runtime concerns: independently composable `AdminLoginPage`, authenticated `AdminShell`, shell preferences, and any genuinely shared frontend-only presentation state. It imports no router API and exports no route records.
+```text
+AdminLoginPage click
+  → admin auth action.login(values)
+  → host login callback (transport/session work, if any)
+  → callback resolves authenticated presentation identity
+  → admin auth runtime sets authenticated status
+  → login route restores validated redirect
 
-## Host-owned nested route composition
+AdminShell account-menu click
+  → admin auth action.logout()
+  → host logout callback
+  → callback resolves
+  → admin auth runtime sets anonymous { reason: "signed-out" }
+  → host route layer navigates to /login
+```
 
-The application root retains providers and renders an outer `RouterView`. Top-level records choose between:
+A callback rejection does not transition to authenticated/anonymous success state. Package components own pending state and generic feedback; hosts do not pass raw errors into them.
 
-- `/login` → starter-owned login route component composing `AdminLoginPage`; or
-- the shell-layout record → starter-owned shell route component composing `AdminShell` and an inner `RouterView`.
+The public setup API configures `login(values): Promise<AdminAuthIdentity>` and `logout()` once for the application's Pinia instance. `AdminAuthIdentity` contains only optional `userLabel`, `avatarUrl`, and `subtitle`; the package creates authenticated status from it. The store exposes status as observed runtime state plus login/logout actions; callers do not receive a setter or direct transition API. The implementation must reject use before configuration and document initialization timing. It remains frontend-only: no persistence, session DTO, tokens, router, or backend import.
 
-Demo domain records are children of the shell-layout record. For a domain URL, Vue Router renders the shell route into the outer view and the domain page into the inner view. For `/login`, `AdminShell` is not mounted.
+## Route tree and ownership
 
-This design follows Vue Router nested routes: https://router.vuejs.org/guide/essentials/nested-routes.html
+```text
+App providers + configureAdminAuth(...)
+└─ outer RouterView
+   ├─ /login → DemoLoginRoute → AdminLoginPage
+   └─ protected shell-layout parent → DemoShellRoute → AdminShell → inner RouterView
+      ├─ /dashboard
+      ├─ /workspace/reports
+      ├─ /workspace/reports/:reportId
+      └─ /settings
+```
 
-Fixed package route arrays, route factories, dynamic installers, named-view composition, and package-owned router instances are excluded.
+The shell-layout parent has an empty path, preserving child URLs. Registry domain records become its children and retain generated names/codecs. `/login` is outside the registry because it is not an `AdminShellDestination`.
 
-## Destination URL codecs
+`App.tsx` provides theme/config and the outer view. `DemoLoginRoute` observes status only to perform post-login redirect and renders `AdminLoginPage`. `DemoShellRoute` creates menu/navigation integration and inner view; `AdminShell` reads its own auth runtime for account label/logout. The demo does not own an auth store.
 
-The demo route registry uses one key as both `AdminShellDestination.navKey` and Vue Router route name. Every definition owns a bidirectional URL codec. `encode` validates router-neutral destination params and maps them into explicit path/query/hash state used by shell navigation; `decode` reconstructs canonical destination params from the normalized current URL. Parameterless routes reject non-empty params. Shared registry helpers perform both directions so the shell adapter contains no route-specific parameter branches or reverse route index. When history state is restored, URL-decoded destination data replaces the descriptor's retained destination snapshot, keeping the URL authoritative.
+## Guard sequencing
 
-## Authentication and redirect flow
+Protected routes carry `meta.requiresAuth`. The guard reads package auth status and first applies:
 
-The demo owns an in-memory Pinia auth store shared by sibling login and shell route components.
+1. anonymous → protected: redirect to named login with `redirectUrl: to.fullPath`;
+2. authenticated → login: redirect default protected route;
+3. otherwise: continue.
 
-1. A guard sees an anonymous navigation to a domain route.
-2. It redirects to `/login` with `redirectUrl: to.fullPath`.
-3. The standalone login route invokes the demo auth store through `AdminLoginPage`'s frontend-only callback contract.
-4. After success, it resolves the query value against the host router and restores it only when it is a known internal domain location that does not resolve to login.
-5. Missing or invalid values fall back to the default domain route.
-6. Logout clears demo auth state and replaces the current location with `/login`.
-7. An authenticated attempt to enter `/login` redirects to the default domain route.
+Only after protected navigation is admitted may the existing history-scope repair run. Login navigation bypasses scope repair; otherwise logout could be replaced by Dashboard. The login route resolves redirect text and accepts only internal matched protected non-login locations. It uses the default protected location otherwise.
 
-Vue Router documents carrying the original `to.fullPath` in login query state and reading merged route metadata in guards: https://router.vuejs.org/guide/advanced/meta.html
+The host observes successful logout and replaces to login. This router effect remains host-owned; the package auth action has no router dependency.
 
-The guard is UI/navigation gating, not authorization. Backend resource authorization remains mandatory.
+## Adapter-owned history-scope lifecycle
 
-## State boundaries
+`createAdminShellVueRouterNavigation` remains usable without scope repair. When configured with a router-neutral `homeDestination`, it exposes an installer for the generic history-scope guard and an explicit `enterScope(destination)` operation.
 
-- Demo store: fake authentication status and login/logout transitions needed by sibling route components and guards.
-- Admin-package store: frontend-only presentation state shared between login and shell. Existing theme/font/locale/sidebar preferences already satisfy this ownership through `useAdminShellPreferencesStore`; no second package store is introduced without additional shared state.
-- Login-local state: credentials, remember value, submit pending state, and login feedback.
-- Shell-local state: tab membership/order, tab navigation feedback/pending state, logout feedback/pending state, and descendant navigation context.
+The installed guard acts only when `registry.fromRoute(...)` recognizes the target route. Public and unrelated routes, including `/login`, pass through untouched. A current-scope history entry proceeds normally. A stale or missing scope is replaced with one home descriptor cached for the current scope, with loop prevention internal to the adapter. `enterScope(destination)` stamps a valid protected destination for a newly created auth scope so post-login deep-link restoration is not mistaken for stale history.
 
-## Public contract changes
+The host still chooses the home destination, creates/rotates scope IDs, validates login redirects, decides when to enter a new scope, and owns guard installation/removal lifecycle. The adapter gains no auth-state dependency and no knowledge of `/login`.
 
-`AdminShellProps` removes `authStatus` and `authActions`. `AdminShell` always renders authenticated layout. Its menu, navigation, slot, context, and page-instance contracts remain unchanged.
+## Existing adapter and navigation
 
-`AdminLoginPageProps`, `AdminAuthStatus`, `AdminAuthActions`, and `AdminLoginValues` remain available because the standalone login route still consumes them. Their types remain frontend-only; the demo store adapts them to fake host behavior.
+The existing `demoRouteRegistry` and `createAdminShellVueRouterNavigation` stay unchanged in responsibility. They serve protected registry routes only. The app retains tab presentation, codec definitions, route records, descriptor creation, and navigation-scope policy. `/login` unmounts the shell and therefore clears shell-local tab state through existing cleanup.
 
-## Comparison with the legacy consumer
+## State ownership
 
-`../s6a_manage/src/config/router.ts` owns its router but appends package-owned `Views.routes`, imports packaged `Common.Login2`, and registers all package/application routes as peers. `../s6a_manage/src/App.vue` mounts packaged `Index` at the root; `Index` contains the sole `router-view`, imports Vue Router, polls packaged session APIs, and redirects internally. Consequently `/login` still renders through the package shell and route/session ownership is split across package shell, package views, application router, and application store.
-
-The new design keeps the useful composition—package UI consumed by an application-owned router—but centralizes all URL and route-tree policy in the host. If a future package owns a complete optional feature with concrete pages, a separate router adapter may be designed then; it is not a responsibility of the generic admin shell.
+- **Admin auth runtime:** loading/anonymous/authenticated presentation state, configured callbacks, safe transition rules.
+- **Admin preferences store:** theme, font, locale, sidebar state.
+- **Host:** callback effects, router tree, guards, redirect routing, protected routes, domain pages, menus, navigation adapter, history scope.
+- **Admin shell:** authenticated layout, account control, tabs and navigation operation state.
+- **Admin login page:** form fields, local feedback/pending state, package login action invocation.
 
 ## Migration and rollback
 
-- Cleanly remove shell auth props/branch and migrate every caller/test in the same change.
-- Split demo root providers, login route, shell route, and auth store along ownership boundaries.
-- Preserve current domain URLs and shell page-instance history behavior.
-- Rollback is a source revert; there is no persisted-data migration or backend dependency.
+1. Define/configure the auth runtime and update login/shell public contracts and tests.
+2. Move demo fake effects into callbacks supplied during startup; delete its local auth ref/actions.
+3. Split routes and nest domain records while preserving adapter contracts.
+4. Replace the global scope guard with auth-aware protected-route guard sequencing.
+5. Update runtime specs, then execute static and browser checks.
+
+Rollback is a source revert; no persisted state migrates.

@@ -2,56 +2,57 @@
 
 ## Goal
 
-Move login out of `AdminShell` so the demo presents login and authenticated application pages as separate host-owned routes. Preserve `@noob-naive-ui/admin` as a router-free, backend-neutral frontend package while retaining reusable login presentation and authenticated shell behavior.
+Make the demo's login page a standalone, public `/login` route. Move frontend authentication presentation state into an admin-package Pinia store so `AdminShell` and `AdminLoginPage` consume internal status, while host callbacks perform real login/logout work. Preserve router-neutral admin core and the existing optional `@noob-naive-ui/admin-vue-router` integration boundary.
 
-## Background
+## Confirmed current state
 
-- `AdminShell` currently accepts `AdminAuthStatus` and `AdminAuthActions`, renders `AdminLoginPage` for anonymous state, and renders authenticated layout/content otherwise.
-- `AdminLoginPage` is already public and router-neutral.
-- `apps/demo` currently stores fake auth state in `App.tsx`, mounts `AdminShell` around its only `RouterView`, and registers all domain pages as top-level routes.
-- The starter owns router construction, backend/session integration, redirects, domain pages, menus, and mapping host route state into the shell's router-neutral page-instance navigation contract.
-- The admin package already owns persisted frontend-only presentation preferences through `useAdminShellPreferencesStore`.
+- `AdminShell` currently receives `AdminAuthStatus` and `AdminAuthActions`, renders loading/anonymous/authenticated branches, delegates anonymous rendering to `AdminLoginPage`, and invokes `authActions.logout` from its account menu.
+- `AdminLoginPage` currently receives the same two props and owns form pending/error feedback.
+- The demo currently owns an `App.tsx` auth ref, fake login/logout functions, navigation scope, route composition, and global history-scope guard.
+- Domain records are top-level and one `RouterView` is mounted inside `AdminShell`.
+- `@noob-naive-ui/admin-vue-router` already owns generic registry, codec, and history-metadata integration. It does not own auth, guards, pages, or route records.
+- The child adapter and active-context tasks are archived complete; this task consumes their contracts.
 
 ## Requirements
 
-1. `AdminShell` renders only authenticated shell layout and slotted application content. It no longer receives auth status/actions, branches on authentication, or renders `AdminLoginPage`.
-2. `AdminLoginPage` remains a public, independently composable, router-neutral presentation component.
-3. `@noob-naive-ui/admin` imports no Vue Router API and exports no route records, route factories, route installers, or router adapter.
-4. The host owns the complete nested route tree:
-   - `/login` is a top-level public sibling route;
-   - a starter-owned shell-layout parent composes `AdminShell` and an inner `RouterView`;
-   - demo domain pages are children of that shell-layout record.
-5. `apps/demo` demonstrates the architecture with an outer application `RouterView`, a standalone login route component, and an authenticated shell route component containing the inner `RouterView`.
-6. Demo authentication shared by sibling route components moves from an `App.tsx` local ref into a demo-owned Pinia store. It remains fake, in-memory demonstration behavior and must not imply an admin-package session model.
-7. Frontend-only presentation state genuinely shared between independently routed login and shell components belongs in an admin-package Pinia store, following `useAdminShellPreferencesStore`. Existing shell-private tab/navigation operation state and login-private form/feedback state remain component-local because they are not shared.
-8. A starter-owned guard redirects unauthenticated domain navigation to `/login` with the original internal target encoded as the `redirectUrl` query parameter.
-9. Successful login restores a valid internal `redirectUrl`; absent, external, login-targeting, or otherwise invalid values fall back to the default domain route.
-10. Authenticated navigation to `/login` redirects to the default domain route.
-11. Frontend guards are navigation/presentation gating only. Backend authorization remains mandatory for protected data and operations; deployment-server/BFF interception is outside this task.
-12. Existing shell page-instance navigation, menu, tab, preference, and descendant-context contracts remain intact.
-13. Remove obsolete shell-auth code through a clean cutover; leave no compatibility props, aliases, or deprecated branch.
+1. Add an admin-package Pinia auth runtime whose state is private to package actions: `loading`, `anonymous` with safe reason, or `authenticated` with frontend presentation identity. Hosts observe status but do not set it.
+2. Hosts configure `login(values): Promise<AdminAuthIdentity>` and `logout()` callbacks at the admin auth-runtime boundary. `AdminAuthIdentity` is the narrow presentation shape `{ userLabel?, avatarUrl?, subtitle? }`; it is not a backend session model. A package action invokes the callback, updates status only after success, and preserves/reports failure without exposing backend errors in packaged UI.
+3. `AdminLoginPage` reads auth status and invokes the package login action internally; it no longer receives `authStatus` or `authActions` props. It remains independently composable and router-neutral.
+4. `AdminShell` reads the same internal auth status for authenticated account presentation and logout. It no longer receives `authStatus` or `authActions` props, and never renders the login page.
+5. `AdminShell`'s authenticated layout is mounted only by the protected shell route. `/login` mounts `AdminLoginPage` without `AdminShell`.
+6. `@noob-naive-ui/admin` imports no Vue Router API and exports no router records or router instances. `@noob-naive-ui/admin-vue-router` remains the optional reusable Vue Router integration boundary.
+7. The demo owns the route tree: public `/login`; a protected shell-layout parent containing `AdminShell` and an inner `RouterView`; current domain records as children without URL or stable route-name changes.
+8. The demo root renders providers and outer `RouterView`; its login and shell route components own redirect/navigation composition, not auth-state mutation.
+9. The guard redirects anonymous protected navigation to `/login` with `redirectUrl: to.fullPath`, permits `/login`, and preserves valid same-session adapter history traversal.
+10. The login route restores only a router-resolved internal non-login protected redirect target. Missing, external, malformed, login-targeting, or public-only values use the default protected route.
+11. Authenticated navigation to `/login` redirects to the default protected route. Logout callback success changes package status to anonymous; the host route layer then navigates to `/login` without shell content.
+12. Preferences remain in `useAdminShellPreferencesStore`. The new auth store has no storage/persistence, backend session, or router dependency.
+13. Remove obsolete prop callers and update public runtime-contract docs/tests in one clean cutover.
+14. Move generic protected-history scope repair from the demo into `@noob-naive-ui/admin-vue-router`. The host supplies a router-neutral designated home destination; the adapter ignores routes outside its registry, repairs stale/missing protected history to one scoped home descriptor, and exposes explicit scope entry for valid post-login deep links.
+
+## Resolved API decision
+
+Successful `login(values)` resolves `AdminAuthIdentity` (`userLabel?`, `avatarUrl?`, `subtitle?`). The package converts that presentation-only result into authenticated status. This supports starter templates whose displayed identity differs from the submitted credential without importing session or transport types.
 
 ## Acceptance Criteria
 
 - [ ] `/login` renders `AdminLoginPage` without mounting `AdminShell`.
-- [ ] Demo domain URLs render the starter-owned shell route into the outer view and the matched domain page into the shell route's inner view.
-- [ ] Anonymous navigation to any demo domain URL redirects to `/login?redirectUrl=<encoded internal target>`.
-- [ ] Successful login restores a valid requested internal URL and otherwise navigates to the default domain URL.
-- [ ] Authenticated navigation to `/login` redirects to the default domain URL.
-- [ ] Logout clears demo auth state and navigates to `/login` without rendering authenticated shell content.
-- [ ] `AdminShell` exposes no auth props or anonymous/loading rendering branch and imports no router.
-- [ ] `AdminLoginPage` remains independently exported and backend/router-neutral.
-- [ ] Demo auth uses a demo-owned Pinia store; backend/session state does not enter an admin-package store.
-- [ ] Existing admin-package shell behavior remains covered under the authenticated-only contract.
-- [ ] Admin package tests, typecheck, and build pass.
-- [ ] Demo typecheck and build pass.
-- [ ] A running-demo browser smoke test proves anonymous redirect, standalone login, successful redirect restoration, authenticated shell rendering, and logout return to login.
+- [ ] Protected domain URLs render the shell layout in the outer view and the matched domain page in its inner view.
+- [ ] The public shell/login APIs expose no externally settable `authStatus` prop or caller-owned auth-state mutation path.
+- [ ] Login/logout callbacks are invoked by package auth actions; successful login receives `AdminAuthIdentity` and changes internal status, while rejection leaves state safe and produces generic UI feedback.
+- [ ] Anonymous protected navigation redirects to encoded `/login`; direct login navigation is not caught by the protected guard.
+- [ ] Successful login restores a valid protected target; invalid redirect values fall back to the default protected route.
+- [ ] Authenticated `/login` redirects to the default protected route; logout ends at `/login` without shell content.
+- [ ] Core remains router-free; adapter contracts, page-instance navigation, history scope, menus, tabs, and preferences work on protected routes.
+- [ ] Fake demo auth is configured through host callbacks but stored only in the admin-package auth runtime; no persistence or backend model is introduced.
+- [ ] Admin core, adapter, and demo tests/typechecks/builds pass; browser smoke coverage proves redirect, login, logout, history behavior, and no console errors.
+- [ ] The demo contains no direct `_noobAdminShell` history parsing or one-shot scope-replacement guard; adapter tests cover current-scope traversal, stale/missing scope repair, public-route bypass, loop prevention, stable home identity, and explicit scope entry.
 
 ## Out of Scope
 
-- Backend routes, API clients, session payloads, RBAC, or transport design.
-- Production authentication persistence for the fake demo.
+- Backend routes, API clients, session persistence, RBAC, or transport design.
 - Deployment-server/BFF route interception.
-- A router abstraction or reusable route-module API in `@noob-naive-ui/admin`.
-- Login visual redesign beyond what is necessary to compose it outside the shell.
-- Moving shell-private ephemeral tab/navigation state into Pinia without a real cross-route consumer.
+- Changes to adapter route-registry, codec, descriptor, or history-scope contracts.
+- A router abstraction in admin core.
+- Login visual redesign unrelated to standalone route composition.
+- Moving shell-private tab/navigation state into Pinia.

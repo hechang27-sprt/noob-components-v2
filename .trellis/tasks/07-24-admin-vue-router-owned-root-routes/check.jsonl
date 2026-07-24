@@ -1,0 +1,5 @@
+{"file":".trellis/tasks/07-24-admin-vue-router-owned-root-routes/research/contracts-and-risks.md","reason":"Review ownership boundaries, compatibility risks, and guard ordering."}
+{"file":".trellis/tasks/07-24-admin-vue-router-owned-root-routes/research/exact-symbol-evidence.md","reason":"Verify implementation matches current source symbols and callsites."}
+{"file":".trellis/tasks/07-24-admin-vue-router-owned-root-routes/research/auth-guard-integration.md","reason":"Review auth/store integration and callback failure semantics."}
+{"file":".trellis/spec/admin/frontend/runtime-contract.md","reason":"Confirm admin core remains router-neutral."}
+{"file":".trellis/spec/demo/frontend/runtime-integration-contract.md","reason":"Confirm demo cutover and end-to-end scenarios."}
