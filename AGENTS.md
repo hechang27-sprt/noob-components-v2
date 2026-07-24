@@ -33,7 +33,7 @@ Apply these rules to every code change:
 
 ## Subagent Orchestration
 
-1. Don't just spawn a single subagent. If that's the case, just do it with the default agent.
+1. Don't just spawn a lone subagent. If only one is necessary, just do it with the default agent.
 
 2. Don't give entire file/feature to subagents to implement. Design the overall architecture or, depending on the scale, API surface and/or structure of the code with the main agent, then delegate the details to subagents.
 
