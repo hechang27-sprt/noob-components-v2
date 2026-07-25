@@ -1,0 +1,5 @@
+{"file":".trellis/spec/admin/frontend/runtime-contract.md","reason":"Canonical admin runtime ownership and public contract"}
+{"file":".trellis/spec/admin/frontend/tsx-components-and-tests.md","reason":"Admin component and observable test conventions"}
+{"file":".trellis/spec/demo/frontend/runtime-integration-contract.md","reason":"Persistence contract requiring correction"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Runtime and host ownership boundaries"}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Avoid unnecessary abstractions and reuse canonical types"}

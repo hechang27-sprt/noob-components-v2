@@ -1,0 +1,4 @@
+{"file":".trellis/spec/admin/frontend/runtime-contract.md","reason":"Verify package boundary and status/navigation ownership"}
+{"file":".trellis/spec/demo/frontend/runtime-integration-contract.md","reason":"Verify persisted demo integration matches source"}
+{"file":"packages/admin-vue-router/tests/create-admin-router.test.ts","reason":"Primary observable regression coverage for issues 3 and 4"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Verify safe ownership at application/runtime boundary"}
