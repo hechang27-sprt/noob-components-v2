@@ -271,3 +271,36 @@ Added the opinionated admin router factory, package-owned Pinia runtimes, and de
 ### Next Steps
 
 - None - task complete
+
+
+## Session 8: Harden admin router lifecycle boundaries
+
+**Date**: 2026-07-25
+**Task**: Harden admin router lifecycle boundaries
+**Package**: admin
+
+### Summary
+
+Fixed reserved auth metadata, recoverable scope-entry settlement, safe redirect decoding fallback, typed menu state, and aligned runtime specs. Added RED/GREEN regressions for scope-entry recovery and malformed/history-dependent redirects.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b0693e36986f9dfc37abe53f0b3d8f79fb9ef715` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
