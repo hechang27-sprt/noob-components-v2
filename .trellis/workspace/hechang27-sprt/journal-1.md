@@ -234,3 +234,40 @@ Scoped Vue Router tab metadata to transient auth sessions, added history-healing
 ### Next Steps
 
 - None - task complete
+
+
+## Session 7: Package-owned admin Vue Router runtime
+
+**Date**: 2026-07-25
+**Task**: Package-owned admin Vue Router runtime
+**Package**: admin
+
+### Summary
+
+Added the opinionated admin router factory, package-owned Pinia runtimes, and demo cutover.
+
+### Main Changes
+
+- Added package-owned createAdminRouter root-route runtime with auth and history-scope lifecycle.
+- Moved auth, menu, and navigation dependencies into SSR-safe Pinia runtime contracts.
+- Simplified the demo bootstrap and preserved lower-level Vue Router runtime escape hatches.
+- Verified admin/router test suites, package typechecks/builds, and demo typecheck/build.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `572d9be73a34170374639a4e1152614ba76cba51` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

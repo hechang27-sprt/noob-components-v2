@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 6
-- **Last Active**: 2026-07-23
+- **Total Sessions**: 7
+- **Last Active**: 2026-07-25
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~236 | Active |
+| `journal-1.md` | ~273 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 7 | 2026-07-25 | Package-owned admin Vue Router runtime | `572d9be73a34170374639a4e1152614ba76cba51` | `-` |
 | 6 | 2026-07-23 | Scope AdminShell history navigation | `d021e044` | `-` |
 | 5 | 2026-07-22 | Schema-driven admin Vue Router navigation | `a2a0c98a` | `-` |
 | 4 | 2026-07-20 | AdminShell page-instance navigation | `35f80d17`..`3c531d07` | `-` |
