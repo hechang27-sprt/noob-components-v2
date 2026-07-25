@@ -9,7 +9,6 @@ import {
 import type { Pinia } from "pinia";
 import { h, defineComponent, type Component } from "vue";
 import type {
-  RouteLocationNormalizedLoaded,
   RouteRecordRaw,
   Router,
   RouterHistory,
@@ -19,6 +18,7 @@ import { createRouter, RouterView } from "vue-router";
 import type {
   AdminRouteDefinitions,
   AdminRouteRegistry,
+  RouteReadInput,
 } from "./route-registry";
 import { createAdminShellVueRouterRuntime } from "./navigation";
 
@@ -136,10 +136,14 @@ function resolvePostLoginDestination(
   ) {
     return ctx.homeDestination;
   }
-  return (
-    ctx.registry.fromRoute(resolved as RouteLocationNormalizedLoaded, {}) ??
-    ctx.homeDestination
-  );
+  try {
+    return (
+      ctx.registry.fromRoute(resolved as RouteReadInput, {}) ??
+      ctx.homeDestination
+    );
+  } catch {
+    return ctx.homeDestination;
+  }
 }
 
 /** Creates the internal login route component around the host-chosen presentation. */
@@ -212,10 +216,11 @@ export function createAdminRouter<TDefinitions extends AdminRouteDefinitions>(
 
   // Compose generated route records
   const shellChildren = registry.toRouteRecords();
-  const loginMeta = loginOverride?.meta ?? {};
+  const { requiresAuth: _loginRequiresAuth, ...loginMeta } =
+    loginOverride?.meta ?? {};
   const shellMeta = {
-    requiresAuth: true as const,
     ...shellOverride?.meta,
+    requiresAuth: true as const,
   };
 
   const adminRoutes: RouteRecordRaw[] = [
@@ -253,9 +258,7 @@ export function createAdminRouter<TDefinitions extends AdminRouteDefinitions>(
     getNavigationScopeId,
     homeDestination,
   });
-  useAdminShellNavigationStore(pinia).configure(
-    navigationRuntime.navigation,
-  );
+  useAdminShellNavigationStore(pinia).configure(navigationRuntime.navigation);
 
   /** Prevents duplicate scope entry while one authenticated transition is pending. */
   let scopeEntryPending = false;
@@ -290,23 +293,34 @@ export function createAdminRouter<TDefinitions extends AdminRouteDefinitions>(
       registry: registry as AdminRouteRegistry<AdminRouteDefinitions>,
       homeDestination,
     };
-    await navigationRuntime.enterScope(
-      resolvePostLoginDestination(
-        router.currentRoute.value.query.redirectUrl,
-        router,
-        redirectContext,
-      ),
-    );
+    try {
+      await navigationRuntime.enterScope(
+        resolvePostLoginDestination(
+          router.currentRoute.value.query.redirectUrl,
+          router,
+          redirectContext,
+        ),
+      );
+    } finally {
+      scopeEntryPending = false;
+    }
+  }
+  /**
+   * Starts one auth-driven router effect while containing recoverable navigation failure.
+   *
+   * @param kind - Current package auth status discriminator.
+   * @returns Nothing; router failures settle inside the detached lifecycle effect.
+   */
+  function runAuthTransition(kind: string): void {
+    void handleAuthTransition(kind).catch(() => undefined);
   }
 
   /** Owns auth-transition effects for the same lifetime as the factory router. */
   const removeAuthTransitionGuard = auth.$subscribe(
-    (_mutation, state) => {
-      void handleAuthTransition(state.status.kind);
-    },
+    (_mutation, state) => runAuthTransition(state.status.kind),
     { detached: true },
   );
-  void handleAuthTransition(auth.status.kind);
+  runAuthTransition(auth.status.kind);
 
   // Install auth guard (runs before scope guard)
   const removeAuthGuard = router.beforeEach((to) => {

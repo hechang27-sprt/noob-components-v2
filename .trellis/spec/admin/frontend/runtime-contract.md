@@ -28,7 +28,7 @@ Keep additions frontend-ready and minimal. The public barrel exports the auth/pr
 - A plain menu key becomes `{ navKey: String(key) }`. Rich application triggers use either `useAdminShell().navigate(destination, resolveTabNavigation?)` or the compatible default scoped-slot control to supply payload and, separately, an optional resolution policy.
 - Sidebar selection uses the active destination's `navKey`; unmatched keys naturally leave the opaque `MenuOption[]` unselected. There is no `menuKey` override.
 - `AdminShell` is authenticated-layout-only when mounted; it reads package auth state for account presentation/logout and never renders login. `AdminLoginPage` independently reads the same store on the public login route.
-- `@noob-naive-ui/admin` imports no router API. The application owns routes, guards, redirect validation, codecs, tab presentation, and scope creation. `@noob-naive-ui/admin-vue-router` owns generic history metadata and optional scope repair: a configured router-neutral `homeDestination`, `installScopeGuard()`, and `enterScope(destination)`. Scope repair bypasses routes outside the bound registry.
+- `@noob-naive-ui/admin` imports no router API. `@noob-naive-ui/admin-vue-router.createAdminRouter()` owns generated admin route records, the auth guard, the scope guard, redirect validation, and auth-transition routing. The host owns Pinia, history mode, the route registry (definitions and codecs), tab presentation, scope ID generation, home destination, and menu configuration. Scope repair bypasses routes outside the bound registry; redirect restoration falls back to `homeDestination` for non-restorable targets.
 
 ### Required tests
 

@@ -251,10 +251,7 @@ export function createAdminShellVueRouterRuntime<
         return true;
       }
       const state = router.options.history.state;
-      const destination = registry.fromRoute(
-        to as RouteLocationNormalizedLoaded,
-        state,
-      );
+      const destination = registry.fromRoute(to, state);
       if (!destination) return true;
       if (pendingScopeEntry) {
         pendingScopeEntry = null;

@@ -5,8 +5,9 @@ import {
   type AdminShellTabDescriptor,
 } from "@noob-naive-ui/admin";
 import { createPinia, type Pinia } from "pinia";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { defineComponent } from "vue";
+import { z } from "zod";
 import {
   createMemoryHistory,
   type RouteRecordRaw,
@@ -17,6 +18,7 @@ import {
   createAdminRouter,
   createAdminShellVueRouterRuntime,
   defineAdminRouteRegistry,
+  defineAdminRouteUrlCodec,
   type AdminRouteOverride,
   type CreateAdminRouterOptions,
 } from "../src";
@@ -291,6 +293,28 @@ describe("createAdminRouter — contract", () => {
     expect(resolved.meta.layout).toBe("admin");
   });
 
+  it("shell requiresAuth remains true despite host override", () => {
+    const router = createAdminRouter(
+      createOptions({
+        shellRoute: { meta: { requiresAuth: false, layout: "admin" } },
+      }),
+    );
+    const resolved = router.resolve("/");
+    expect(resolved.meta.requiresAuth).toBe(true);
+    expect(resolved.meta.layout).toBe("admin");
+  });
+
+  it("login requiresAuth is absent despite host override", () => {
+    const router = createAdminRouter(
+      createOptions({
+        loginRoute: { meta: { requiresAuth: true, custom: "value" } },
+      }),
+    );
+    const resolved = router.resolve("/login");
+    expect(resolved.meta.requiresAuth).toBeUndefined();
+    expect(resolved.meta.custom).toBe("value");
+  });
+
   it("preserves existing lower-level exports", () => {
     expect(defineAdminRouteRegistry).toBeDefined();
     expect(createAdminShellVueRouterRuntime).toBeDefined();
@@ -298,7 +322,7 @@ describe("createAdminRouter — contract", () => {
 
   it("configures only the shell-facing controller into Pinia", () => {
     const opts = createOptions();
-    const router = createAdminRouter(opts);
+    createAdminRouter(opts);
     const store = useAdminShellNavigationStore(opts.pinia);
     expect(store.navigation).not.toBeNull();
     expect(store.navigation!.active).toBeNull();
@@ -474,6 +498,177 @@ describe("createAdminRouter — cleanup", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Slice 5 — R3 Auth-transition settlement regression
+// ---------------------------------------------------------------------------
+
+describe("createAdminRouter — auth-transition settlement", () => {
+  it("rejected scope entry still allows a later authenticated transition to enter scope", async () => {
+    const opts = createOptions();
+    configureAuth(opts.pinia);
+    const router = createAdminRouter(opts);
+    await router.push("/");
+    await router.isReady();
+    await router.push("/login");
+    await router.isReady();
+
+    // Guard that only throws on the FIRST dashboard navigation
+    let throwCount = 0;
+    const removeGuard = router.beforeEach((to) => {
+      if (to.name === "dashboard" && throwCount === 0) {
+        throwCount++;
+        throw new Error("Simulated first scope entry failure");
+      }
+    });
+
+    try {
+      const auth = useAdminAuthStore(opts.pinia);
+
+      // First login — enterScope rejects, scopeEntryPending stays true (RED).
+      // The guard throws on the first dashboard navigation so enterScope fails.
+      await auth.login({ username: "tester", password: "test" });
+
+      // Let the rejected transition settle before triggering another auth mutation.
+      const { promise: settlePromise, resolve: settleResolve } =
+        Promise.withResolvers<void>();
+      process.nextTick(settleResolve);
+      await settlePromise;
+      // Second login — triggers auth subscribe again.
+      // RED: scopeEntryPending true → handleAuthTransition blocks immediately.
+      // GREEN: scopeEntryPending false → enters scope → succeeds (guard removed).
+      await auth.login({ username: "tester", password: "test" });
+
+      // GREEN: the released transition enters scope; RED remains on login.
+      await vi.waitFor(() => {
+        expect(router.currentRoute.value.name).toBe("dashboard");
+      });
+      expect(throwCount).toBe(1);
+    } finally {
+      removeGuard();
+      getDispose(router)?.();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Slice 6 — R4 Redirect reconstruction regression
+describe("createAdminRouter — redirect reconstruction", () => {
+  it("malformed codec payload falls back to home", async () => {
+    const registry = defineAdminRouteRegistry({
+      dashboard: { route: { path: "", component: createPage() } },
+      reports: {
+        route: { path: "reports", component: createPage() },
+        codec: defineAdminRouteUrlCodec(z.object({ page: z.number() }), {
+          encode: (p) => ({ query: { page: String(p.page) } }),
+          decode: (route) =>
+            ({ page: Number(route.query.page) }) as { page: number },
+        }),
+      },
+    });
+
+    const opts = createOptions({ registry });
+    configureAuth(opts.pinia);
+    const router = createAdminRouter(opts);
+
+    // Navigate to login with malformed redirectUrl
+    await router.push({
+      name: "_noobAdminLogin",
+      query: { redirectUrl: "/reports?page=not-a-number" },
+    });
+
+    // Wait for the scope entry navigation to complete
+    const { promise: navPromise, resolve: navResolve } =
+      Promise.withResolvers<void>();
+    const removeNavWatch = router.afterEach(() => {
+      removeNavWatch();
+      navResolve();
+    });
+
+    // Trigger auth transition
+    const auth = useAdminAuthStore(opts.pinia);
+    auth.status = { kind: "authenticated", userLabel: "tester" };
+
+    // Wait for scope entry (or failure-fallback) navigation
+    await navPromise;
+
+    // RED: codec parse throws → user stays on login
+    // GREEN: caught → homeDestination → user on dashboard
+    expect(router.currentRoute.value.name).toBe("dashboard");
+  });
+
+  it("history-state-dependent redirect falls back to home", async () => {
+    const registry = defineAdminRouteRegistry({
+      dashboard: { route: { path: "", component: createPage() } },
+      stateful: {
+        route: { path: "stateful", component: createPage() },
+        codec: defineAdminRouteUrlCodec(
+          z.object({ token: z.string() }).optional().default({ token: "" }),
+          {
+            encode: () => ({ state: { token: "saved" } }),
+            decode: (_route, state) => {
+              const token =
+                typeof (state as Record<string, unknown>).token === "string"
+                  ? (state as Record<string, unknown>).token
+                  : undefined;
+              if (!token) throw new Error("Missing history state token");
+              return { token };
+            },
+          },
+        ),
+      },
+    });
+
+    const opts = createOptions({ registry });
+    configureAuth(opts.pinia);
+    const router = createAdminRouter(opts);
+
+    await router.push({
+      name: "_noobAdminLogin",
+      query: { redirectUrl: "/stateful" },
+    });
+
+    const { promise: navPromise, resolve: navResolve } =
+      Promise.withResolvers<void>();
+    const removeNavWatch = router.afterEach(() => {
+      removeNavWatch();
+      navResolve();
+    });
+
+    const auth = useAdminAuthStore(opts.pinia);
+    auth.status = { kind: "authenticated", userLabel: "tester" };
+    await navPromise;
+
+    // RED: decode throws for empty state {} → unhandled rejection
+    // GREEN: caught → homeDestination → user on dashboard
+    expect(router.currentRoute.value.name).toBe("dashboard");
+  });
+
+  it("valid protected redirect URL restores destination", async () => {
+    const opts = createOptions();
+    configureAuth(opts.pinia);
+    const router = createAdminRouter(opts);
+
+    await router.push({
+      name: "_noobAdminLogin",
+      query: { redirectUrl: "/settings" },
+    });
+
+    const { promise: navPromise, resolve: navResolve } =
+      Promise.withResolvers<void>();
+    const removeNavWatch = router.afterEach(() => {
+      removeNavWatch();
+      navResolve();
+    });
+
+    const auth = useAdminAuthStore(opts.pinia);
+    auth.status = { kind: "authenticated", userLabel: "tester" };
+    await navPromise;
+
+    // Valid redirect → enterScope restores /settings.
+    expect(router.currentRoute.value.name).toBe("settings");
+  });
+});
 // ---------------------------------------------------------------------------
 // Type safety
 // ---------------------------------------------------------------------------

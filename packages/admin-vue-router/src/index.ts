@@ -6,7 +6,7 @@ export {
   type AdminRouteRegistry,
   type AdminRouteRegistryNavKey,
   type AdminRouteUrlCodec,
-  type VueRouterNavParams,
+  type RouteReadInput,
 } from "./route-registry";
 
 export {

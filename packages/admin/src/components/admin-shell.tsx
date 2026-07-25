@@ -8,7 +8,6 @@ import {
   NTabs,
   NThing,
   type DropdownOption,
-  type MenuOption,
 } from "naive-ui";
 import {
   LanguageOutline,
@@ -487,7 +486,7 @@ export const AdminShell = defineComponent(
       const activeId = nav.navigation?.active?.id;
       const activeMenuKey = nav.navigation?.active?.nav.navKey;
       const localeOptions: AdminLocaleOption[] = preferences.availableLocales;
-      const menuOptions = menu.options as MenuOption[];
+      const menuOptions = menu.options;
       const userLabel =
         status.kind === "authenticated"
           ? (status.userLabel ?? "Signed in")

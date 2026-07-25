@@ -1,5 +1,7 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { shallowRef } from "vue";
+
+import type { AdminMenuTree } from "../runtime-contract";
 
 /**
  * Non-persistent frontend menu runtime owned by the admin package.
@@ -12,7 +14,7 @@ import { ref } from "vue";
  */
 const setup = () => {
   /** Reactive menu options rendered by AdminShell sidebar. */
-  const options = ref<unknown[]>([]);
+  const options = shallowRef<AdminMenuTree>([]);
 
   /** Prevents reconfiguration after the host has supplied menu options. */
   let configured = false;
@@ -24,7 +26,7 @@ const setup = () => {
    *
    * @param menuOptions - Starter-built Naive UI `MenuOption[]`.
    */
-  function configure(menuOptions: unknown[]): void {
+  function configure(menuOptions: AdminMenuTree): void {
     if (configured) return;
     configured = true;
     options.value = menuOptions;

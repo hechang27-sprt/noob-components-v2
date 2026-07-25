@@ -1,11 +1,24 @@
 import { type AdminShellDestination } from "@noob-naive-ui/admin";
 import type {
   HistoryState,
-  RouteLocationNormalizedLoaded,
   RouteLocationNamedRaw,
+  RouteLocationNormalizedLoaded,
   RouteRecordRaw,
 } from "vue-router";
 import { z } from "zod";
+
+/** Describes the route fields shared by resolved (synthetic) and loaded routes. */
+export type RouteReadInput = Pick<
+  RouteLocationNormalizedLoaded,
+  | "name"
+  | "params"
+  | "query"
+  | "hash"
+  | "matched"
+  | "meta"
+  | "redirectedFrom"
+  | "fullPath"
+>;
 
 /** Describes the router-neutral payload shape accepted by the shared route boundary. */
 type AdminRoutePayload = AdminShellDestination["payload"];
@@ -41,12 +54,12 @@ export type AdminRouteUrlCodec<
   /**
    * Decodes untrusted route and history data for schema validation.
    *
-   * @param route - Vue Router's normalized current route.
+   * @param route - Vue Router route data (resolved or loaded).
    * @param state - Current state from the router's history abstraction.
    * @returns Raw payload passed through the codec's schema.
    */
   decode: (
-    route: RouteLocationNormalizedLoaded,
+    route: RouteReadInput,
     state: HistoryState,
   ) => z.input<TPayloadSchema>;
 };
@@ -126,7 +139,7 @@ export type AdminRouteRegistry<TDefinitions extends AdminRouteDefinitions> = {
    * @returns A canonical destination, or null for a non-admin route.
    */
   fromRoute: (
-    route: RouteLocationNormalizedLoaded,
+    route: RouteReadInput,
     state: HistoryState,
   ) => AdminShellDestination | null;
   /** Produces host route records whose names derive from registry keys. */
@@ -182,7 +195,7 @@ export function defineAdminRouteRegistry<
 
   /** Reconstructs one canonical destination from route and history state. */
   function fromRoute(
-    route: RouteLocationNormalizedLoaded,
+    route: RouteReadInput,
     state: HistoryState,
   ): AdminShellDestination | null {
     if (typeof route.name !== "string" || !definitionsByNavKey.has(route.name))
