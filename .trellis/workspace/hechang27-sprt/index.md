@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 8
-- **Last Active**: 2026-07-25
+- **Total Sessions**: 9
+- **Last Active**: 2026-07-26
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~306 | Active |
+| `journal-1.md` | ~339 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 9 | 2026-07-26 | Fix pnpm lint errors | `291e117d9824bcc79b65870f2619231084554fc4` | `-` |
 | 8 | 2026-07-25 | Harden admin router lifecycle boundaries | `b0693e36986f9dfc37abe53f0b3d8f79fb9ef715` | `-` |
 | 7 | 2026-07-25 | Package-owned admin Vue Router runtime | `572d9be73a34170374639a4e1152614ba76cba51` | `-` |
 | 6 | 2026-07-23 | Scope AdminShell history navigation | `d021e044` | `-` |

@@ -304,3 +304,36 @@ Fixed reserved auth metadata, recoverable scope-entry settlement, safe redirect 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 9: Fix pnpm lint errors
+
+**Date**: 2026-07-26
+**Task**: Fix pnpm lint errors
+**Package**: admin
+
+### Summary
+
+Removed unused test fixtures and narrowed router-neutral report IDs before display stringification; verified workspace lint, affected tests, and demo typecheck/build.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `291e117d9824bcc79b65870f2619231084554fc4` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
