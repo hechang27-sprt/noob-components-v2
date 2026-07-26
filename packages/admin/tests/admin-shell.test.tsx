@@ -92,7 +92,6 @@ function mountShell(
   document.body.append(target);
   const pinia = createPinia();
   setActivePinia(pinia);
-  const preferences = useAdminShellPreferencesStore();
   if (options.menuOptions) {
     useAdminShellMenuStore().configure(options.menuOptions);
   }

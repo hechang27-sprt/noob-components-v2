@@ -58,10 +58,11 @@ function describeDestination(
   id: string,
   nav: AdminShellDestination,
 ): AdminShellTabDescriptor {
+  const reportId = nav.payload?.reportId;
   return {
     id,
     nav,
-    label: `${nav.navKey}:${String(nav.payload?.reportId ?? "home")}`,
+    label: `${nav.navKey}:${typeof reportId === "string" ? reportId : "home"}`,
     closable: nav.navKey !== "dashboard",
   };
 }
@@ -189,7 +190,7 @@ describe("createAdminShellVueRouterRuntime", () => {
     });
 
     it("replaces stale-scope entries during Back navigation", async () => {
-      const { runtime, router, home } = await createScopeHarness();
+      const { runtime, router } = await createScopeHarness();
       const remove = runtime.installScopeGuard();
 
       await seedScope(runtime);
@@ -237,7 +238,7 @@ describe("createAdminShellVueRouterRuntime", () => {
     });
 
     it("stamps the configured home descriptor when repairing scope", async () => {
-      const { runtime, router, home } = await createScopeHarness();
+      const { runtime, router } = await createScopeHarness();
       const remove = runtime.installScopeGuard();
 
       await seedScope(runtime);

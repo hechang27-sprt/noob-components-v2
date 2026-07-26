@@ -17,10 +17,13 @@ const tabPresentation = {
   /** Supplies the settings tab presentation. */
   settings: () => ({ label: "Settings", closable: true }),
   /** Supplies a parameter-aware title for one report-detail tab. */
-  detail: (destination: AdminShellDestination) => ({
-    label: `Report ${String(destination.payload?.reportId ?? "detail")}`,
-    closable: true,
-  }),
+  detail: (destination: AdminShellDestination) => {
+    const reportId = destination.payload?.reportId;
+    return {
+      label: `Report ${typeof reportId === "string" ? reportId : "detail"}`,
+      closable: true,
+    };
+  },
 } satisfies Record<
   DemoNavKey,
   (destination: AdminShellDestination) => DemoTabPresentation
