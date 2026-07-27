@@ -337,3 +337,36 @@ Removed unused test fixtures and narrowed router-neutral report IDs before displ
 ### Next Steps
 
 - None - task complete
+
+
+## Session 10: Normalize monorepo build and typecheck workflows
+
+**Date**: 2026-07-27
+**Task**: Normalize monorepo build and typecheck workflows
+**Package**: demo
+
+### Summary
+
+Fixed admin-vue-router test helper generics and enabled test-file typechecking. Split typecheck and declaration-build tsconfigs across library packages, resolved workspace packages directly from source for typecheck, Vitest, and Vite, and removed pretypecheck, pretest, and build:deps hooks. Updated root TypeScript scope so tsc -b --noEmit, pnpm typecheck, package tests, and direct dependency-free builds pass. Identified generated tsconfig.tsbuildinfo files as disposable incremental metadata that should be gitignored.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2045fb20` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
