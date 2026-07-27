@@ -25,7 +25,7 @@ The demo begins anonymous. Its in-memory login callback rejects blank/whitespace
 
 - `.trellis/spec/admin/frontend/runtime-contract.md`
 - `.trellis/spec/guides/cross-layer-thinking-guide.md`
-- `docs/agent/admin-runtime-contract.md`
+- `docs/adr/0001-separate-shell-router-and-host-ownership.md`
 - `packages/admin/src/index.ts`
 - `packages/admin/src/runtime-contract.ts`
 - `packages/admin/src/components/admin-shell.tsx`

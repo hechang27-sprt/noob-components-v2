@@ -20,4 +20,4 @@ Read the cross-layer guide before changing any of these contracts:
 - starter-owned auth, route, or navigation derivation;
 - the Naive theme bridge consumed by an application.
 
-The current starter has not been scaffolded. Use `tasks/plan.md` and `docs/agent/admin-runtime-contract.md` as ratified boundary constraints, not as evidence of implemented application behavior.
+The current starter has not been scaffolded. Use its [current-state spec](../admin-starter/frontend/current-state-and-ownership.md) and do not infer application behavior from planned work.

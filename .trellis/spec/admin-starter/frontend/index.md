@@ -7,8 +7,7 @@ The starter is deliberately not scaffolded yet. Its only implementation is `apps
 Before starting the starter implementation, read:
 
 1. [Current State and Ownership](./current-state-and-ownership.md)
-2. `docs/agent/admin-runtime-contract.md`
-3. `tasks/plan.md` Tasks 8 and 9 and `tasks/todo.md` to confirm the implementation checkpoint.
+2. Do not infer implementation conventions beyond the current stub.
 
 ## Guides
 

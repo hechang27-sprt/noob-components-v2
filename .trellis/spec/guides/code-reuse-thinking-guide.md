@@ -4,7 +4,7 @@ Use this guide before extracting a shared helper, adding a public export, or dup
 
 ## Search before extracting
 
-This workspace intentionally has two narrow public packages, not a shared utility package. Search both `packages/ui/src` and `packages/admin/src` before adding a helper. Extract only after concrete reuse pressure exists; `docs/agent/rewrite-plan.md` explicitly defers an internal shared package until that point.
+This workspace intentionally has two narrow public packages, not a shared utility package. Search both `packages/ui/src` and `packages/admin/src` before adding a helper. Extract only after concrete reuse pressure exists.
 
 Keep a helper with the package that owns its concept:
 

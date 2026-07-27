@@ -4,20 +4,18 @@ Use this guide when a change crosses package, storage/runtime, or application/ru
 
 ## Boundaries in this workspace
 
-| Boundary                                    | Owner                                     | Contract                                                                                                                     |
-| ------------------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Future starter/app → `@noob-naive-ui/admin` | Starter will derive frontend-ready values | `AdminAuthStatus`, `AdminAuthActions`, direct `MenuOption[]`, and optional shell tab controller |
-| Browser storage → admin runtime             | Runtime parsing helper                    | `packages/admin/src/runtime/shell-preferences.ts` normalizes `unknown` with Zod before Pinia sees it                         |
-| Admin runtime → component                   | Component props and callbacks             | `AdminLoginPageProps` in `packages/admin/src/components/admin-login-page.tsx`                                                |
-| Future app → `@noob-naive-ui/ui`            | App will consume a narrow library API     | `NoobNaiveThemeBridge` from `packages/ui/src/theme/naive.ts`                                                                 |
+| Boundary | Owner | Contract |
+| --- | --- | --- |
+| Host application → `@noob-naive-ui/admin` | Host application | Frontend-ready auth configuration, direct `MenuOption[]`, route registry, and router-neutral destinations |
+| Browser storage → Admin shell | Runtime parsing helper | `packages/admin/src/runtime/shell-preferences.ts` normalizes `unknown` with Zod before Pinia sees it |
+| Admin shell → component | Component props and stores | Public contracts under `packages/admin/src` |
+| Host application → `@noob-naive-ui/ui` | Host application | Narrow value-add library API such as `NoobNaiveThemeBridge` |
 
-The starter, shell, and navigation renderer are not scaffolded yet. Their ownership is ratified in `docs/agent/admin-runtime-contract.md` and `tasks/plan.md`; do not claim an unimplemented transport, router, query, shell, or navigation pattern as current code.
+## Shell/router/host contract
 
-## Runtime/starter contract
+The Admin shell is backend-free and router-neutral. The admin router runtime owns Vue Router and browser-history coordination. The host application owns authentication effects, backend integration, route definitions, menu policy, and business pages. See the [ownership decision](../../../docs/adr/0001-separate-shell-router-and-host-ownership.md).
 
-`@noob-naive-ui/admin` already defines the frontend-ready contract but currently implements only the login page and shell-preferences state. Tasks 6–9 must keep backend DTOs, sessions, permission payloads, transport clients, and route registries in the starter/app. The shared runtime will consume mapped frontend values.
-
-For planned navigation, the starter creates the final `MenuOption[]`, including visibility and router-aware label/link content. The runtime renders the tree unchanged; do not add route-key matching, `visibleRouteKeys`, a second backend-derived key, or a parallel menu-node contract.
+The host application creates the final `MenuOption[]`, including visibility and hierarchy. The Admin shell renders the tree unchanged; do not add route-key matching, `visibleRouteKeys`, a second backend-derived key, or a parallel menu-node contract.
 
 ## Storage/state contract
 

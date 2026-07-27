@@ -8,7 +8,7 @@ Keep the public surface explicit. `packages/ui/src/index.ts` is the only barrel 
 
 ## Naive UI boundary
 
-Use Naive UI directly for commodity controls and layout. `@noob-naive-ui/ui` earns an export only when it contains durable value: a specialized widget, a reusable workflow composite, a composable, or token/provider integration. This boundary is ratified in `docs/agent/boundary-map.md` and `docs/agent/rewrite-plan.md`.
+Use Naive UI directly for commodity controls and layout. `@noob-naive-ui/ui` earns an export only when it contains durable current value: a specialized widget, a reusable workflow composite, a composable, or token/provider integration.
 
 Do not:
 
@@ -20,7 +20,7 @@ Do not:
 
 `packages/ui/src/theme/naive.ts` imports `GlobalThemeOverrides` as a type and exposes `NoobNaiveThemeBridge`. Keep public bridge fields typed against Naive UI contracts. `defineNoobNaiveThemeBridge` intentionally returns its supplied bridge; `toNoobNaiveThemeOverrides` currently emits only `common`. Do not infer that `layout` fields are automatically converted until implementation adds that behavior.
 
-Keep provider/theme integration in dedicated bridge modules. Future table measurement, virtualization, or JSON-flattening helpers should remain internal behind one component or composable surface rather than forcing callers to assemble several helpers. The migration evidence is in `docs/agent/components-rewrite-brainstorm.md`.
+Keep provider/theme integration in dedicated bridge modules. Add measurement, virtualization, or JSON-flattening guidance only when the owning component is implemented.
 
 ## Type and build rules
 

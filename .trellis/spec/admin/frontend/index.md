@@ -9,7 +9,7 @@ Before changing this package, read:
 1. [Frontend Runtime Contract](./runtime-contract.md) for every public API or package-boundary change.
 2. [Shell Preferences State](./shell-preferences.md) for storage, Zod normalization, or Pinia changes.
 3. [TSX Components and Tests](./tsx-components-and-tests.md) for component or test changes.
-4. `docs/agent/admin-runtime-contract.md` for the ratified package-versus-starter ownership boundary.
+4. [Shell/router/host ownership decision](../../../../docs/adr/0001-separate-shell-router-and-host-ownership.md) for the boundary rationale and the [current integration contract](../../../../docs/adr/0002-admin-shell-router-host-contract.md) for exact responsibilities and runtime flow.
 
 ## Guides
 

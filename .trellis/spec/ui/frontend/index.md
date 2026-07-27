@@ -7,8 +7,7 @@
 Before changing this package, read:
 
 1. [Library Boundary and Build](./library-conventions.md)
-2. `docs/agent/boundary-map.md` for direct-Naive versus value-add classification.
-3. `docs/agent/components-rewrite-brainstorm.md` before adding a specialized data component or exposing a migration-facing API.
+2. [Library Boundary and Build](./library-conventions.md) before adding a specialized component or migration-facing API.
 
 ## Guides
 

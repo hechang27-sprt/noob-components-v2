@@ -38,3 +38,17 @@ Apply these rules to every code change:
 2. Don't give entire file/feature to subagents to implement. Design the overall architecture or, depending on the scale, API surface and/or structure of the code with the main agent, then delegate the details to subagents.
 
 3. Only give scoped tasks to subagents. Avoid potentially open-ended tasks that can leave subagent running for a long time.
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in this repository’s GitHub Issues. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Triage uses the five default canonical labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Domain documentation uses a multi-context layout. See `docs/agents/domain.md`.

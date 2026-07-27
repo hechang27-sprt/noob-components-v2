@@ -36,15 +36,15 @@ Keep additions frontend-ready and minimal. The public barrel exports the auth/pr
 
 ## Required separation
 
-The shared runtime must not import or define backend routes, request/response DTOs, transport clients, session/user models, permission payloads, TanStack Query ownership, or packaged business CRUD pages. `docs/agent/admin-runtime-contract.md` assigns those responsibilities to the starter/app.
+The admin package must not import or define backend routes, request/response DTOs, transport clients, session/user models, permission payloads, TanStack Query ownership, or packaged business CRUD pages. The [shell/router/host ownership decision](../../../../docs/adr/0001-separate-shell-router-and-host-ownership.md) assigns those responsibilities to the host application.
 
-The starter derives the final `MenuOption[]`, including visibility and hierarchy, and maps confirmed route state into `AdminShellNavigation.active`. It configures router-neutral menu/navigation stores once per Pinia; the runtime renders menu structure unchanged, requests string-keyed navigation, and must not filter visibility, normalize keys, receive route objects, or receive a router.
+The host application derives the final `MenuOption[]`, including visibility and hierarchy, and maps confirmed route state into `AdminShellNavigation.active`. It configures router-neutral menu/navigation stores once per Pinia; the Admin shell renders menu structure unchanged, requests string-keyed navigation, and must not filter visibility, normalize keys, receive route objects, or receive a router.
 
 ## Dependencies and build
 
 `packages/admin/package.json` declares Vue, Pinia, Naive UI, and Pro Naive UI as peers; `@noob-naive-ui/ui`, `@vicons/ionicons5`, and Zod are implementation dependencies. `packages/admin/vite.config.ts` builds `src/index.ts` as an ES library with Vue JSX and Tailwind plugins, and externalizes every runtime import: those three implementation dependencies plus the four peers. Preserve this boundary when adding imports or build features.
 
-Avoid broad Naive/Pro Naive re-exports. Import and compose primitives directly inside admin runtime components, as `packages/admin/src/components/admin-login-page.tsx` and `packages/admin/src/components/admin-shell.tsx` do.
+Avoid broad Naive/Pro Naive re-exports. Import and compose primitives directly inside admin package components, as `packages/admin/src/components/admin-login-page.tsx` and `packages/admin/src/components/admin-shell.tsx` do.
 
 ## Verification
 
