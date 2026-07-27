@@ -1,4 +1,14 @@
 {
   "extends": "../../tsconfig.vite.json",
+  "compilerOptions": {
+    "rootDir": "../..",
+    "paths": {
+      "@noob-naive-ui/admin": ["../../packages/admin/src/index.ts"],
+      "@noob-naive-ui/admin-vue-router": [
+        "../../packages/admin-vue-router/src/index.ts"
+      ],
+      "@noob-naive-ui/ui": ["../../packages/ui/src/index.ts"]
+    }
+  },
   "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

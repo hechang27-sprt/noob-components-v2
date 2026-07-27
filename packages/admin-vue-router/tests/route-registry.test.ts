@@ -4,11 +4,16 @@ import {
   createMemoryHistory,
   createRouter,
   type HistoryState,
-  type RouteLocationNormalizedLoaded,
 } from "vue-router";
 import { z } from "zod";
 
-import { defineAdminRouteRegistry, type VueRouterNavParams } from "../src";
+import {
+  defineAdminRouteRegistry,
+  defineAdminRouteUrlCodec,
+  type AdminRouteDefinitions,
+  type AdminRouteRegistry,
+  type RouteReadInput,
+} from "../src";
 
 /** Creates a route component suitable for registry tests without application behavior. */
 function createPage() {
@@ -18,11 +23,11 @@ function createPage() {
   );
 }
 
-/** Creates a real normalized route from the supplied registry. */
-function resolveRoute(
-  registry: ReturnType<typeof createRegistry>,
+/** Creates a real resolved route from the supplied registry. */
+function resolveRoute<TDefinitions extends AdminRouteDefinitions>(
+  registry: AdminRouteRegistry<TDefinitions>,
   path: string,
-): RouteLocationNormalizedLoaded {
+): RouteReadInput {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: registry.toRouteRecords(),
@@ -42,70 +47,78 @@ function createRegistry() {
         component: createPage(),
         props: true,
       },
-      codec: {
-        payloadSchema: z.object({ reportId: z.string().min(1) }),
-        /** Maps canonical report payload into the route path. */
-        encode(payload) {
-          expectTypeOf(payload).toEqualTypeOf<{ reportId: string }>();
-          return { params: { reportId: payload.reportId } };
+      codec: defineAdminRouteUrlCodec(
+        z.object({ reportId: z.string().min(1) }),
+        {
+          /** Maps canonical report payload into the route path. */
+          encode(payload) {
+            expectTypeOf(payload).toEqualTypeOf<{ reportId: string }>();
+            return { params: { reportId: payload.reportId } };
+          },
+          /** Reconstructs raw report payload from the normalized route path. */
+          decode(route) {
+            return { reportId: route.params.reportId };
+          },
         },
-        /** Reconstructs raw report payload from the normalized route path. */
-        decode(route) {
-          return { reportId: route.params.reportId };
-        },
-      },
+      ),
     },
     stateful: {
       route: { path: "/stateful", component: createPage() },
-      codec: {
-        payloadSchema: z.object({
+      codec: defineAdminRouteUrlCodec(
+        z.object({
           section: z.string().trim().default("summary"),
         }),
-        /** Stores canonical section data in history state. */
-        encode(payload): VueRouterNavParams {
-          return { state: { selectedSection: payload.section } };
+        {
+          /** Stores canonical section data in history state. */
+          encode(payload) {
+            return { state: { selectedSection: payload.section } };
+          },
+          /** Reads raw section data from history state. */
+          decode(_route, state) {
+            return { section: state.selectedSection };
+          },
         },
-        /** Reads raw section data from history state. */
-        decode(_route, state) {
-          return { section: state.selectedSection };
-        },
-      },
+      ),
     },
     mixed: {
       route: { path: "/mixed/:reportId", component: createPage() },
-      codec: {
-        payloadSchema: z.object({ reportId: z.string(), section: z.string() }),
-        /** Splits canonical payload between URL and history state. */
-        encode(payload) {
-          return {
-            params: { reportId: payload.reportId },
-            state: { selectedSection: payload.section },
-          };
+      codec: defineAdminRouteUrlCodec(
+        z.object({ reportId: z.string(), section: z.string() }),
+        {
+          /** Splits canonical payload between URL and history state. */
+          encode(payload) {
+            return {
+              params: { reportId: payload.reportId },
+              state: { selectedSection: payload.section },
+            };
+          },
+          /** Reconstructs payload with URL report identity and history-owned section precedence. */
+          decode(route, state) {
+            return {
+              reportId: route.params.reportId,
+              section: state.selectedSection,
+            };
+          },
         },
-        /** Reconstructs payload with URL report identity and history-owned section precedence. */
-        decode(route, state) {
-          return {
-            reportId: route.params.reportId,
-            section: state.selectedSection,
-          };
-        },
-      },
+      ),
     },
     optional: {
       route: { path: "/optional", component: createPage() },
-      codec: {
-        payloadSchema: z.object({ filter: z.string() }).optional(),
-        /** Emits optional payload as query state when supplied. */
-        encode(payload) {
-          return payload ? { query: { filter: payload.filter } } : {};
+      codec: defineAdminRouteUrlCodec(
+        z.object({ filter: z.string() }).optional(),
+        {
+          /** Emits optional payload as query state when supplied. */
+          encode(payload) {
+            return payload ? { query: { filter: payload.filter } } : {};
+          },
+          /** Returns optional raw payload from the current query. */
+          decode(route) {
+            return typeof route.query.filter === "string"
+              ? { filter: route.query.filter }
+              : undefined;
+          },
         },
-        /** Returns optional raw payload from the current query. */
-        decode(route) {
-          return typeof route.query.filter === "string"
-            ? { filter: route.query.filter }
-            : undefined;
-        },
-      },
+      ),
     },
   });
 }
@@ -247,10 +260,10 @@ describe("defineAdminRouteRegistry", () => {
       registry.toLocation({ navKey: "detail", payload: { reportId: "" } }),
     ).toThrow(z.ZodError);
     expect(() => registry.toLocation({ navKey: "detail" })).toThrow(z.ZodError);
-    const malformedDetail = {
+    const malformedDetail: RouteReadInput = {
       ...resolveRoute(registry, "/detail/valid"),
       params: { reportId: "" },
-    } as RouteLocationNormalizedLoaded;
+    };
     expect(() => registry.fromRoute(malformedDetail, emptyState)).toThrow(
       z.ZodError,
     );

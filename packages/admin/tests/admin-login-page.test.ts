@@ -127,8 +127,12 @@ describe("AdminLoginPage", () => {
       password: "correct-horse-battery-staple",
       remember: true,
     });
-    expect(store.status.kind).toBe("authenticated");
-    expect(store.status.userLabel).toBe("Ada Lovelace");
+    const status = store.status;
+    expect(status.kind).toBe("authenticated");
+    if (status.kind !== "authenticated") {
+      throw new Error("Expected authenticated status after successful login.");
+    }
+    expect(status.userLabel).toBe("Ada Lovelace");
   });
 
   it("gives each instance distinct label associations", () => {

@@ -2,14 +2,14 @@ import { type AdminShellDestination } from "@noob-naive-ui/admin";
 import type {
   HistoryState,
   RouteLocationNamedRaw,
-  RouteLocationNormalizedLoaded,
+  RouteLocationResolved,
   RouteRecordRaw,
 } from "vue-router";
 import { z } from "zod";
 
 /** Describes the route fields shared by resolved (synthetic) and loaded routes. */
 export type RouteReadInput = Pick<
-  RouteLocationNormalizedLoaded,
+  RouteLocationResolved,
   | "name"
   | "params"
   | "query"
@@ -58,10 +58,7 @@ export type AdminRouteUrlCodec<
    * @param state - Current state from the router's history abstraction.
    * @returns Raw payload passed through the codec's schema.
    */
-  decode: (
-    route: RouteReadInput,
-    state: HistoryState,
-  ) => z.input<TPayloadSchema>;
+  decode: (route: RouteReadInput, state: HistoryState) => unknown;
 };
 
 /**

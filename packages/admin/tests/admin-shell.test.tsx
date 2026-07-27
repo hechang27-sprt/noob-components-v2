@@ -17,6 +17,7 @@ import { AdminShell, useAdminShell } from "../src/components/admin-shell";
 import type {
   AdminShellDestination,
   AdminShellNavigation,
+  AdminShellNavigationResult,
   AdminShellTabNavigationResolver,
 } from "../src/components/admin-shell";
 import { useAdminAuthStore } from "../src/stores/auth";
@@ -391,7 +392,7 @@ describe("AdminShell", () => {
       active: home,
       handleNavigation: vi.fn(
         () =>
-          new Promise((resolve) => {
+          new Promise<AdminShellNavigationResult>((resolve) => {
             resolveOpen = resolve;
           }),
       ),

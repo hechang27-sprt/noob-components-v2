@@ -6,7 +6,11 @@ import { defineConfig } from "vitest/config";
 import dts from "unplugin-dts/vite";
 
 export default defineConfig({
-  plugins: [tailwindcss(), vueJsx(), dts()],
+  plugins: [
+    tailwindcss(),
+    vueJsx(),
+    dts({ tsconfigPath: "./tsconfig.build.json" }),
+  ],
   build: {
     lib: {
       entry: resolve(__dirname, "src/index.ts"),
@@ -25,6 +29,18 @@ export default defineConfig({
         "zod",
       ],
     },
+  },
+  resolve: {
+    alias: [
+      {
+        find: "@noob-naive-ui/ui/style.css",
+        replacement: resolve(__dirname, "../ui/src/style.css"),
+      },
+      {
+        find: /^@noob-naive-ui\/ui$/,
+        replacement: resolve(__dirname, "../ui/src/index.ts"),
+      },
+    ],
   },
   test: {
     environment: "node",

@@ -8,18 +8,16 @@ import { createPinia, type Pinia } from "pinia";
 import { describe, expect, it, vi } from "vitest";
 import { defineComponent } from "vue";
 import { z } from "zod";
-import {
-  createMemoryHistory,
-  type RouteRecordRaw,
-  type Router,
-} from "vue-router";
+import { createMemoryHistory, type Router } from "vue-router";
 
 import {
   createAdminRouter,
   createAdminShellVueRouterRuntime,
   defineAdminRouteRegistry,
   defineAdminRouteUrlCodec,
+  type AdminRouteDefinitions,
   type AdminRouteOverride,
+  type AdminRouteRegistry,
   type CreateAdminRouterOptions,
 } from "../src";
 
@@ -49,19 +47,32 @@ function describeDestination(
   return { id, nav, label: String(nav.navKey), closable: true };
 }
 
-/** Creates the minimum valid options for a test router. */
-function createOptions(
-  overrides: Partial<{
-    pinia: Pinia;
-    registry: ReturnType<typeof createRegistry>;
-    homeDestination: AdminShellDestination;
-    additionalRoutes: readonly RouteRecordRaw[];
-    loginRoute: AdminRouteOverride;
-    shellRoute: AdminRouteOverride;
-    scrollBehavior: () => { left: number; top: number };
-  }> = {},
-) {
-  const registry = overrides.registry ?? createRegistry();
+/** Describes optional test-router configuration for a particular route registry. */
+type CreateOptionsOverrides<TDefinitions extends AdminRouteDefinitions> =
+  Partial<
+    Omit<CreateAdminRouterOptions<TDefinitions>, "history" | "registry">
+  > & {
+    /** Replaces the standard registry while preserving its inferred route keys. */
+    registry?: AdminRouteRegistry<TDefinitions>;
+  };
+
+/** Extracts the route definitions retained by a bound registry. */
+type RouteDefinitionsFor<TRegistry> =
+  TRegistry extends AdminRouteRegistry<infer TDefinitions>
+    ? TDefinitions
+    : never;
+/**
+ * Creates the minimum valid options for a test router.
+ *
+ * @param overrides - Replaces default test options, including a registry with its own route keys.
+ * @returns Complete options whose registry type is retained for createAdminRouter.
+ */
+function createOptions<TDefinitions extends AdminRouteDefinitions>(
+  overrides: CreateOptionsOverrides<TDefinitions> = {},
+): CreateAdminRouterOptions<TDefinitions> {
+  const registry =
+    overrides.registry ??
+    (createRegistry() as unknown as AdminRouteRegistry<TDefinitions>);
   return {
     pinia: createPinia(),
     history: createMemoryHistory(),
@@ -607,10 +618,9 @@ describe("createAdminRouter — redirect reconstruction", () => {
           {
             encode: () => ({ state: { token: "saved" } }),
             decode: (_route, state) => {
+              const stateToken = (state as Record<string, unknown>).token;
               const token =
-                typeof (state as Record<string, unknown>).token === "string"
-                  ? (state as Record<string, unknown>).token
-                  : undefined;
+                typeof stateToken === "string" ? stateToken : undefined;
               if (!token) throw new Error("Missing history state token");
               return { token };
             },
@@ -676,7 +686,9 @@ describe("createAdminRouter — redirect reconstruction", () => {
 describe("createAdminRouter — type safety", () => {
   it("CreateAdminRouterOptions accepts registry typed from defineAdminRouteRegistry", () => {
     const registry = createRegistry();
-    const options: CreateAdminRouterOptions<typeof registry> = {
+    const options: CreateAdminRouterOptions<
+      RouteDefinitionsFor<typeof registry>
+    > = {
       pinia: createPinia(),
       history: createMemoryHistory(),
       registry,

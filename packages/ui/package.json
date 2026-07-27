@@ -20,8 +20,7 @@
     "**/*.css"
   ],
   "scripts": {
-    "build": "run-s build:vite",
-    "build:vite": "vite build",
+    "build": "vite build",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

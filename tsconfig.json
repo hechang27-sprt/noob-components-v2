@@ -4,17 +4,31 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "lib": ["ESNext", "DOM"],
-    "types": ["node"],
+    "types": ["node", "vite/client"],
     "jsx": "preserve",
     "jsxImportSource": "vue",
     "strict": true,
-    "noEmit": true,
     "useDefineForClassFields": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "@noob-naive-ui/admin": ["./packages/admin/src/index.ts"],
+      "@noob-naive-ui/admin-vue-router": [
+        "./packages/admin-vue-router/src/index.ts"
+      ],
+      "@noob-naive-ui/ui": ["./packages/ui/src/index.ts"]
+    }
   },
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "packages/*/src/**/*.ts",
+    "packages/*/src/**/*.tsx",
+    "packages/*/tests/**/*.ts",
+    "packages/*/tests/**/*.tsx",
+    "apps/demo/src/**/*.ts",
+    "apps/demo/src/**/*.tsx"
+  ],
+  "exclude": ["node_modules", "dist", "**/dist"]
 }

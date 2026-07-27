@@ -16,14 +16,10 @@
     "dist"
   ],
   "scripts": {
-    "build": "run-s build:deps build:vite",
-    "build:deps": "pnpm --filter @noob-naive-ui/admin build",
-    "build:vite": "vite build",
+    "build": "vite build",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
-    "pretest": "pnpm --filter @noob-naive-ui/admin build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "pretypecheck": "pnpm --filter @noob-naive-ui/admin build",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "peerDependencies": {

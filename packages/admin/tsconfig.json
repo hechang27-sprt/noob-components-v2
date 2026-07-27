@@ -1,8 +1,10 @@
 {
   "extends": "../../tsconfig.library.json",
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist"
+    "rootDir": "../..",
+    "paths": {
+      "@noob-naive-ui/ui": ["../ui/src/index.ts"]
+    }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts", "tests/**/*.tsx"]
 }

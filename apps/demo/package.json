@@ -5,10 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "run-s build:deps build:vite",
-    "build:deps": "pnpm --filter @noob-naive-ui/admin-vue-router build",
-    "build:vite": "vite build",
-    "pretypecheck": "pnpm --filter @noob-naive-ui/admin-vue-router build",
+    "build": "vite build",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
