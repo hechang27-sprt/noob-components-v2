@@ -1,0 +1,3 @@
+{"file":".trellis/spec/admin/frontend/runtime-contract.md","reason":"Defines the frontend-only auth contract, Pinia ownership, router-neutral boundary, public exports, and required auth verification."}
+{"file":".trellis/tasks/07-28-admin-auth-restoration/design.md","reason":"Defines parent boundaries for host-owned restoration, package-owned readiness, router waiting, and frontend-only identity."}
+{"file":".trellis/tasks/07-28-admin-auth-restoration/tickets/01-restore-authentication-before-navigation.md","reason":"Authoritative child-ticket scope and acceptance criteria copied from GitHub issue #2."}

@@ -2,6 +2,8 @@ import {
   useAdminAuthStore,
   useAdminShellMenuStore,
   useAdminShellPreferencesStore,
+  type AdminAuthIdentity,
+  type AdminAuthRestoreResult,
   type AdminLoginValues,
 } from "@noob-naive-ui/admin";
 import { createAdminRouter } from "@noob-naive-ui/admin-vue-router";
@@ -34,7 +36,7 @@ const preferences = useAdminShellPreferencesStore(pinia);
  * @param values - Frontend login values supplied by the package login action.
  * @returns Presentation-only identity for the authenticated demo account.
  */
-async function login(values: AdminLoginValues) {
+async function login(values: AdminLoginValues): Promise<AdminAuthIdentity> {
   const username = values.username.trim();
   const password = values.password.trim();
   if (!username || !password) {
@@ -44,10 +46,30 @@ async function login(values: AdminLoginValues) {
   return { userLabel: username };
 }
 
+/**
+ * Restores a deterministic fake host session for the backend-free demo.
+ *
+ * Add `?restore=authenticated` to demonstrate authenticated startup; every
+ * other value demonstrates an ordinary anonymous startup.
+ *
+ * @returns A frontend-only restore result without session or transport data.
+ */
+async function restore(): Promise<AdminAuthRestoreResult> {
+  const authenticated =
+    new URLSearchParams(window.location.search).get("restore") ===
+    "authenticated";
+  return authenticated
+    ? {
+        kind: "authenticated",
+        identity: { userLabel: "Restored demo user" },
+      }
+    : { kind: "anonymous" };
+}
+
 /** Completes the fake logout effect without owning package auth state or routing. */
 async function logout(): Promise<void> {}
 
-auth.configure({ login, logout });
+auth.configure({ login, logout, restore });
 preferences.initialize({
   defaults: {
     availableLocales: [

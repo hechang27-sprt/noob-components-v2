@@ -2,6 +2,7 @@ import "./style.css";
 
 export type {
   AdminAuthIdentity,
+  AdminAuthRestoreResult,
   AdminAuthStatus,
   AdminFontSize,
   AdminLocaleOption,

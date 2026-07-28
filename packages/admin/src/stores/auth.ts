@@ -3,6 +3,7 @@ import { ref } from "vue";
 
 import type {
   AdminAuthIdentity,
+  AdminAuthRestoreResult,
   AdminAuthStatus,
   AdminLoginValues,
 } from "../runtime-contract";
@@ -19,14 +20,15 @@ export interface AdminAuthStoreConfig {
    * After the callback resolves, the store transitions to anonymous.
    */
   logout: () => Promise<void> | void;
+
+  /**
+   * Host-owned restore effect. Called unconditionally on configure.
+   * Resolves to authenticated identity or anonymous.
+   * A thrown error results in anonymous with reason "unknown".
+   */
+  restore: () => Promise<AdminAuthRestoreResult>;
 }
 
-/**
- * Non-persistent frontend auth runtime owned by the admin package.
- *
- * Hosts configure callbacks once and observe reactive status.
- * Only package actions mutate status after external callbacks succeed.
- */
 export const useAdminAuthStore = defineStore("admin-auth", () => {
   /** Reactive read-only auth status for components. */
   const status = ref<AdminAuthStatus>({ kind: "anonymous", reason: "unknown" });
@@ -45,23 +47,78 @@ export const useAdminAuthStore = defineStore("admin-auth", () => {
   let config: AdminAuthStoreConfig | null = null;
 
   /**
+   * Settles when the current restore completes.
+   * Replaced at the start of each new restore.
+   */
+  let restoreResolver: (() => void) | null = null;
+  let restorePromise: Promise<void> | null = null;
+
+  function settleRestore(): void {
+    if (restoreResolver) {
+      restoreResolver();
+      restoreResolver = null;
+      restorePromise = null;
+    }
+  }
+
+  /**
    * Sets the host-owned callbacks once per Pinia instance.
    *
+   * Enters loading synchronously and starts restoration unconditionally.
    * Subsequent calls are silently ignored.
    */
   function configure(cfg: AdminAuthStoreConfig): void {
     if (isConfigured.value) return;
     config = cfg;
     isConfigured.value = true;
+
+    // Enter loading and start restore unconditionally.
+    status.value = { kind: "loading" };
+    startRestore();
+  }
+
+  /**
+   * Returns a promise that resolves when the current restore settles.
+   * Throws if the store has not been configured.
+   */
+  function waitForRestoration(): Promise<void> {
+    if (!isConfigured.value) {
+      throw new Error(
+        "Admin auth store not configured. Call store.configure(...) first.",
+      );
+    }
+    return restorePromise ?? Promise.resolve();
+  }
+
+  function startRestore(): void {
+    ({ promise: restorePromise, resolve: restoreResolver } =
+      Promise.withResolvers<void>());
+    loadAndRestore();
+  }
+
+  async function loadAndRestore(): Promise<void> {
+    try {
+      const result = await config!.restore();
+
+      if (result.kind === "authenticated") {
+        status.value = {
+          kind: "authenticated",
+          ...result.identity,
+        };
+      } else {
+        status.value = { kind: "anonymous", reason: "unknown" };
+      }
+    } catch {
+      // Fail-closed: anonymous with unknown reason.
+      status.value = { kind: "anonymous", reason: "unknown" };
+    }
+
+    settleRestore();
   }
 
   /**
    * Invokes the configured login callback and transitions to authenticated
    * only after the host resolves a presentation identity.
-   *
-   * @param values - Frontend form values passed directly to the host callback.
-   * @returns A promise that resolves after status is updated.
-   * @throws When the store has not been configured.
    */
   async function login(values: AdminLoginValues): Promise<void> {
     if (!isConfigured.value) {
@@ -92,9 +149,6 @@ export const useAdminAuthStore = defineStore("admin-auth", () => {
 
   /**
    * Invokes the configured logout callback and transitions to anonymous.
-   *
-   * @returns A promise that resolves after status is updated.
-   * @throws When the store has not been configured.
    */
   async function logout(): Promise<void> {
     if (!isConfigured.value) {
@@ -123,5 +177,6 @@ export const useAdminAuthStore = defineStore("admin-auth", () => {
     configure,
     login,
     logout,
+    waitForRestoration,
   };
 });

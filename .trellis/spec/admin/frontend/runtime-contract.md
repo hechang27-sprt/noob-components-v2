@@ -34,6 +34,68 @@ Keep additions frontend-ready and minimal. The public barrel exports the auth/pr
 
 `packages/admin/tests/admin-shell.test.tsx` covers authenticated layout, account/logout behavior, page-instance transitions, accessibility, menus, and preferences. `admin-login-page.test.ts` and auth-store tests cover package-owned status transitions and safe callback failures.
 
+## Authentication restoration scenario
+
+### 1. Scope / Trigger
+
+When the host configures `useAdminAuthStore()`, the package must establish startup readiness before protected Vue Router navigation can resolve. Browser presentation identity is never authentication authority.
+
+### 2. Signatures
+
+```ts
+type AdminAuthRestoreResult =
+  | { kind: "authenticated"; identity: AdminAuthIdentity }
+  | { kind: "anonymous" };
+
+interface AdminAuthStoreConfig {
+  restore: () => Promise<AdminAuthRestoreResult>;
+}
+
+waitForRestoration(): Promise<void>;
+```
+
+### 3. Contracts
+
+- First `configure(...)` synchronously sets `{ kind: "loading" }` and invokes `restore` unconditionally; later configuration calls remain no-ops.
+- Only a fresh authenticated restore result establishes authenticated presentation state. Anonymous or rejected restoration fails closed.
+- `waitForRestoration()` settles on every restore outcome. The Vue Router auth guard awaits it while loading, then evaluates the original destination against current public auth status.
+- Promise rejection remains observable to initiating login/logout callers, but Pinia stores only sanitized actionable presentation state. Never store arbitrary `Error` objects or expose raw host messages.
+- Register a factory-owned `router.onError(...)` reporter for detached navigation effects, write failures to stderr with `console.error`, and unregister it during router disposal.
+
+### 4. Validation & Error Matrix
+
+| Outcome | Public state / effect |
+| --- | --- |
+| Authenticated restore | Fresh identity; requested protected navigation may continue |
+| Ordinary anonymous restore | Ordinary login redirect with validated `redirectUrl` |
+| Restore rejection before unavailable recovery exists | Fail closed and settle every waiter; ticket 03 owns recoverable unavailable UI |
+| Login rejection | Safe generic `loginError`; original rejection remains observable to caller |
+| Logout rejection | Ticket 04 owns local-first eviction and caller-visible cleanup rejection |
+| Detached router navigation rejection | Report to stderr, contain the promise rejection, and permit later transitions |
+
+### 5. Good / Base / Bad Cases
+
+- Good: restoration authenticates, the guard releases, and the original protected destination resolves.
+- Base: restoration returns anonymous, the guard releases to ordinary login without eviction messaging.
+- Bad: restoration or scope entry rejects; readiness still settles, protected access stays closed, raw host errors do not enter shared UI, and later auth transitions remain possible.
+
+### 6. Tests Required
+
+- Store tests assert immediate loading, unconditional restore invocation, authenticated/anonymous outcomes, rejection settlement, concurrent waiters, and safe login failure state.
+- Real Pinia plus memory-history tests assert pending protected navigation, post-restore reevaluation, validated anonymous redirect, no protected rendering before readiness, and later transition success after rejected scope entry.
+- Navigation rejection tests assert `console.error` receives the original error and Vue Router does not emit its uncaught-navigation warning.
+
+### 7. Wrong vs Correct
+
+```ts
+// Wrong: cached presentation data or an unresolved guard proves authentication.
+if (cachedIdentity) return true;
+
+// Correct: host restoration is authoritative and readiness precedes admission.
+if (auth.status.kind === "loading") await auth.waitForRestoration();
+return auth.status.kind === "authenticated";
+```
+
 ## Required separation
 
 The admin package must not import or define backend routes, request/response DTOs, transport clients, session/user models, permission payloads, TanStack Query ownership, or packaged business CRUD pages. The [shell/router/host ownership decision](../../../../docs/adr/0001-separate-shell-router-and-host-ownership.md) assigns those responsibilities to the host application.

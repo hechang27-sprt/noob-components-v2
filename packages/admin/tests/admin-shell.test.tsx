@@ -102,6 +102,7 @@ function mountShell(
   // Configure auth store for authenticated context
   useAdminAuthStore().configure({
     login: vi.fn(() => Promise.resolve({})),
+    restore: () => Promise.resolve({ kind: "anonymous" }),
     logout: vi.fn(),
   });
   // Set status to authenticated since shell now always renders layout

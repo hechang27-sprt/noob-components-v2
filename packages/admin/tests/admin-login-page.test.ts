@@ -34,7 +34,16 @@ function mountLoginPage(
   setActivePinia(pinia);
 
   const store = useAdminAuthStore();
-  store.configure({ login, logout });
+
+  // Use a restore that stays pending so it never overwrites the force-set status.
+  // The waitForRestoration call below attaches a handler without blocking.
+  store.configure({
+    login,
+    logout,
+    restore: () => new Promise(() => {}),
+  });
+  // Let initial restore settle, then force-set desired status.
+  store.waitForRestoration().catch(() => {});
   (store as unknown as Record<string, unknown>).status = authStatus;
 
   app.mount(target);
@@ -53,7 +62,15 @@ function mountLoginPages(
   const app = createApp(() => h("div", [h(AdminLoginPage), h(AdminLoginPage)]));
   app.use(pinia);
   setActivePinia(pinia);
-  useAdminAuthStore().configure({ login, logout: () => {} });
+  const store = useAdminAuthStore();
+  store.configure({
+    login,
+    restore: () => new Promise(() => {}),
+    logout: () => {},
+  });
+
+  // Force-set anonymous so the login form renders.
+  (store as unknown as Record<string, unknown>).status = { kind: "anonymous" };
 
   app.mount(target);
   mountedApps.push(app);

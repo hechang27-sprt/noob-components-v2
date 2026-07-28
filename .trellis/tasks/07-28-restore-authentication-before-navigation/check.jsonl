@@ -1,0 +1,3 @@
+{"file":".trellis/spec/admin/frontend/runtime-contract.md","reason":"Review public API separation, store behavior, exports, and package verification against Admin frontend rules."}
+{"file":".trellis/tasks/07-28-restore-authentication-before-navigation/prd.md","reason":"Review implementation against issue #2 requirements and observable acceptance criteria."}
+{"file":".trellis/tasks/07-28-restore-authentication-before-navigation/design.md","reason":"Review readiness settlement, router gating, host/package boundaries, and deferred-ticket scope."}

@@ -248,6 +248,19 @@ export function createAdminRouter<TDefinitions extends AdminRouteDefinitions>(
     routes: allRoutes,
     ...(scrollBehavior ? { scrollBehavior } : {}),
   });
+  /**
+   * Reports router navigation failures through stderr so detached lifecycle
+   * effects never leave Vue Router to classify a handled rejection as uncaught.
+   *
+   * @param error - Navigation failure reported by Vue Router.
+   * @returns Nothing after reporting the failure.
+   */
+  function reportRouterError(error: unknown): void {
+    console.error("Admin router navigation failed:", error);
+  }
+
+  /** Removes the factory-owned navigation error reporter during disposal. */
+  const removeRouterErrorHandler = router.onError(reportRouterError);
 
   // Create the navigation runtime bound to this router.
   const navigationRuntime = createAdminShellVueRouterRuntime({
@@ -270,6 +283,10 @@ export function createAdminRouter<TDefinitions extends AdminRouteDefinitions>(
    * @returns A promise that settles after any required router effect.
    */
   async function handleAuthTransition(kind: string): Promise<void> {
+    // No-op during loading — the guard awaits restoration, transition handler
+    // will fire again when status settles to authenticated or anonymous.
+    if (kind === "loading") return;
+
     if (kind === "anonymous") {
       scopeEntryPending = false;
       if (
@@ -322,8 +339,22 @@ export function createAdminRouter<TDefinitions extends AdminRouteDefinitions>(
   );
   runAuthTransition(auth.status.kind);
 
-  // Install auth guard (runs before scope guard)
-  const removeAuthGuard = router.beforeEach((to) => {
+  /**
+   * Auth guard installed before the scope guard.
+   *
+   * When status is loading the guard awaits restoration settlement
+   * before evaluating the destination, so protected content is never
+   * rendered optimistically.  After settlement the same decision
+   * block runs regardless of the path taken.
+   *
+   * @returns A route location to redirect, `true` to proceed, or a
+   *          Promise of either when restoration is pending.
+   */
+  const removeAuthGuard = router.beforeEach(async (to) => {
+    if (auth.status.kind === "loading") {
+      await auth.waitForRestoration();
+    }
+
     const protectedTarget = to.matched.some(
       (record) => record.meta.requiresAuth === true,
     );
@@ -347,6 +378,7 @@ export function createAdminRouter<TDefinitions extends AdminRouteDefinitions>(
 
   // Deterministic cleanup exposed via non-enumerable symbol property
   const cleanupFunctions: Array<() => void> = [
+    removeRouterErrorHandler,
     removeAuthGuard,
     removeScopeGuard,
     removeAuthTransitionGuard,

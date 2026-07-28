@@ -18,15 +18,14 @@ export type AdminAuthIdentity = {
   subtitle?: string;
 };
 
+export type AdminAuthRestoreResult =
+  | { kind: "authenticated"; identity: AdminAuthIdentity }
+  | { kind: "anonymous" };
+
 export type AdminLoginValues = {
   username: string;
   password: string;
   remember?: boolean;
-};
-
-export type AdminAuthActions = {
-  login: (values: AdminLoginValues) => Promise<void>;
-  logout: () => Promise<void> | void;
 };
 
 export type AdminRouteKey = string;

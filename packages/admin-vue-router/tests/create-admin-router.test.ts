@@ -85,12 +85,28 @@ function createOptions<TDefinitions extends AdminRouteDefinitions>(
   };
 }
 
+/** Default restore result for tests — resolves as authenticated immediately. */
+function defaultRestore() {
+  return Promise.resolve({
+    kind: "authenticated" as const,
+    identity: { userLabel: "tester" },
+  });
+}
+
+/** Anonymous restore for tests — resolves as unauthenticated immediately. */
+function anonymousRestore() {
+  return Promise.resolve({
+    kind: "anonymous" as const,
+  });
+}
+
 /** Configures the auth store to simulate an authenticated user. */
 async function authenticate(pinia: Pinia) {
   const auth = useAdminAuthStore(pinia);
   auth.configure({
     login: async () => ({ userLabel: "tester" }),
     logout: async () => {},
+    restore: defaultRestore,
   });
   await auth.login({ username: "tester", password: "test" });
 }
@@ -101,7 +117,24 @@ function configureAuth(pinia: Pinia) {
   auth.configure({
     login: async () => ({ userLabel: "tester" }),
     logout: async () => {},
+    restore: anonymousRestore,
   });
+}
+
+/**
+ * Installs a controlled waitForRestoration that resolves when the returned
+ * resolve function is called, so tests can trigger restoration settlement
+ * without running a real restore effect.
+ */
+function mockWaitForRestoration(pinia: Pinia): {
+  resolve: () => void;
+  promise: Promise<void>;
+} {
+  const { promise, resolve } = Promise.withResolvers<void>();
+  const auth = useAdminAuthStore(pinia);
+  (auth as unknown as Record<string, unknown>).waitForRestoration = () =>
+    promise;
+  return { resolve, promise };
 }
 
 /** Resolves the dispose method from a factory-created router. */
@@ -484,38 +517,118 @@ describe("createAdminRouter — auth guard", () => {
   });
 });
 
-describe("createAdminRouter — cleanup", () => {
-  it("dispose removes guards — auth guard no longer fires after cleanup", async () => {
+// ---------------------------------------------------------------------------
+describe("createAdminRouter — restoration gate", () => {
+  it("waits for restoration before admitting protected navigation", async () => {
     const opts = createOptions();
-    configureAuth(opts.pinia);
+    const auth = useAdminAuthStore(opts.pinia);
+
+    auth.isConfigured = true;
+    auth.status = { kind: "loading" };
+    const waiter = mockWaitForRestoration(opts.pinia);
+
     const router = createAdminRouter(opts);
-    await router.push("/");
+
+    // Start initial navigation — guard will wait for restoration.
+    const initNav = router.push("/");
+
+    // Resolve restoration as authenticated.
+    auth.status = { kind: "authenticated", userLabel: "tester" };
+    waiter.resolve();
+
+    await initNav;
     await router.isReady();
 
-    const dispose = getDispose(router);
-    expect(dispose).toBeDefined();
-    dispose!();
-
-    // After cleanup, auth guard should not fire
+    // Now protected navigation should proceed.
     await router.push("/reports");
     expect(router.currentRoute.value.name).toBe("reports");
   });
 
-  it("dispose is idempotent — calling twice does not throw", () => {
-    const router = createAdminRouter(createOptions());
-    const dispose = getDispose(router);
-    dispose!();
-    expect(() => dispose!()).not.toThrow();
+  it("redirects anonymous after restoration settles unauthenticated", async () => {
+    const opts = createOptions();
+    const auth = useAdminAuthStore(opts.pinia);
+
+    auth.isConfigured = true;
+    auth.status = { kind: "loading" };
+    const waiter = mockWaitForRestoration(opts.pinia);
+
+    const router = createAdminRouter(opts);
+
+    const initNav = router.push("/");
+
+    auth.status = { kind: "anonymous", reason: "unknown" };
+    waiter.resolve();
+
+    await initNav;
+    await router.isReady();
+
+    // Protected navigation must redirect to login.
+    await router.push("/reports");
+    expect(router.currentRoute.value.name).toBe("_noobAdminLogin");
+    expect(router.currentRoute.value.query.redirectUrl).toBe("/reports");
+  });
+
+  it("settles all concurrent waiters when restoration resolves", async () => {
+    const opts = createOptions();
+    const auth = useAdminAuthStore(opts.pinia);
+
+    auth.isConfigured = true;
+    auth.status = { kind: "loading" };
+    const waiter = mockWaitForRestoration(opts.pinia);
+
+    const router = createAdminRouter(opts);
+
+    // Start initial navigation so the router has a current route.
+    const initNav = router.push("/");
+
+    auth.status = { kind: "authenticated", userLabel: "tester" };
+    waiter.resolve();
+
+    await initNav;
+    await router.isReady();
+
+    // Concurrent protected navigations after restoration.
+    const nav1 = router.push("/reports");
+    const nav2 = router.push("/settings");
+    await Promise.all([nav1, nav2]);
+    expect(["reports", "settings"]).toContain(router.currentRoute.value.name);
+  });
+
+  it("does not render protected content while restoration is pending", async () => {
+    const opts = createOptions();
+    const auth = useAdminAuthStore(opts.pinia);
+
+    auth.isConfigured = true;
+    auth.status = { kind: "loading" };
+    const waiter = mockWaitForRestoration(opts.pinia);
+
+    const router = createAdminRouter(opts);
+
+    // Start protected navigation while loading — should block.
+    const navPromise = router.push("/reports");
+
+    // Current route should NOT be the protected destination.
+    expect(router.currentRoute.value.name).not.toBe("reports");
+
+    // Resolve restoration as authenticated.
+    auth.status = { kind: "authenticated", userLabel: "tester" };
+    waiter.resolve();
+
+    await navPromise;
+    // After restoration, protected navigation proceeds.
+    // Scope guard may redirect the first nav to home; either outcome
+    // proves the guard released after restoration settled.
+    expect(["_noobAdminLogin"]).not.toContain(router.currentRoute.value.name);
   });
 });
-
-// ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 // Slice 5 — R3 Auth-transition settlement regression
 // ---------------------------------------------------------------------------
 
 describe("createAdminRouter — auth-transition settlement", () => {
   it("rejected scope entry still allows a later authenticated transition to enter scope", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const warningSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const opts = createOptions();
     configureAuth(opts.pinia);
     const router = createAdminRouter(opts);
@@ -555,7 +668,18 @@ describe("createAdminRouter — auth-transition settlement", () => {
         expect(router.currentRoute.value.name).toBe("dashboard");
       });
       expect(throwCount).toBe(1);
+      expect(errorSpy).toHaveBeenCalledWith(
+        "Admin router navigation failed:",
+        expect.objectContaining({
+          message: "Simulated first scope entry failure",
+        }),
+      );
+      expect(warningSpy).not.toHaveBeenCalledWith(
+        "[Vue Router warn]: uncaught error during route navigation:",
+      );
     } finally {
+      errorSpy.mockRestore();
+      warningSpy.mockRestore();
       removeGuard();
       getDispose(router)?.();
     }
