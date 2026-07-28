@@ -96,6 +96,35 @@ if (auth.status.kind === "loading") await auth.waitForRestoration();
 return auth.status.kind === "authenticated";
 ```
 
+
+## Host-owned authentication persistence
+
+### Contract
+
+- `AdminLoginValues.remember` is host input. The package forwards it unchanged; the host callback decides actual credential/session lifetime (cookie expiry, token duration, SDK session). Caching `AdminAuthIdentity` presentation fields does not implement Remember Me.
+- `restore()` is parameterless. The host adapter inspects its own authority (HttpOnly cookie, bearer token, SDK session, server-preloaded state) and returns fresh `AdminAuthIdentity` or tagged anonymous result. The package stores no credential/session/identity in browser storage.
+- The package owns reusable auth orchestration — loading/readiness, fresh presentation state, tagged anonymous causes, operation-generation ownership, and safe callback ordering. It exposes no persistence namespace, storage adapter, identity codec, tier selector, or cross-tab event transport.
+- Cross-tab session-change delivery is host-owned (SDK events, BroadcastChannel, server push, or another mechanism). The host invokes one idempotent package local-invalidation action per affected tab. The package never rebroadcasts, deduplicates, or owns event schemas.
+- The core seam supports HttpOnly-cookie, bearer-token, SDK, SSR/preloaded, and in-memory test hosts without selecting a persistence mechanism for them.
+
+### Mechanism-neutral host examples
+
+- **HttpOnly cookie:** login endpoint sets cookie lifetime per `remember`. Restore calls `/session`. Logout clears/revokes the cookie.
+- **Bearer token:** host `login` stores the token and refresh logic. Restore validates the stored token. Logout deletes it.
+- **SDK:** callbacks delegate to SDK session operations. No package storage required.
+- **SSR/preloaded:** restore reads preloaded server state. Login/logout perform full-page navigation or write server-session cookies.
+- **Test/in-memory:** callbacks return fixed identity or anonymous; no storage, no namespace.
+
+### Validation
+
+| Condition | Required behavior |
+| --- | --- |
+| Host restore succeeds | Fresh presentation identity; package enters `authenticated` |
+| Host restore returns anonymous | Package enters `anonymous`; no storage consulted |
+| Host restore rejects | Fail closed; package settles readiness and enters `anonymous` |
+| Login `remember: true` | Forwarded to host; host owns actual lifetime |
+| Manually seeded legacy identity records | Inert; no runtime reads or validates them |
+
 ## Required separation
 
 The admin package must not import or define backend routes, request/response DTOs, transport clients, session/user models, permission payloads, TanStack Query ownership, or packaged business CRUD pages. The [shell/router/host ownership decision](../../../../docs/adr/0001-separate-shell-router-and-host-ownership.md) assigns those responsibilities to the host application.

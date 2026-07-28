@@ -2,97 +2,268 @@
 
 ## Purpose
 
-Reconcile refresh-safe Admin authentication presentation with the boundary that the host application owns credentials, backend sessions, and authentication effects.
+Reconcile refresh-safe Admin Authentication with the boundary that the host application owns credentials, sessions, persistence, authentication effects, and cross-tab auth coordination.
 
-## Current settled direction
+This document records the settled architecture, the design gap discovered during implementation, rejected alternatives, and the remaining implementation risks.
 
-### Authority and startup
+## Terminology
 
-- Package-owned browser storage is never authentication authority. It stores only an authentication presentation identity and its persistence tier.
-- `auth.configure(...)` starts restoration unconditionally and synchronously moves Authentication state to `loading`.
-- The host-owned `restore()` effect determines authentication from its own credential source. This supports HttpOnly cookie sessions, host-owned bearer tokens, external authentication SDKs, in-memory authentication, and server-preloaded identity through one package contract.
-- A host restore result is a tagged union: authenticated with fresh presentation identity, or anonymous with an Anonymous cause.
-- Protected navigation remains closed until restoration resolves.
-- A successful cold restoration with no prior persistence tier caches the fresh presentation identity in SessionStorage.
-- Every auth operation captures a monotonically increasing generation; only the latest generation may commit state. Logout advances the generation before local eviction, so stale restore/login completions cannot re-authenticate.
-- `AdminRestoreResult` may reuse the full Anonymous cause union, including `user-requested`, rather than restricting host-returned causes.
+### Authentication presentation identity
 
-### Persistence tiers
+`AdminAuthIdentity` is frontend rendering data only:
 
-- A successful login with `remember: true` stores presentation identity in LocalStorage.
-- A successful login with `remember: false` or omitted stores presentation identity in SessionStorage.
-- `configure` requires a host-supplied stable persistence key to avoid same-origin collisions between applications.
-- The package owns the versioned storage schema beneath that host namespace.
-- Identity and cross-tab events use separate versioned keys beneath the namespace. Logout removes the identity record and writes a uniquely identified logout event carrying the Anonymous cause.
+```ts
+type AdminAuthIdentity = {
+  userLabel?: string;
+  avatarUrl?: string;
+  subtitle?: string;
+};
+```
 
-### Authentication state
+It is not a session identifier, credential, refresh handle, authorization result, or backend user model.
 
-Authentication state distinguishes:
+### Credential/session material
 
-- `loading`: host restoration is in progress.
-- `unavailable`: restoration failed without an authoritative authentication result.
-- `anonymous`: no authenticated user is established, with a required Anonymous cause.
-- `authenticated`: host restoration or login established a fresh presentation identity.
+Cookies, bearer tokens, refresh tokens, session IDs, SDK state, server-preloaded sessions, and any opaque value accepted as proof of authentication are credential/session material. Calling such a value an “identity” or making it opaque does not change its security role.
 
-A thrown restore error becomes `unavailable`; it does not authenticate the cached identity and does not erase the cache. `retryRestore()` reruns the package-owned restoration state machine and deduplicates concurrent attempts.
+### Host effect
 
-The login route owns recovery UI for `unavailable`: it replaces credential entry with Retry and Sign out. Retry success uses the existing auth-transition redirect restoration. Protected content is never rendered optimistically.
-- Router guards await the current auth readiness promise while status is `loading`. An `unavailable` result routes to login recovery through the existing validated redirect flow; successful retry restores the original destination or its existing safe fallback.
+A host effect is an application-supplied `login`, `restore`, or `logout` callback. Its implementation may use an HttpOnly cookie, bearer token, authentication SDK, server-preloaded state, or another host-owned mechanism.
 
-### Anonymous cause and logout
+## The design gap
 
-The Anonymous cause is a tagged union:
+The original direction correctly established that:
 
-- `{ kind: "unauthenticated" }`: no authentication was established, including an ordinary first visit with no valid host credential.
-- `{ kind: "user-requested" }`: the user explicitly signed out.
-- `{ kind: "evicted", evictionReason: "expired" | "forbidden" | "unknown" }`: the host invalidated authentication.
+- Admin browser data could never establish authentication.
+- `restore()` must run unconditionally at startup.
+- The host must determine authentication from its own credential/session authority.
+- A successful host effect returns fresh presentation identity for Admin UI.
 
-No eviction parameters are included initially. Parameters require a concrete frontend requirement and reason-specific typing; an open JSON bag is rejected because it could become an accidental backend DTO channel.
+It then introduced versioned LocalStorage and SessionStorage records containing presentation identity and a Remember Me tier. That persistence was justified as “refresh continuity,” but the design had not answered whether cached name/avatar data should be rendered while restoration was pending. The implementation consequently parsed the record, retained only its storage tier, and discarded the cached identity.
 
-`logout(cause)` requires an explicit cause and passes it to the host logout callback. It clears package persistence and transitions locally to anonymous before awaiting host cleanup. Host callback rejection rejects the action promise but never restores authenticated UI or cached identity.
+The mistake was not parameterless `restore()`. A parameterless callback is correct because the host adapter already knows how to inspect its own cookie, token, SDK, or preloaded state. The mistake was assuming that presentation identity had value merely because it survived refresh.
 
-### Multiple tabs
+Pre-authentication visual continuity is not a product goal. Persisting display fields therefore adds schema, storage, migration, failure, and host-configuration complexity without delivering a valued behavior. A tier marker alone would also be dead state: actual Remember Me behavior is the lifetime of the host credential/session, not the lifetime of frontend display data.
 
-- Durable logout is synchronized to other tabs that consume the same LocalStorage namespace.
-- Passive tabs transition and clear package state locally without invoking their host logout callbacks.
-- Login and identity writes do not authenticate other tabs. Every tab must obtain an authoritative host restore result.
-- SessionStorage remains tab-local.
-- Cross-tab delivery remains an explicit versioned LocalStorage invalidation event; passive tabs do not infer eviction by rerunning host restoration after identity removal.
-- Cross-tab handling reuses the same internal anonymous transition as user logout, direct eviction, and authoritative anonymous restoration. Only event transport/validation and host-callback ownership differ.
-- Identity removal alone is not a reliable signal: it carries no cause, may emit no event when already absent, misses SessionStorage-only identities, races cookie logout, and can re-authenticate forbidden users whose host session remains valid.
+## Settled ownership
 
-## Research notes
+### Admin owns
 
-- The current `AdminAuthStatus` has `loading`, flat-reason `anonymous`, and `authenticated` variants.
-- The current auth store starts as anonymous/unknown, is explicitly documented as non-persistent, and transitions to anonymous only after the host logout callback succeeds.
-- The current `AdminAuthStoreConfig` has only host-owned `login` and parameterless `logout` effects.
-- `createAdminRouter` resolves the auth store during construction and owns auth guards and auth-transition routing, so restoration readiness must be integrated with guards without making the router own credential validation.
-- The demo configures auth before creating the router, which supports `configure` as the restoration trigger.
-- Existing package boundary rules prohibit session models, backend DTOs, transport clients, and backend state in `@noob-naive-ui/admin`.
+- Frontend Authentication state.
+- Synchronous transition to `loading` during initial configuration.
+- Unconditional invocation of the host restore effect.
+- Restoration readiness consumed by router integration.
+- Fresh presentation identity returned by successful host effects.
+- Tagged anonymous causes.
+- Recoverable `unavailable` state and retry orchestration.
+- Monotonic operation generations and stale-completion suppression.
+- Local-first logout and eviction transitions.
+- A typed, local-only invalidation action for host-originated signals.
+- Safe frontend error and pending-state presentation.
+
+### Host owns
+
+- Credentials and session authority.
+- Cookie, token, SDK, SSR, or other persistence mechanisms.
+- Remember Me/session-lifetime policy.
+- Backend calls, authorization decisions, token rotation, revocation, and cleanup.
+- Cross-tab change detection, signal validation, transport, ordering, retry, and delivery.
+- Calling Admin's local invalidation action in each tab affected by a host-observed logout or eviction.
+
+### Admin Vue Router owns
+
+- Waiting for current Authentication readiness.
+- Protected-route admission and login redirects.
+- Validated redirect restoration and home fallback.
+- Navigation reactions to public Authentication state.
+
+It does not own credential validation, session persistence, or cross-tab auth transport.
+
+## Public seam
+
+Conceptually, the host configuration remains small:
+
+```ts
+interface AdminAuthStoreConfig {
+  login(values: AdminLoginValues): Promise<AdminAuthIdentity>;
+  restore(): Promise<AdminAuthRestoreResult>;
+  logout(cause: AdminAnonymousCause): Promise<void> | void;
+}
+```
+
+The public store additionally exposes frontend orchestration actions:
+
+```ts
+interface AdminAuthActions {
+  retryRestore(): Promise<void>;
+  logout(cause: AdminAnonymousCause): Promise<void>;
+  invalidate(cause: AdminAnonymousCause): void;
+  waitForRestoration(): Promise<void>;
+}
+```
+
+Exact exported declarations remain an implementation decision, but the behavioral separation is settled.
+
+`invalidate(cause)` is local-only. It advances operation ownership, applies the tagged anonymous cause, and closes protected access. It never invokes the host logout callback, sends an event, registers a listener, or retries restoration.
+
+## Authority and startup
+
+- `auth.configure(...)` synchronously enters `loading` and starts host restoration once.
+- Restoration runs even when the package has no browser state. This is required for HttpOnly cookies, SDK initialization, in-memory host state, and server-preloaded sessions.
+- Only a current successful host `login()` or `restore()` result may establish `authenticated`.
+- A successful result supplies fresh presentation identity; Admin never merges it with stale browser data.
+- An explicit anonymous restore result is authoritative and applies its tagged cause.
+- A thrown restore error means the host could not determine authority. It becomes `unavailable`, not authenticated or ordinary anonymous.
+- Protected navigation remains closed while loading or unavailable.
+
+## Remember Me
+
+`AdminLoginValues.remember` is forwarded unchanged to the host login effect. The host decides what it means for its mechanism:
+
+- an HttpOnly-cookie backend may choose cookie/session expiry;
+- a token host may choose memory, session, or durable storage under its own security policy;
+- an SDK host may select the SDK's persistence mode;
+- a host may reject or ignore Remember Me when its policy does not support it.
+
+Admin does not imitate Remember Me by caching presentation fields.
+
+## Authentication states and causes
+
+The settled state model distinguishes:
+
+- `loading`: a current host restoration operation is pending;
+- `unavailable`: restoration failed without an authoritative auth result;
+- `anonymous`: no authenticated Admin user is established, with a required tagged cause;
+- `authenticated`: a current host login or restoration returned fresh presentation identity.
+
+The Anonymous cause is:
+
+```ts
+type AdminAnonymousCause =
+  | { kind: "unauthenticated" }
+  | { kind: "user-requested" }
+  | {
+      kind: "evicted";
+      evictionReason: "expired" | "forbidden" | "unknown";
+    };
+```
+
+No open parameter bag crosses the package seam. New cause-specific data requires a concrete frontend use case and a typed contract.
+
+## Logout and local invalidation
+
+### Initiating logout
+
+`logout(cause)`:
+
+1. advances the operation generation;
+2. transitions local state to anonymous immediately;
+3. closes protected UI and navigation;
+4. invokes the host logout callback;
+5. exposes callback rejection to the initiating caller without restoring local authenticated state.
+
+The host callback owns actual session cleanup and any cross-tab notification appropriate to its mechanism.
+
+### Host-originated local invalidation
+
+A host may discover expiration, forbidden access, SDK sign-out, or a cross-tab signal. It calls:
+
+```ts
+auth.invalidate(cause);
+```
+
+The action:
+
+- advances the generation so pending login/restore/retry results become stale;
+- applies the supplied anonymous cause;
+- invokes no host callback;
+- broadcasts nothing;
+- is safe when called repeatedly;
+- allows a later different cause to replace an earlier cause deterministically.
+
+This avoids callback multiplication and rebroadcast loops while keeping the reusable local state transition inside Admin.
+
+## Cross-tab coordination
+
+Cross-tab transport follows the host's authentication mechanism rather than a package-owned protocol.
+
+Examples:
+
+- an auth SDK may already emit session changes in every tab;
+- a token host may use BroadcastChannel or a host-owned LocalStorage event;
+- a server-backed host may use server-sent events, WebSocket notifications, or polling;
+- an application may intentionally choose no cross-tab synchronization.
+
+The host validates its own signal and calls `auth.invalidate(cause)` in the receiving tab. Admin owns no event key, namespace, schema, listener, unique ID, deduplication set, or transport lifecycle.
+
+Passive tabs do not automatically invoke host logout or rerun restoration. Rerunning restoration can race host cleanup or re-admit a user whose broader host session remains valid while Admin access is forbidden.
+
+## Latest-operation ownership
+
+Every login, restore, retry, logout, authoritative anonymous result, and local invalidation participates in one monotonic generation model.
+
+An async completion may commit only if its captured generation is still current. A newer logout or invalidation therefore prevents an older login, restore, or retry from re-authenticating the tab.
+
+Readiness replacement must also settle every waiter associated with an invalidated operation; no router guard may wait forever on abandoned work.
+
+## Unavailable recovery
+
+A thrown restoration error becomes `unavailable` because network, SDK, or initialization failure does not prove that the host session is invalid.
+
+- The login route replaces credential entry with Retry and Sign out.
+- Retry starts one current restoration operation and deduplicates concurrent requests.
+- Retry success uses the existing validated redirect restoration or home fallback.
+- Repeated failure returns to unavailable without exposing raw host errors.
+- Sign out performs local-first user-requested logout and delegates host cleanup.
+- No cached presentation identity is retained or required for recovery.
+
+## Rejected alternatives
+
+### Core Admin persists session material
+
+Rejected as the universal core contract. If Admin stores a value that the host later trusts for restoration, that value is credential/session material even when opaque. Admin would then own serialization, validation, storage location, rotation, cleanup, redaction, and migration policy. A LocalStorage default would also downgrade HttpOnly-cookie and many SDK-backed hosts.
+
+A generic type parameter does not remove those runtime security obligations.
+
+### Put session persistence in Admin Vue Router
+
+Rejected. Authentication persistence is independent of navigation. Router ownership would couple security-sensitive storage to Vue Router, exclude non-router hosts, and violate the existing seam where the router consumes readiness without validating credentials.
+
+### Optional mechanism-specific adapter package
+
+Deferred rather than prohibited. If at least two real hosts share a concrete credential lifecycle, an optional package such as a bearer-token host adapter may implement the core `login`/`restore`/`logout` seam. It must own an explicit threat model and must not make core Admin generic over arbitrary session material.
+
+### Package-owned cross-tab event transport
+
+Rejected after choosing host-owned persistence. Only the host knows whether its SDK, token, cookie, or server mechanism already propagates changes and which causes should cross tabs. Keeping a package event protocol would retain namespace, storage, validation, deduplication, and lifecycle complexity after its original identity-cache premise was removed.
+
+## Current implementation status
+
+The architecture is settled, but implementation is incremental:
+
+- Initial configure-time host restoration and router readiness are implemented.
+- The now-rejected presentation identity persistence was implemented and must be removed as a clean cutover.
+- `unavailable` recovery, tagged causes, complete generation ownership, local-first logout, and host-invoked local invalidation remain planned work in the parent ticket sequence.
+- The documents describe the settled target; individual tickets state the current implementation boundary.
 
 ## Open risks
 
-- Storage parsing must reject malformed, stale-version, or backend-shaped records without authenticating them.
-- Browser storage can throw or be unavailable; the implementation needs a fail-closed in-memory fallback without weakening host restoration.
-- The login route must distinguish ordinary unauthenticated credential entry from unavailable recovery and evicted messaging without exposing unsafe host error text.
-- The exact readiness-promise behavior under a generation change must ensure guards never await an abandoned operation indefinitely.
+- Readiness replacement under generation changes must settle all router waiters.
+- Host callback rejection must remain observable without reversing local invalidation.
+- A host integration can forget to deliver cross-tab events; starter documentation should show the seam without pretending one transport fits every auth mechanism.
+- Repeated invalidation with different causes needs deterministic precedence; the latest supplied cause is the current frontend explanation.
+- Login and recovery UI must not expose raw host errors.
 
-## Questions settled in this session
+## Questions settled
 
-- Refresh restoration validates before rendering protected UI; no optimistic authenticated shell.
-- Restore runs on every configured startup, regardless of cached identity.
-- Remembered identity uses LocalStorage; non-remembered identity uses SessionStorage.
-- Host restoration returns a tagged result rather than a boolean or exception-derived reason.
-- Thrown restoration errors produce an explicit recoverable `unavailable` state.
-- Recovery appears on the login route rather than a root overlay or dedicated route.
-- Logout cause is explicit, tagged, passed to the host, and locally authoritative even if host cleanup fails.
-- Restore results may carry any Anonymous cause.
-- Latest-operation generation ownership prevents stale async completions.
-- Identity persistence and durable logout events use separate versioned storage keys.
-- Guards await auth readiness and reuse validated login redirects for unavailable recovery.
-
-## Suggested next questions
-
-1. What user-visible copy should correspond to each Anonymous cause and restoration failure?
-2. Should cached presentation identity be used anywhere while status is `loading`, or remain entirely internal until validation succeeds?
-3. What exact fallback behavior should apply when LocalStorage or SessionStorage access throws?
+- Host login and restoration are the only positive authentication authority.
+- Restore runs on every configured startup and remains parameterless.
+- Admin persists neither presentation identity nor credential/session material.
+- Remember Me is interpreted by the host login effect.
+- Thrown restoration errors produce recoverable unavailable state.
+- Recovery remains on the login route.
+- Logout is local-first and cause-aware.
+- Latest-operation generation ownership suppresses stale completions.
+- The host owns cross-tab detection and delivery.
+- Admin exposes one local-only invalidation action and owns no cross-tab transport.
+- Admin Vue Router consumes Authentication state but owns no auth persistence.

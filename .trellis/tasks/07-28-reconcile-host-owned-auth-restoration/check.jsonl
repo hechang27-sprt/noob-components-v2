@@ -1,0 +1,6 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": "docs/admin-auth-restoration-grilling.md", "reason": "Verify no presentation cache restores authentication"}
+{"file": "docs/admin-auth-restoration-data-flows.md", "reason": "Verify every flow follows host-owned persistence"}
+{"file": ".trellis/spec/admin/frontend/runtime-contract.md", "reason": "Verify executable host authority contract"}
+{"file": ".trellis/tasks/07-28-admin-auth-restoration/prd.md", "reason": "Verify parent requirements are cache-free"}
+{"file": "packages/admin/tests/auth-store.test.ts", "reason": "Verify public behavior and removed persistence cases"}

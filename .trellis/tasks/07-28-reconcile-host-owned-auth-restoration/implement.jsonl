@@ -1,0 +1,6 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": "docs/admin-auth-restoration-grilling.md", "reason": "Rewrite the settled host/package ownership narrative"}
+{"file": "docs/admin-auth-restoration-data-flows.md", "reason": "Rewrite login, restore, logout, recovery, and cross-tab flows"}
+{"file": ".trellis/spec/admin/frontend/runtime-contract.md", "reason": "Correct executable authentication host seam"}
+{"file": ".trellis/tasks/07-28-admin-auth-restoration/design.md", "reason": "Reconcile parent architecture assumptions"}
+{"file": "packages/admin/src/stores/auth.ts", "reason": "Remove package persistence while preserving orchestration"}

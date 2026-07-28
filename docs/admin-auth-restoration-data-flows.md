@@ -2,38 +2,48 @@
 
 ## Purpose
 
-This document demonstrates the planned data flow for login, restoration, logout, eviction, recovery, and cross-tab coordination. It complements [the authentication-restoration grilling notes](./admin-auth-restoration-grilling.md).
+Demonstrate the settled data flow for login, startup restoration, unavailable recovery, logout, host-originated invalidation, operation races, and router readiness.
 
-The design is not yet implemented.
+This document complements [the authentication-restoration grilling notes](./admin-auth-restoration-grilling.md). It describes the settled target architecture. Initial configure-time restoration and router readiness are implemented; tagged causes, unavailable recovery, complete operation generations, local-first logout, and host-invoked invalidation remain sequenced parent-ticket work.
 
-## Ownership boundary
+## Ownership
 
 ```mermaid
 flowchart LR
     UI[AdminLoginPage / AdminShell]
     Auth[Admin auth store]
     Router[Admin Vue Router]
-    SS[SessionStorage]
-    LS[LocalStorage]
-    Host[Host auth effects]
-    Authority[Cookie / token / auth SDK / backend]
+    Host[Host auth adapter]
+    Authority[Cookie / token / SDK / backend]
+    Coordination[Host cross-tab coordination]
 
     UI --> Auth
     Router --> Auth
-    Auth --> SS
-    Auth --> LS
     Auth --> Host
     Host --> Authority
+    Host --> Coordination
+    Coordination --> Host
+    Host --> Auth
 ```
 
-- The host owns credentials, backend sessions, authentication SDK state, and login/restore/logout effects.
-- The Admin package stores only presentation identity: `userLabel`, `avatarUrl`, and `subtitle`.
-- Browser storage never establishes authentication. Only a current successful host `login()` or `restore()` result may transition to `authenticated`.
-- Every auth operation captures a monotonically increasing generation. Only the latest generation may commit state.
+- Admin owns frontend Authentication state, orchestration, readiness, operation generations, and local transitions.
+- The host owns credentials, sessions, persistence, backend/SDK effects, and cross-tab signal delivery.
+- Admin Vue Router consumes public Authentication state and readiness. It owns neither authentication authority nor persistence.
+- Only a current successful host `login()` or `restore()` result may establish authenticated state.
+- Host-originated invalidation may only reduce access.
+- Admin stores no presentation identity cache, credential/session material, auth namespace, storage adapter, or cross-tab event record.
 
-## Authentication states and causes
+## Core contracts
+
+Conceptually:
 
 ```ts
+type AdminAuthIdentity = {
+  userLabel?: string;
+  avatarUrl?: string;
+  subtitle?: string;
+};
+
 type AdminEvictionReason = "expired" | "forbidden" | "unknown";
 
 type AdminAnonymousCause =
@@ -41,64 +51,57 @@ type AdminAnonymousCause =
   | { kind: "user-requested" }
   | { kind: "evicted"; evictionReason: AdminEvictionReason };
 
+type AdminAuthRestoreResult =
+  | { kind: "authenticated"; identity: AdminAuthIdentity }
+  | { kind: "anonymous"; cause: AdminAnonymousCause };
+
 type AdminAuthStatus =
   | { kind: "loading" }
   | { kind: "unavailable" }
   | { kind: "anonymous"; cause: AdminAnonymousCause }
   | ({ kind: "authenticated" } & AdminAuthIdentity);
+
+interface AdminAuthStoreConfig {
+  login(values: AdminLoginValues): Promise<AdminAuthIdentity>;
+  restore(): Promise<AdminAuthRestoreResult>;
+  logout(cause: AdminAnonymousCause): Promise<void> | void;
+}
 ```
 
-The types illustrate the settled model; exact exported declarations remain an implementation decision.
-
-## Persistence records
-
-The host supplies a stable namespace such as `acme-admin:auth`. The package owns versioned records beneath it.
-
-```text
-LocalStorage
-├── acme-admin:auth:identity
-│   └── { version, identity }
-└── acme-admin:auth:event
-    └── { version, id, kind: "logout", cause }
-
-SessionStorage
-└── acme-admin:auth:identity
-    └── { version, identity }
-```
-
-Identity and coordination events are separate because removing an identity cannot reliably communicate an eviction cause or repeated logout.
+Exact declarations remain an implementation decision. The behavioral ownership is settled.
 
 ## Login without Remember Me
 
-`remember` is false or omitted.
+`remember` is false or omitted. Admin forwards the value; the host decides the actual session policy.
 
 ```mermaid
 sequenceDiagram
     participant User
     participant Login as AdminLoginPage
     participant Auth as Admin auth store
-    participant Host as Host login effect
-    participant SS as SessionStorage
+    participant Host as Host login adapter
+    participant Authority as Host authority
     participant Router
 
-    User->>Login: Submit credentials
-    Login->>Auth: login(values, remember=false)
+    User->>Login: Submit credentials, remember=false
+    Login->>Auth: login(values)
     Auth->>Auth: Start generation N
     Auth->>Host: config.login(values)
+    Host->>Authority: Authenticate with host policy
+    Note over Host,Authority: Host chooses non-durable session behavior
+    Authority-->>Host: Valid session + frontend identity
     Host-->>Auth: AdminAuthIdentity
     Auth->>Auth: Confirm generation N is current
-    Auth->>SS: Write versioned identity
-    Auth->>Auth: status = authenticated(identity)
+    Auth->>Auth: status = authenticated(fresh identity)
     Auth-->>Router: Authentication transition
     Router->>Router: Restore validated redirect or home
 ```
 
 Result:
 
-- Presentation identity is tab-scoped in SessionStorage.
-- Refresh in the same tab preserves the cache, but still requires host restoration.
-- Another tab does not receive this identity.
-- A host credential such as an HttpOnly cookie may nevertheless allow another tab to restore independently.
+- Admin stores no browser record.
+- The host decides whether “not remembered” means an in-memory token, session cookie, SDK mode, or another policy.
+- Refresh succeeds only when the host mechanism can restore its own current state.
 
 ## Login with Remember Me
 
@@ -106,102 +109,95 @@ Result:
 sequenceDiagram
     participant User
     participant Auth as Admin auth store
-    participant Host as Host login effect
-    participant SS as SessionStorage
-    participant LS as LocalStorage
+    participant Host as Host login adapter
+    participant Authority as Host authority
     participant Router
 
     User->>Auth: login(values, remember=true)
     Auth->>Auth: Start generation N
     Auth->>Host: config.login(values)
+    Host->>Authority: Authenticate with Remember Me intent
+    Note over Host,Authority: Host chooses cookie/token/SDK lifetime
+    Authority-->>Host: Valid remembered session + frontend identity
     Host-->>Auth: AdminAuthIdentity
     Auth->>Auth: Confirm generation N is current
-    Auth->>SS: Remove session identity
-    Auth->>LS: Write versioned identity
-    Auth->>Auth: status = authenticated(identity)
+    Auth->>Auth: status = authenticated(fresh identity)
     Auth-->>Router: Authentication transition
     Router->>Router: Restore validated redirect or home
 ```
 
-The LocalStorage identity survives browser restarts and is visible to same-origin tabs. Its presence still does not authenticate any tab; every tab calls host restoration.
+Admin does not create Remember Me semantics by caching presentation identity. The host is responsible for the lifetime and security of the authority that later allows `restore()` to succeed.
 
-## Refresh with SessionStorage identity
+## Startup restoration
+
+Restoration always runs. There is no package cache prerequisite.
 
 ```mermaid
 sequenceDiagram
     participant App
     participant Auth as Admin auth store
-    participant SS as SessionStorage
-    participant Host as Host restore effect
+    participant Host as Host restore adapter
+    participant Authority as Host authority
     participant Router
 
     App->>Auth: configure(config)
     Auth->>Auth: status = loading
-    Auth->>SS: Read and validate identity record
+    Auth->>Auth: Start generation N
     Auth->>Host: config.restore()
-    Router->>Auth: whenReady()
-    Host-->>Auth: authenticated(fresh identity)
-    Auth->>Auth: Confirm restore generation is current
-    Auth->>SS: Replace identity cache
-    Auth->>Auth: status = authenticated(fresh identity)
-    Auth-->>Router: Ready
-    Router->>Router: Continue protected navigation
+    Router->>Auth: waitForRestoration()
+    Host->>Authority: Inspect cookie/token/SDK/preloaded state
+    Authority-->>Host: Current authoritative result
+    Host-->>Auth: authenticated(fresh identity) or anonymous(cause)
+    Auth->>Auth: Confirm generation N is current
+    Auth->>Auth: Commit authoritative result
+    Auth-->>Router: Readiness settles
+    Router->>Router: Reevaluate destination
 ```
 
-The cache preserves presentation data and the session persistence tier. It does not bypass validation.
+The callback takes no cached identity argument. The host adapter already knows how to locate its own authority. Passing `userLabel`, `avatarUrl`, or `subtitle` could not validate a session.
 
-## Refresh with LocalStorage identity
+## HttpOnly-cookie restoration
 
 ```mermaid
 sequenceDiagram
     participant App
     participant Auth as Admin auth store
-    participant LS as LocalStorage
-    participant Host as Host restore effect
-    participant Router
-
-    App->>Auth: configure(config)
-    Auth->>Auth: status = loading
-    Auth->>LS: Read and validate identity record
-    Auth->>Host: config.restore()
-    Router->>Auth: whenReady()
-    Host-->>Auth: authenticated(fresh identity)
-    Auth->>Auth: Confirm restore generation is current
-    Auth->>LS: Replace identity cache, preserving durable tier
-    Auth->>Auth: status = authenticated(fresh identity)
-    Auth-->>Router: Ready
-    Router->>Router: Continue protected navigation
-```
-
-SessionStorage and LocalStorage restoration differ only in cache lifetime. Host validation remains authoritative in both cases.
-
-## Cold restoration through an HttpOnly cookie
-
-Restoration runs even when no identity is cached because JavaScript cannot inspect an HttpOnly session cookie.
-
-```mermaid
-sequenceDiagram
-    participant App
-    participant Auth as Admin auth store
-    participant Storage
-    participant Host as Host restore effect
+    participant Host as Host restore adapter
     participant Server
     participant Router
 
     App->>Auth: configure(config)
-    Auth->>Auth: status = loading
-    Auth->>Storage: No cached identity
+    Auth->>Auth: status = loading, generation N
     Auth->>Host: config.restore()
     Host->>Server: GET /session
     Note over Host,Server: Browser attaches HttpOnly cookie
-    Server-->>Host: Valid session + fresh identity
+    Server-->>Host: Valid session + fresh frontend identity
     Host-->>Auth: authenticated(identity)
-    Auth->>Storage: Cache identity in SessionStorage
-    Auth->>Auth: status = authenticated(identity)
+    Auth->>Auth: Commit only if generation N is current
     Auth-->>Router: Ready
 ```
 
-A missing package cache means only that no presentation identity is cached. It does not prove that the host session is absent.
+Admin never reads or duplicates the cookie. Browser storage is not involved.
+
+## Bearer-token or SDK restoration
+
+```mermaid
+sequenceDiagram
+    participant Auth as Admin auth store
+    participant Host as Host adapter
+    participant Mechanism as Token manager / auth SDK
+    participant Router
+
+    Auth->>Auth: status = loading, generation N
+    Auth->>Host: config.restore()
+    Host->>Mechanism: Initialize, validate, or refresh
+    Mechanism-->>Host: Current session result
+    Host-->>Auth: authenticated(identity) or anonymous(cause)
+    Auth->>Auth: Commit only if generation N is current
+    Auth-->>Router: Ready
+```
+
+The host owns token storage, SDK persistence mode, refresh rotation, and error classification. Core Admin remains mechanism-neutral.
 
 ## Cold start without a valid host session
 
@@ -209,20 +205,89 @@ A missing package cache means only that no presentation identity is cached. It d
 sequenceDiagram
     participant App
     participant Auth as Admin auth store
-    participant Host as Host restore effect
+    participant Host as Host restore adapter
     participant Router
 
     App->>Auth: configure(config)
-    Auth->>Auth: status = loading
+    Auth->>Auth: status = loading, generation N
     Auth->>Host: config.restore()
-    Host-->>Auth: anonymous({ kind: "unauthenticated" })
-    Auth->>Auth: Clear stale identity records
+    Host-->>Auth: anonymous(unauthenticated)
+    Auth->>Auth: Confirm generation N is current
     Auth->>Auth: status = anonymous(unauthenticated)
-    Auth-->>Router: Ready
-    Router->>Router: Route to login
+    Auth-->>Router: Ready, access denied
+    Router->>Router: Route to login with validated redirect
 ```
 
-This is ordinary anonymity, not eviction or restoration failure.
+Ordinary first-visit anonymity is not eviction and does not show an alarming expiration message.
+
+## Authoritative restoration eviction
+
+The host may determine that a prior session expired or that Admin access is forbidden.
+
+```mermaid
+sequenceDiagram
+    participant Auth as Admin auth store
+    participant Host as Host restore adapter
+    participant Router
+
+    Auth->>Auth: status = loading, generation N
+    Auth->>Host: config.restore()
+    Host-->>Auth: anonymous(evicted/expired)
+    Auth->>Auth: Confirm generation N is current
+    Auth->>Auth: Apply common local anonymous transition
+    Auth->>Auth: status = anonymous(evicted/expired)
+    Auth-->>Router: Ready, access denied
+    Router->>Router: Route to login with validated redirect
+```
+
+An explicit anonymous result is authoritative. No package persistence cleanup exists or is needed.
+
+## Restoration unavailable
+
+A network failure, SDK initialization failure, or timeout does not prove that the host session is invalid.
+
+```mermaid
+sequenceDiagram
+    participant Auth as Admin auth store
+    participant Host as Host restore adapter
+    participant Router
+    participant Login as Login recovery UI
+
+    Auth->>Auth: status = loading, generation N
+    Auth->>Host: config.restore()
+    Host--xAuth: Throw transport / SDK error
+    Auth->>Auth: Confirm generation N is current
+    Auth->>Auth: status = unavailable
+    Auth-->>Router: Readiness settles unavailable
+    Router->>Login: Use validated login redirect flow
+    Login->>Login: Show Retry and Sign out
+```
+
+Unavailable neither authenticates nor asserts ordinary anonymity. Raw host errors do not enter public state or UI.
+
+## Retry restoration
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Login as Login recovery UI
+    participant Auth as Admin auth store
+    participant Host as Host restore adapter
+    participant Router
+
+    User->>Login: Retry
+    Login->>Auth: retryRestore()
+    Auth->>Auth: Deduplicate concurrent retry
+    Auth->>Auth: status = loading, generation N+1
+    Auth->>Host: config.restore()
+    Host-->>Auth: authenticated(fresh identity)
+    Auth->>Auth: Confirm generation N+1 is current
+    Auth->>Auth: status = authenticated(identity)
+    Auth-->>Router: Authenticated transition
+    Router->>Router: Restore validated destination or home
+```
+
+Retry uses the same authoritative host effect. It does not depend on cached presentation identity.
 
 ## User-requested logout
 
@@ -230,317 +295,206 @@ This is ordinary anonymity, not eviction or restoration failure.
 sequenceDiagram
     participant User
     participant Auth as Admin auth store
-    participant SS as SessionStorage
-    participant LS as LocalStorage
-    participant Event as LocalStorage event record
-    participant Host as Host logout effect
     participant Router
+    participant Host as Host logout adapter
+    participant Authority as Host authority
+    participant Tabs as Host cross-tab mechanism
 
-    User->>Auth: logout({ kind: "user-requested" })
+    User->>Auth: logout(user-requested)
     Auth->>Auth: Advance generation
-    Auth->>SS: Remove session identity
-    Auth->>LS: Remove durable identity
-    Auth->>Event: Write unique logout event + cause
+    Auth->>Auth: Apply common local anonymous transition
     Auth->>Auth: status = anonymous(user-requested)
     Auth-->>Router: Redirect to login
-    Auth->>Host: config.logout(cause)
+    Auth->>Host: config.logout(user-requested)
+    Host->>Authority: Revoke / clear host session
+    Host->>Tabs: Deliver host-owned logout signal if configured
     Host-->>Auth: Resolve or reject
 ```
 
-Local eviction occurs before host cleanup. Host callback rejection rejects `logout()` to its caller but never restores cached identity or authenticated state.
+Local access closes before host cleanup. Callback rejection remains observable to the initiating caller but never restores authenticated UI.
 
-## SessionStorage-backed eviction
+The host decides when to notify other tabs relative to its cleanup semantics. Admin does not impose a universal transport ordering on cookies, tokens, or SDKs.
 
-An API request discovers an expired host session while the presentation identity is tab-scoped.
+## Direct host eviction in one tab
 
-```mermaid
-sequenceDiagram
-    participant API as Host API layer
-    participant Auth as Admin auth store
-    participant SS as SessionStorage
-    participant Event as LocalStorage event record
-    participant Host as Host logout effect
-    participant Router
-
-    API->>Auth: logout(evicted/expired)
-    Auth->>Auth: Advance generation
-    Auth->>SS: Remove session identity
-    Auth->>Event: Write durable logout event
-    Auth->>Auth: status = anonymous(evicted/expired)
-    Auth-->>Router: Redirect to login
-    Auth->>Host: config.logout(cause)
-```
-
-LocalStorage remains the cross-tab coordination channel even when the initiating tab used SessionStorage for its identity.
-
-## LocalStorage-backed eviction
+A host API layer may discover expiration or forbidden access during an application request.
 
 ```mermaid
 sequenceDiagram
     participant API as Host API layer
     participant Auth as Admin auth store
-    participant LS as LocalStorage identity
-    participant Event as LocalStorage event record
-    participant Host as Host logout effect
     participant Router
+    participant Tabs as Host cross-tab mechanism
 
-    API->>Auth: logout(evicted/forbidden)
+    API->>API: Observe expired / forbidden result
+    API->>Auth: invalidate(evicted/cause)
     Auth->>Auth: Advance generation
-    Auth->>LS: Remove durable identity
-    Auth->>Event: Write unique logout event + cause
-    Auth->>Auth: status = anonymous(evicted/forbidden)
-    Auth-->>Router: Redirect to login
-    Auth->>Host: config.logout(cause)
+    Auth->>Auth: status = anonymous(evicted/cause)
+    Auth-->>Router: Close protected access
+    API->>Tabs: Deliver host-owned invalidation signal if appropriate
 ```
 
-No arbitrary eviction parameter bag crosses the package boundary. New reason-specific data requires a concrete frontend use case and typed contract.
+Whether the host also revokes a broader session is host policy. A forbidden Admin eviction may intentionally leave the broader host session valid.
 
-## Cross-tab LocalStorage eviction
+## Host-originated cross-tab invalidation
 
-Assume Tab A and Tab B share one persistence namespace and both currently present the same remembered identity.
-
-### Initial state
-
-```text
-LocalStorage
-├── acme-admin:auth:identity
-│   └── { version: 1, identity: { userLabel: "Alice" } }
-└── acme-admin:auth:event
-    └── absent
-
-Tab A: authenticated(Alice), generation 7
-Tab B: authenticated(Alice), generation 4
-```
-
-### Complete flow
+Assume Tab A has already produced a host-owned logout or eviction signal. Delivery format is outside Admin.
 
 ```mermaid
 sequenceDiagram
-    participant APIA as Tab A API layer
-    participant AuthA as Tab A auth store
-    participant RouterA as Tab A router
-    participant LS as LocalStorage
-    participant AuthB as Tab B auth store
-    participant RouterB as Tab B router
-    participant HostA as Tab A host logout effect
+    participant Transport as Host SDK / BroadcastChannel / storage / server
+    participant HostB as Host adapter — Tab B
+    participant AuthB as Admin auth store — Tab B
+    participant RouterB as Router — Tab B
 
-    APIA->>APIA: Receive expired-session response
-    APIA->>AuthA: logout(evicted/expired)
-
-    AuthA->>AuthA: Advance generation 7 to 8
-    AuthA->>LS: Remove identity record
-    AuthA->>LS: Write unique logout event
-    AuthA->>AuthA: status = anonymous(evicted/expired)
-    AuthA-->>RouterA: Auth transition
-    RouterA->>RouterA: Redirect to login
-
-    LS-->>AuthB: Browser storage event
-    AuthB->>AuthB: Parse and validate event
-    AuthB->>AuthB: Verify namespace and unseen event ID
-    AuthB->>AuthB: Advance generation 4 to 5
-    AuthB->>LS: Ensure durable identity is absent
-    AuthB->>AuthB: Clear tab-local SessionStorage identity
-    AuthB->>AuthB: status = anonymous(evicted/expired)
-    AuthB-->>RouterB: Auth transition
-    RouterB->>RouterB: Redirect to login
-
-    AuthA->>HostA: config.logout(evicted/expired)
-    HostA-->>AuthA: Resolve or reject
-
-    Note over AuthB: Tab B does not call its host logout effect
+    Transport-->>HostB: Host-specific auth signal
+    HostB->>HostB: Validate and classify signal
+    HostB->>AuthB: invalidate(tagged cause)
+    AuthB->>AuthB: Advance operation generation
+    AuthB->>AuthB: Apply local anonymous transition
+    AuthB->>AuthB: status = anonymous(cause)
+    AuthB-->>RouterB: Authentication transition
+    RouterB->>RouterB: Block protected access and route to login
 ```
 
-### Event record
+Admin's invalidation action:
 
-Conceptually, Tab A writes:
+- invokes no host logout callback;
+- emits no cross-tab event;
+- owns no namespace, key, schema, listener, or deduplication set;
+- does not rerun restoration;
+- is safe when repeated;
+- allows a later different cause to become the current frontend explanation.
 
-```ts
-localStorage.setItem(
-  `${namespace}:auth-event`,
-  JSON.stringify({
-    version: 1,
-    id: crypto.randomUUID(),
-    kind: "logout",
-    cause: {
-      kind: "evicted",
-      evictionReason: "expired",
-    },
-  }),
-);
-```
-
-The unique event ID ensures that repeated logout operations produce distinct storage events and lets receivers deduplicate already-processed events.
-
-### Passive-tab event handling
+## Why passive invalidation does not restore
 
 ```mermaid
 flowchart TD
-    A[Storage event received] --> B{Configured LocalStorage event key?}
-    B -- No --> X[Ignore]
-    B -- Yes --> C{Valid versioned logout event?}
-    C -- No --> X
-    C -- Yes --> D{Event ID already processed?}
-    D -- Yes --> X
-    D -- No --> E[Advance operation generation]
-    E --> F[Clear LocalStorage and tab SessionStorage identity]
-    F --> G[Set anonymous with propagated cause]
-    G --> H[Router redirects to login]
+    A[Host delivers invalidation] --> B[Host validates signal]
+    B --> C[auth.invalidate cause]
+    C --> D[Advance generation]
+    D --> E[Become anonymous]
+    E --> F[Router closes access]
+    F --> G[Do not restore automatically]
 ```
 
-LocalStorage is untrusted input. A receiver validates the storage area, configured key, JSON schema, version, event kind, cause, and event ID before changing state.
+Automatic restoration is unsafe as an eviction response:
 
-Tab B performs only local eviction. It does not invoke its host logout callback because doing so would duplicate backend revocation, SDK side effects, telemetry, and callback failures across every open tab.
+- It can race initiating logout before cookie or SDK cleanup completes.
+- A forbidden Admin eviction may coexist with a valid broader host session.
+- It duplicates token refresh, SDK initialization, backend calls, and telemetry across tabs.
+- The host already supplied an authoritative signal that access must be reduced.
 
-### Shared transition, dedicated transport
+A later explicit login or application-controlled recovery may establish authentication again through a fresh host effect.
 
-Cross-tab eviction is not a separate authentication-state algorithm. User logout, direct host eviction, authoritative anonymous restoration, and passive cross-tab invalidation all enter one internal transition:
-
-```mermaid
-flowchart TD
-    A[User logout] --> T[Transition to anonymous]
-    B[Direct host eviction] --> T
-    C[Restore returns anonymous] --> T
-    D[Validated cross-tab event] --> T
-    T --> G[Advance generation]
-    G --> P[Clear identity persistence]
-    P --> S[Set anonymous with cause]
-```
-
-The dedicated LocalStorage mechanism owns only cross-tab delivery, schema validation, event deduplication, and prevention of rebroadcast loops. A passive tab does not invoke the host logout callback.
-
-### Why identity removal does not trigger restoration
-
-The rejected simplification was to remove the LocalStorage identity, let Tab B observe that removal, and make Tab B rerun host `restore()`. That is unsafe as the general eviction mechanism:
-
-- User logout clears package state before host cleanup. Tab B can restore while the cookie session is still valid and re-authenticate itself.
-- A `forbidden` eviction may remove access to the Admin application without invalidating the underlying host session. Restoration can correctly return authenticated while application policy requires eviction.
-- Removing an already-absent LocalStorage identity may emit no event, and SessionStorage-only identities provide no shared identity key to remove.
-- Identity removal carries no tagged Anonymous cause and cannot distinguish logout, expiration, forbidden access, storage cleanup, or migration.
-- Offline or failed restoration produces `unavailable` rather than the authoritative eviction already known by Tab A.
-- Every open tab would perform avoidable host restoration, token refresh, or SDK initialization work.
-
-The settled design therefore keeps a dedicated versioned invalidation event while sharing the underlying anonymous transition. LocalStorage events may reduce access; identity changes never establish authentication.
-
-### Pending restoration in the passive tab
+## Pending restoration in a receiving tab
 
 ```mermaid
 sequenceDiagram
-    participant AuthB as Tab B auth store
-    participant HostB as Tab B host restore
-    participant LS as LocalStorage
+    participant AuthB as Admin auth store — Tab B
+    participant HostB as Host restore adapter — Tab B
+    participant Signal as Host invalidation delivery
 
-    AuthB->>HostB: restore(), generation 4
-    LS-->>AuthB: Logout event from Tab A
+    AuthB->>AuthB: Start restore generation 4
+    AuthB->>HostB: restore()
+    Signal-->>AuthB: invalidate(evicted/expired)
     AuthB->>AuthB: Advance to generation 5
     AuthB->>AuthB: status = anonymous(evicted/expired)
-    HostB-->>AuthB: authenticated(Alice), generation 4
+    HostB-->>AuthB: authenticated(identity), generation 4
     AuthB->>AuthB: Ignore stale generation 4 completion
 ```
 
-Advancing the generation prevents an older login, restore, or retry completion from re-authenticating the passive tab after eviction.
-
-### Initiating callback failure
-
-If Tab A's host logout callback rejects:
-
-- Tab A remains anonymous.
-- Tab B remains anonymous.
-- The shared durable identity remains absent.
-- Pending auth operations remain invalidated.
-- Tab A's action promise rejects so its caller can observe cleanup failure.
-- Tab B does not receive or reproduce the callback failure.
-
-### Mixed persistence tiers
-
-If Tab A uses LocalStorage while Tab B uses SessionStorage, Tab B still receives the LocalStorage logout event and clears its own tab-local identity. The event channel is durable and cross-tab even when a receiving identity is not.
-
-## Authoritative restoration eviction
-
-A cached identity exists, but the host reports that the session has expired.
-
-```mermaid
-sequenceDiagram
-    participant Auth as Admin auth store
-    participant Storage
-    participant Host as Host restore effect
-    participant Router
-
-    Auth->>Auth: status = loading
-    Auth->>Storage: Read cached identity
-    Auth->>Host: config.restore()
-    Host-->>Auth: anonymous(evicted/expired)
-    Auth->>Storage: Remove cached identity
-    Auth->>Auth: status = anonymous(evicted/expired)
-    Auth-->>Router: Ready, access denied
-    Router->>Router: Route to login with validated redirect
-```
-
-An explicit anonymous restore result is authoritative and clears the cache.
-
-## Restoration unavailable
-
-A timeout, offline browser, or authentication SDK failure does not prove that the host session is invalid.
-
-```mermaid
-sequenceDiagram
-    participant Auth as Admin auth store
-    participant Storage
-    participant Host as Host restore effect
-    participant Router
-    participant Login as Login recovery UI
-
-    Auth->>Auth: status = loading
-    Auth->>Storage: Read cached identity
-    Auth->>Host: config.restore()
-    Host--xAuth: Throw transport or SDK error
-    Auth->>Auth: status = unavailable
-    Note over Storage: Preserve cache but do not trust it
-    Auth-->>Router: Readiness settles as unavailable
-    Router->>Login: Route through validated redirect flow
-    Login->>Login: Show Retry and Sign out
-```
-
-Retry starts a new generation and invokes host restoration again. Success authenticates with a fresh identity and restores the validated original destination. Sign out clears the preserved cache with `{ kind: "user-requested" }`.
+Generation ownership—not transport deduplication—is the Admin invariant that prevents stale reauthentication.
 
 ## Logout while restoration is pending
 
 ```mermaid
 sequenceDiagram
     participant Auth as Admin auth store
-    participant Host as Host restore effect
+    participant Host as Host effects
 
-    Auth->>Host: restore(), generation 10
-    Auth->>Auth: logout(cause), advance to generation 11
-    Auth->>Auth: Clear storage and become anonymous
-    Host-->>Auth: authenticated(identity), generation 10
-    Auth->>Auth: Ignore stale generation 10 completion
+    Auth->>Auth: Start restore generation 10
+    Auth->>Host: restore()
+    Auth->>Auth: logout(user-requested), advance to generation 11
+    Auth->>Auth: status = anonymous(user-requested)
+    Auth->>Host: logout(user-requested)
+    Host-->>Auth: Old restore resolves authenticated, generation 10
+    Auth->>Auth: Ignore stale generation 10
 ```
 
-The same latest-generation rule applies to login, restore, retry, user logout, direct eviction, and passive cross-tab eviction.
+The same latest-generation rule applies to login, restore, retry, logout, direct host eviction, and host-invoked local invalidation.
+
+## Repeated host invalidation
+
+```mermaid
+sequenceDiagram
+    participant Host as Host adapter
+    participant Auth as Admin auth store
+
+    Host->>Auth: invalidate(evicted/expired)
+    Auth->>Auth: anonymous(expired), generation N
+    Host->>Auth: invalidate(evicted/expired)
+    Auth->>Auth: Same public state, newer generation allowed
+    Host->>Auth: invalidate(evicted/forbidden)
+    Auth->>Auth: anonymous(forbidden), generation advances
+```
+
+The host owns transport deduplication when it matters. Admin guarantees safe local reduction even when delivery is repeated or reordered. The latest supplied cause is the current frontend explanation.
+
+## Router readiness
+
+```mermaid
+flowchart TD
+    A[Protected navigation] --> B{Auth status}
+    B -- loading --> C[Await current readiness]
+    C --> B
+    B -- authenticated --> D[Continue]
+    B -- anonymous --> E[Validated redirect to login]
+    B -- unavailable --> F[Validated redirect to login recovery]
+```
+
+When a newer generation invalidates pending restoration, readiness replacement must settle existing waiters. No guard may wait forever on an abandoned operation.
 
 ## State transitions
 
 ```mermaid
 stateDiagram-v2
     [*] --> Loading: configure
-    Loading --> Authenticated: restore authenticated
-    Loading --> Anonymous: restore anonymous
-    Loading --> Unavailable: restore throws
+    Loading --> Authenticated: current restore authenticated
+    Loading --> Anonymous: current restore anonymous
+    Loading --> Unavailable: current restore throws
 
-    Anonymous --> Authenticated: login succeeds
-    Anonymous --> Anonymous: logout or passive eviction
-
-    Authenticated --> Anonymous: logout(cause)
-    Authenticated --> Loading: explicit restoration
-
+    Anonymous --> Authenticated: current login succeeds
+    Authenticated --> Anonymous: logout or invalidate
     Unavailable --> Loading: retryRestore
-    Unavailable --> Anonymous: user-requested logout
+    Unavailable --> Anonymous: logout or invalidate
 
-    Loading --> Anonymous: newer logout or eviction wins
+    Loading --> Anonymous: newer logout or invalidate
+    Authenticated --> Loading: explicit restoration if exposed
 ```
 
-## Invariant
+## Package and host responsibilities by concern
 
-> Browser storage may preserve presentation identity and persistence intent, but only a current host effect may establish `authenticated`. Any newer logout or eviction immediately invalidates older pending operations.
+| Concern | Admin | Host |
+| --- | --- | --- |
+| Frontend auth state | Owns | Supplies outcomes |
+| Protected-route readiness | Owns with router adapter | Does not route |
+| Presentation identity | Holds fresh current result in memory | Produces it |
+| Credential/session persistence | Does not own | Owns |
+| Remember Me policy | Forwards user intent | Owns semantics |
+| Login/restore/logout effects | Orchestrates | Implements |
+| Operation generations | Owns | Does not manage package internals |
+| Local invalidation transition | Owns | Invokes when appropriate |
+| Cross-tab detection/validation | Does not own | Owns |
+| Cross-tab transport/deduplication | Does not own | Owns |
+| Positive authentication | Commits current host result | Sole authority |
 
-A LocalStorage event may reduce access by evicting a tab. A LocalStorage identity write may never grant access or authenticate another tab.
+## Invariants
+
+> Only a current successful host login or restoration may establish authenticated state.
+
+> Host persistence and transport are opaque to Admin; opacity does not permit credential material to cross into Admin storage or state.
+
+> Host-originated invalidation may reduce access, advance operation ownership, and carry a typed frontend cause. It may never authenticate, invoke host cleanup recursively, or broadcast from Admin.
+
+> Admin Vue Router consumes readiness and state. It never owns credentials, session persistence, or cross-tab auth coordination.
