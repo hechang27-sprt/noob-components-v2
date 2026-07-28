@@ -370,3 +370,36 @@ Fixed admin-vue-router test helper generics and enabled test-file typechecking. 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 11: Restore authentication before protected navigation
+
+**Date**: 2026-07-28
+**Task**: Restore authentication before protected navigation
+**Package**: admin
+
+### Summary
+
+Added unconditional host auth restoration, protected-router readiness gating, safe navigation-error reporting, frontend-only demo restoration, regression tests, and runtime contract guidance.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8911dd1dd7bc8a6e85ea8c76338bca2c428fcac5` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
