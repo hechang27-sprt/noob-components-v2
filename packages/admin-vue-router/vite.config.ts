@@ -35,5 +35,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    coverage: {
+      include: ["src/**/*.{ts,tsx,vue}"],
+    },
   },
 });
