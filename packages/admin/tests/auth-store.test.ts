@@ -2,10 +2,15 @@ import { createPinia, setActivePinia } from "pinia";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useAdminAuthStore } from "../src/stores/auth";
+import type { AdminAuthStoreConfig } from "../src/stores/auth";
 import type {
   AdminAuthIdentity,
   AdminAuthRestoreResult,
 } from "../src/runtime-contract";
+
+// ---------------------------------------------------------------------------
+// Test helpers
+// ---------------------------------------------------------------------------
 
 function initPinia() {
   setActivePinia(createPinia());
@@ -14,6 +19,18 @@ function initPinia() {
 afterEach(() => {
   initPinia();
 });
+
+/** Builds the minimal host-effect configuration used by public-store tests. */
+function baseConfig(
+  overrides?: Partial<AdminAuthStoreConfig>,
+): AdminAuthStoreConfig {
+  return {
+    login: () => Promise.resolve({}),
+    restore: () => Promise.resolve({ kind: "anonymous" }),
+    logout: () => {},
+    ...overrides,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Configure & Loading
@@ -28,11 +45,7 @@ describe("admin auth store — configure", () => {
 
     expect(store.isConfigured).toBe(false);
 
-    store.configure({
-      login: () => Promise.resolve({}),
-      restore: () => promise,
-      logout: () => {},
-    });
+    store.configure(baseConfig({ restore: () => promise }));
 
     expect(store.isConfigured).toBe(true);
     expect(store.status.kind).toBe("loading");
@@ -48,11 +61,7 @@ describe("admin auth store — configure", () => {
     );
 
     const store = useAdminAuthStore();
-    store.configure({
-      login: () => Promise.resolve({}),
-      restore,
-      logout: () => {},
-    });
+    store.configure(baseConfig({ restore }));
 
     expect(restore).toHaveBeenCalledTimes(1);
   });
@@ -67,16 +76,8 @@ describe("admin auth store — configure", () => {
     );
 
     const store = useAdminAuthStore();
-    store.configure({
-      login: () => Promise.resolve({}),
-      restore: firstRestore,
-      logout: () => {},
-    });
-    store.configure({
-      login: () => Promise.resolve({}),
-      restore: secondRestore,
-      logout: () => {},
-    });
+    store.configure(baseConfig({ restore: firstRestore }));
+    store.configure(baseConfig({ restore: secondRestore }));
 
     expect(firstRestore).toHaveBeenCalledTimes(1);
     expect(secondRestore).not.toHaveBeenCalled();
@@ -93,11 +94,7 @@ describe("admin auth store — waitForRestoration", () => {
     const { resolve, promise } =
       Promise.withResolvers<AdminAuthRestoreResult>();
     const store = useAdminAuthStore();
-    store.configure({
-      login: () => Promise.resolve({}),
-      restore: () => promise,
-      logout: () => {},
-    });
+    store.configure(baseConfig({ restore: () => promise }));
 
     const waitPromise = store.waitForRestoration();
 
@@ -119,11 +116,7 @@ describe("admin auth store — waitForRestoration", () => {
     initPinia();
     const { reject, promise } = Promise.withResolvers<AdminAuthRestoreResult>();
     const store = useAdminAuthStore();
-    store.configure({
-      login: () => Promise.resolve({}),
-      restore: () => promise,
-      logout: () => {},
-    });
+    store.configure(baseConfig({ restore: () => promise }));
 
     const waitPromise = store.waitForRestoration();
 
@@ -151,11 +144,7 @@ describe("admin auth store — waitForRestoration", () => {
     const { resolve, promise } =
       Promise.withResolvers<AdminAuthRestoreResult>();
     const store = useAdminAuthStore();
-    store.configure({
-      login: () => Promise.resolve({}),
-      restore: () => promise,
-      logout: () => {},
-    });
+    store.configure(baseConfig({ restore: () => promise }));
 
     const p1 = store.waitForRestoration();
     const p2 = store.waitForRestoration();
@@ -179,11 +168,11 @@ describe("admin auth store — authenticated restore", () => {
       avatarUrl: "https://example.com/ada.png",
     };
     const store = useAdminAuthStore();
-    store.configure({
-      login: () => Promise.resolve({}),
-      restore: () => Promise.resolve({ kind: "authenticated", identity }),
-      logout: () => {},
-    });
+    store.configure(
+      baseConfig({
+        restore: () => Promise.resolve({ kind: "authenticated", identity }),
+      }),
+    );
 
     await store.waitForRestoration();
 
@@ -198,11 +187,7 @@ describe("admin auth store — authenticated restore", () => {
     const { resolve, promise } =
       Promise.withResolvers<AdminAuthRestoreResult>();
     const store = useAdminAuthStore();
-    store.configure({
-      login: () => Promise.resolve({}),
-      restore: () => promise,
-      logout: () => {},
-    });
+    store.configure(baseConfig({ restore: () => promise }));
 
     expect(store.status.kind).toBe("loading");
     expect(store.status.kind).not.toBe("authenticated");
@@ -222,11 +207,7 @@ describe("admin auth store — anonymous restore", () => {
   it("transitions to anonymous on anonymous restore result", async () => {
     initPinia();
     const store = useAdminAuthStore();
-    store.configure({
-      login: () => Promise.resolve({}),
-      restore: () => Promise.resolve({ kind: "anonymous" }),
-      logout: () => {},
-    });
+    store.configure(baseConfig());
 
     await store.waitForRestoration();
 
@@ -239,11 +220,7 @@ describe("admin auth store — anonymous restore", () => {
   it("does not render authenticated content for anonymous restore", async () => {
     initPinia();
     const store = useAdminAuthStore();
-    store.configure({
-      login: () => Promise.resolve({}),
-      restore: () => Promise.resolve({ kind: "anonymous" }),
-      logout: () => {},
-    });
+    store.configure(baseConfig());
 
     await store.waitForRestoration();
     expect(store.status.kind).toBe("anonymous");
@@ -252,15 +229,15 @@ describe("admin auth store — anonymous restore", () => {
   it("restoration works when no identity is cached", async () => {
     initPinia();
     const store = useAdminAuthStore();
-    store.configure({
-      login: () => Promise.resolve({}),
-      restore: () =>
-        Promise.resolve({
-          kind: "authenticated" as const,
-          identity: { userLabel: "Fresh" },
-        }),
-      logout: () => {},
-    });
+    store.configure(
+      baseConfig({
+        restore: () =>
+          Promise.resolve({
+            kind: "authenticated" as const,
+            identity: { userLabel: "Fresh" },
+          }),
+      }),
+    );
 
     await store.waitForRestoration();
 
@@ -276,11 +253,11 @@ describe("admin auth store — restore rejection", () => {
   it("enters anonymous with reason unknown on restore rejection", async () => {
     initPinia();
     const store = useAdminAuthStore();
-    store.configure({
-      login: () => Promise.resolve({}),
-      restore: () => Promise.reject(new Error("network failure")),
-      logout: () => {},
-    });
+    store.configure(
+      baseConfig({
+        restore: () => Promise.reject(new Error("network failure")),
+      }),
+    );
 
     await store.waitForRestoration();
 
@@ -293,11 +270,11 @@ describe("admin auth store — restore rejection", () => {
   it("rejected restore does not expose authenticated content", async () => {
     initPinia();
     const store = useAdminAuthStore();
-    store.configure({
-      login: () => Promise.resolve({}),
-      restore: () => Promise.reject(new Error("timeout")),
-      logout: () => {},
-    });
+    store.configure(
+      baseConfig({
+        restore: () => Promise.reject(new Error("timeout")),
+      }),
+    );
 
     await store.waitForRestoration();
 
@@ -316,11 +293,7 @@ describe("admin auth store — login/logout unchanged", () => {
     initPinia();
     const identity: AdminAuthIdentity = { userLabel: "Grace Hopper" };
     const store = useAdminAuthStore();
-    store.configure({
-      login: () => Promise.resolve(identity),
-      restore: () => Promise.resolve({ kind: "anonymous" }),
-      logout: () => {},
-    });
+    store.configure(baseConfig({ login: () => Promise.resolve(identity) }));
 
     await store.waitForRestoration();
     await store.login({ username: "grace", password: "test" });
@@ -331,15 +304,16 @@ describe("admin auth store — login/logout unchanged", () => {
   it("logout transitions to anonymous with signed-out reason", async () => {
     initPinia();
     const store = useAdminAuthStore();
-    store.configure({
-      login: () => Promise.resolve({}),
-      restore: () =>
-        Promise.resolve({
-          kind: "authenticated" as const,
-          identity: { userLabel: "Ada" },
-        }),
-      logout: () => Promise.resolve(),
-    });
+    store.configure(
+      baseConfig({
+        restore: () =>
+          Promise.resolve({
+            kind: "authenticated" as const,
+            identity: { userLabel: "Ada" },
+          }),
+        logout: () => Promise.resolve(),
+      }),
+    );
 
     await store.waitForRestoration();
     expect(store.status.kind).toBe("authenticated");
@@ -355,11 +329,11 @@ describe("admin auth store — login/logout unchanged", () => {
   it("login error is stored and status remains anonymous", async () => {
     initPinia();
     const store = useAdminAuthStore();
-    store.configure({
-      login: () => Promise.reject(new Error("bad credentials")),
-      restore: () => Promise.resolve({ kind: "anonymous" }),
-      logout: () => {},
-    });
+    store.configure(
+      baseConfig({
+        login: () => Promise.reject(new Error("bad credentials")),
+      }),
+    );
 
     await store.waitForRestoration();
 
@@ -371,5 +345,46 @@ describe("admin auth store — login/logout unchanged", () => {
 
     expect(store.loginError).toBe("Unable to sign in. Please try again.");
     expect(store.status.kind).toBe("anonymous");
+  });
+});
+
+describe("admin auth store — host-owned persistence boundary", () => {
+  it("forwards Remember Me unchanged to the host login effect", async () => {
+    initPinia();
+    const login = vi.fn(() => Promise.resolve({ userLabel: "Ada" }));
+    const store = useAdminAuthStore();
+    store.configure(baseConfig({ login }));
+    await store.waitForRestoration();
+
+    const values = { username: "ada", password: "test", remember: true };
+    await store.login(values);
+
+    expect(login).toHaveBeenCalledWith(values);
+    expect(store.status).toMatchObject({
+      kind: "authenticated",
+      userLabel: "Ada",
+    });
+  });
+
+  it("ignores legacy presentation records and relies on host restoration", async () => {
+    initPinia();
+    const legacyRecord = JSON.stringify({
+      version: 1,
+      identity: { userLabel: "Forged" },
+    });
+    const getItem = vi.fn(() => legacyRecord);
+    vi.stubGlobal("localStorage", { getItem });
+    const restore = vi.fn(() =>
+      Promise.resolve({ kind: "anonymous" as const }),
+    );
+    const store = useAdminAuthStore();
+
+    store.configure(baseConfig({ restore }));
+    await store.waitForRestoration();
+
+    expect(restore).toHaveBeenCalledTimes(1);
+    expect(store.status.kind).toBe("anonymous");
+    expect(getItem).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 });

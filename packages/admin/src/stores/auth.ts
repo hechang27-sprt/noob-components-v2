@@ -64,15 +64,16 @@ export const useAdminAuthStore = defineStore("admin-auth", () => {
   /**
    * Sets the host-owned callbacks once per Pinia instance.
    *
-   * Enters loading synchronously and starts restoration unconditionally.
-   * Subsequent calls are silently ignored.
+   * Stores the host-owned effects, enters loading synchronously, and starts
+   * restoration unconditionally. Subsequent calls are silently ignored.
    */
   function configure(cfg: AdminAuthStoreConfig): void {
     if (isConfigured.value) return;
+
     config = cfg;
     isConfigured.value = true;
 
-    // Enter loading and start restore unconditionally.
+    // Enter loading before starting authoritative host restoration.
     status.value = { kind: "loading" };
     startRestore();
   }
@@ -119,6 +120,9 @@ export const useAdminAuthStore = defineStore("admin-auth", () => {
   /**
    * Invokes the configured login callback and transitions to authenticated
    * only after the host resolves a presentation identity.
+   *
+   * The complete values, including `remember`, are forwarded unchanged;
+   * only the host owns credential and session persistence policy.
    */
   async function login(values: AdminLoginValues): Promise<void> {
     if (!isConfigured.value) {

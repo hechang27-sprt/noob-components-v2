@@ -24,6 +24,8 @@ import "./style.css";
 const pinia = createPinia();
 /** Identifies history entries created for the current authenticated demo session. */
 const navigationScopeId = ref(crypto.randomUUID());
+/** Host-owned key for the backend-free demo's fake session authority. */
+const demoSessionKey = "noob-components-v2:demo:session";
 
 /** Resolves the package-owned frontend auth runtime against application Pinia. */
 const auth = useAdminAuthStore(pinia);
@@ -42,32 +44,38 @@ async function login(values: AdminLoginValues): Promise<AdminAuthIdentity> {
   if (!username || !password) {
     throw new Error("Username and password are required.");
   }
+  const targetStorage = values.remember
+    ? window.localStorage
+    : window.sessionStorage;
+  const oppositeStorage = values.remember
+    ? window.sessionStorage
+    : window.localStorage;
+  targetStorage.setItem(demoSessionKey, username);
+  oppositeStorage.removeItem(demoSessionKey);
   navigationScopeId.value = crypto.randomUUID();
   return { userLabel: username };
 }
 
 /**
- * Restores a deterministic fake host session for the backend-free demo.
+ * Reads the demo host's own session authority. LocalStorage models a
+ * remembered session; SessionStorage models a tab-scoped session.
  *
- * Add `?restore=authenticated` to demonstrate authenticated startup; every
- * other value demonstrates an ordinary anonymous startup.
- *
- * @returns A frontend-only restore result without session or transport data.
+ * @returns Fresh presentation identity when a host session exists.
  */
 async function restore(): Promise<AdminAuthRestoreResult> {
-  const authenticated =
-    new URLSearchParams(window.location.search).get("restore") ===
-    "authenticated";
-  return authenticated
-    ? {
-        kind: "authenticated",
-        identity: { userLabel: "Restored demo user" },
-      }
+  const username =
+    window.sessionStorage.getItem(demoSessionKey) ??
+    window.localStorage.getItem(demoSessionKey);
+  return username
+    ? { kind: "authenticated", identity: { userLabel: username } }
     : { kind: "anonymous" };
 }
 
-/** Completes the fake logout effect without owning package auth state or routing. */
-async function logout(): Promise<void> {}
+/** Clears the fake host session from both supported lifetime tiers. */
+async function logout(): Promise<void> {
+  window.localStorage.removeItem(demoSessionKey);
+  window.sessionStorage.removeItem(demoSessionKey);
+}
 
 auth.configure({ login, logout, restore });
 preferences.initialize({

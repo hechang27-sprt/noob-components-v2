@@ -37,11 +37,7 @@ function mountLoginPage(
 
   // Use a restore that stays pending so it never overwrites the force-set status.
   // The waitForRestoration call below attaches a handler without blocking.
-  store.configure({
-    login,
-    logout,
-    restore: () => new Promise(() => {}),
-  });
+  store.configure({ login, logout, restore: () => new Promise(() => {}) });
   // Let initial restore settle, then force-set desired status.
   store.waitForRestoration().catch(() => {});
   (store as unknown as Record<string, unknown>).status = authStatus;
