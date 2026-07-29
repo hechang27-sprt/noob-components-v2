@@ -176,21 +176,21 @@ describe("createAdminRouter — contract", () => {
       .find((r) => r.name === "_noobAdminShell");
     expect(shellRoute).toBeDefined();
     expect(shellRoute!.path).toBe("/");
-    expect(shellRoute!.meta.requiresAuth).toBe(true);
+    expect(shellRoute!.meta._noobAdminMeta).toEqual({ requiresAuth: true });
     expect(shellRoute!.children).toBeDefined();
     expect(shellRoute!.children!.length).toBe(3);
   });
 
-  it("stamps requiresAuth meta on shell parent", () => {
+  it("stamps namespaced auth metadata on shell parent", () => {
     const router = createAdminRouter(createOptions());
     const resolved = router.resolve("/");
-    expect(resolved.meta.requiresAuth).toBe(true);
+    expect(resolved.meta._noobAdminMeta).toEqual({ requiresAuth: true });
   });
 
-  it("does not stamp requiresAuth on login route", () => {
+  it("does not stamp namespaced auth metadata on login route", () => {
     const router = createAdminRouter(createOptions());
     const resolved = router.resolve("/login");
-    expect(resolved.meta.requiresAuth).toBeUndefined();
+    expect(resolved.meta._noobAdminMeta).toBeUndefined();
   });
 
   it("rejects identical login and shell paths", () => {
@@ -333,29 +333,43 @@ describe("createAdminRouter — contract", () => {
       createOptions({ shellRoute: { meta: { layout: "admin" } } }),
     );
     const resolved = router.resolve("/");
-    expect(resolved.meta.requiresAuth).toBe(true);
+    expect(resolved.meta._noobAdminMeta).toEqual({ requiresAuth: true });
     expect(resolved.meta.layout).toBe("admin");
   });
 
-  it("shell requiresAuth remains true despite host override", () => {
+  it("keeps host metadata separate from package-owned auth metadata", () => {
     const router = createAdminRouter(
       createOptions({
-        shellRoute: { meta: { requiresAuth: false, layout: "admin" } },
+        shellRoute: {
+          meta: {
+            _noobAdminMeta: { requiresAuth: false },
+            requiresAuth: false,
+            layout: "admin",
+          },
+        },
       }),
     );
     const resolved = router.resolve("/");
-    expect(resolved.meta.requiresAuth).toBe(true);
+    expect(resolved.meta._noobAdminMeta).toEqual({ requiresAuth: true });
+    expect(resolved.meta.requiresAuth).toBe(false);
     expect(resolved.meta.layout).toBe("admin");
   });
 
-  it("login requiresAuth is absent despite host override", () => {
+  it("preserves host metadata on the login route", () => {
     const router = createAdminRouter(
       createOptions({
-        loginRoute: { meta: { requiresAuth: true, custom: "value" } },
+        loginRoute: {
+          meta: {
+            _noobAdminMeta: { requiresAuth: true },
+            requiresAuth: true,
+            custom: "value",
+          },
+        },
       }),
     );
     const resolved = router.resolve("/login");
-    expect(resolved.meta.requiresAuth).toBeUndefined();
+    expect(resolved.meta._noobAdminMeta).toBeUndefined();
+    expect(resolved.meta.requiresAuth).toBe(true);
     expect(resolved.meta.custom).toBe("value");
   });
 

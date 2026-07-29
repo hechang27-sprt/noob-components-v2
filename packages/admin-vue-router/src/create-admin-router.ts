@@ -9,6 +9,7 @@ import {
 import type { Pinia } from "pinia";
 import { h, defineComponent, type Component } from "vue";
 import type {
+  RouteMeta,
   RouteRecordRaw,
   Router,
   RouterHistory,
@@ -31,6 +32,25 @@ const ADMIN_LOGIN_ROUTE_NAME = "_noobAdminLogin";
 
 /** Identifies the package-owned shell route without colliding with host names. */
 const ADMIN_SHELL_ROUTE_NAME = "_noobAdminShell";
+
+/** Namespaces package-owned route metadata away from additive host metadata. */
+const ADMIN_ROUTE_META_KEY = "_noobAdminMeta";
+
+/**
+ * Reports whether one route record carries the package-owned auth requirement.
+ *
+ * @param meta - Vue Router metadata from a matched route record.
+ * @returns Whether the package namespace marks the route as protected.
+ */
+function requiresAdminAuth(meta: RouteMeta): boolean {
+  const adminMeta = meta[ADMIN_ROUTE_META_KEY];
+  return (
+    typeof adminMeta === "object" &&
+    adminMeta !== null &&
+    "requiresAuth" in adminMeta &&
+    adminMeta.requiresAuth === true
+  );
+}
 
 /** Describes the constrained host overrides accepted for one generated route. */
 
@@ -132,7 +152,7 @@ function resolvePostLoginDestination(
   const resolved = router.resolve(redirectUrl);
   if (
     resolved.name === ADMIN_LOGIN_ROUTE_NAME ||
-    !resolved.matched.some((record) => record.meta.requiresAuth === true)
+    !resolved.matched.some((record) => requiresAdminAuth(record.meta))
   ) {
     return ctx.homeDestination;
   }
@@ -216,11 +236,13 @@ export function createAdminRouter<TDefinitions extends AdminRouteDefinitions>(
 
   // Compose generated route records
   const shellChildren = registry.toRouteRecords();
-  const { requiresAuth: _loginRequiresAuth, ...loginMeta } =
+  const { [ADMIN_ROUTE_META_KEY]: _loginAdminMeta, ...loginMeta } =
     loginOverride?.meta ?? {};
+  const { [ADMIN_ROUTE_META_KEY]: _shellAdminMeta, ...shellHostMeta } =
+    shellOverride?.meta ?? {};
   const shellMeta = {
-    ...shellOverride?.meta,
-    requiresAuth: true as const,
+    ...shellHostMeta,
+    [ADMIN_ROUTE_META_KEY]: { requiresAuth: true as const },
   };
 
   const adminRoutes: RouteRecordRaw[] = [
@@ -290,8 +312,8 @@ export function createAdminRouter<TDefinitions extends AdminRouteDefinitions>(
     if (kind === "anonymous") {
       scopeEntryPending = false;
       if (
-        router.currentRoute.value.matched.some(
-          (record) => record.meta.requiresAuth === true,
+        router.currentRoute.value.matched.some((record) =>
+          requiresAdminAuth(record.meta),
         )
       ) {
         await router.replace({ name: ADMIN_LOGIN_ROUTE_NAME });
@@ -355,8 +377,8 @@ export function createAdminRouter<TDefinitions extends AdminRouteDefinitions>(
       await auth.waitForRestoration();
     }
 
-    const protectedTarget = to.matched.some(
-      (record) => record.meta.requiresAuth === true,
+    const protectedTarget = to.matched.some((record) =>
+      requiresAdminAuth(record.meta),
     );
     if (protectedTarget && auth.status.kind !== "authenticated") {
       return {
