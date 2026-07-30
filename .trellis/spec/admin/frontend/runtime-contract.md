@@ -133,7 +133,7 @@ The host application derives the final `MenuOption[]`, including visibility and 
 
 ## Dependencies and build
 
-`packages/admin/package.json` declares Vue, Pinia, Naive UI, and Pro Naive UI as peers; `@noob-naive-ui/ui`, `@vicons/ionicons5`, and Zod are implementation dependencies. `packages/admin/vite.config.ts` builds `src/index.ts` as an ES library with Vue JSX and Tailwind plugins, and externalizes every runtime import: those three implementation dependencies plus the four peers. Preserve this boundary when adding imports or build features.
+`packages/admin/package.json` declares Vue, Vue I18n, Pinia, Naive UI, and Pro Naive UI as peers; `@noob-naive-ui/ui`, `@vicons/ionicons5`, and Zod are implementation dependencies. Follow the shared workspace dependency policy: ecosystem-wide runtime versions use `catalog:`, and the workspace root owns the Vue I18n build plugin. `packages/admin/vite.config.ts` builds `src/index.ts` as an ES library with Vue JSX and Tailwind plugins, and externalizes every runtime import: those three implementation dependencies plus the five peers. Preserve this boundary when adding imports or build features.
 
 Avoid broad Naive/Pro Naive re-exports. Import and compose primitives directly inside admin package components, as `packages/admin/src/components/admin-login-page.tsx` and `packages/admin/src/components/admin-shell.tsx` do.
 

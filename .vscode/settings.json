@@ -27,5 +27,6 @@
 
   // ─── Linting (oxlint via the oxc extension) ──────────────────────────────────
   "oxc.enable": true,
-  "oxc.enable.oxlint": true
+  "oxc.enable.oxlint": true,
+  "git.enabled": false
 }

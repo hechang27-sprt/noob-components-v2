@@ -27,14 +27,15 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "peerDependencies": {
-    "naive-ui": "^2.43.1",
-    "pinia": "^3.0.4",
-    "pro-naive-ui": "^3.2.3",
-    "vue": "^3.5.0"
+    "naive-ui": "catalog:",
+    "pinia": "catalog:",
+    "pro-naive-ui": "catalog:",
+    "vue": "catalog:",
+    "vue-i18n": "catalog:"
   },
   "dependencies": {
     "@noob-naive-ui/ui": "workspace:*",
     "@vicons/ionicons5": "^0.13.0",
-    "zod": "^4.4.3"
+    "zod": "catalog:"
   }
 }

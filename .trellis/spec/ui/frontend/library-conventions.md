@@ -26,7 +26,7 @@ Keep provider/theme integration in dedicated bridge modules. Add measurement, vi
 
 - Extend the root strict TypeScript baseline as `packages/ui/tsconfig.json` does.
 - Keep browser-facing library types within `src/**/*.ts`; compile declarations from the package config.
-- Keep Vue and Naive UI as peers and Vite externals. Bundling them would duplicate the consumer's framework runtime.
+- Keep Vue, Vue I18n, and Naive UI as peers and Vite externals. Follow the shared workspace dependency policy: these ecosystem-wide runtime versions use `catalog:`, and the workspace root owns the Vue I18n build plugin used by library builds.
 
 ## Verification
 

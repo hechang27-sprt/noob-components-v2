@@ -14,7 +14,7 @@ export default defineConfig({
       cssFileName: "style",
     },
     rolldownOptions: {
-      external: ["naive-ui", "vue"],
+      external: ["naive-ui", "vue", "vue-i18n"],
     },
   },
 });

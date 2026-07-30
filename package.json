@@ -12,6 +12,7 @@
     "dev": "pnpm --filter admin-starter dev"
   },
   "devDependencies": {
+    "@intlify/unplugin-vue-i18n": "^11.2.4",
     "@tailwindcss/vite": "^4.3.2",
     "@types/node": "^26.1.0",
     "@typescript/typescript6": "^6.0.2",

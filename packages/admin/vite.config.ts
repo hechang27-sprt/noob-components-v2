@@ -26,6 +26,7 @@ export default defineConfig({
         "pinia",
         "pro-naive-ui",
         "vue",
+        "vue-i18n",
         "zod",
       ],
     },
