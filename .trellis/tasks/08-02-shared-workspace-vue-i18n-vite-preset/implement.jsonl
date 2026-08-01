@@ -1,0 +1,4 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ui/frontend/library-i18n-contract.md", "reason": "Replace package-specific Vite integration with the shared workspace preset contract"}
+{"file": ".trellis/spec/ui/frontend/library-conventions.md", "reason": "Preserve private package exports and standalone library build ownership"}
+{"file": ".trellis/spec/demo/frontend/runtime-integration-contract.md", "reason": "Preserve demo host ownership while changing only resource precompilation setup"}

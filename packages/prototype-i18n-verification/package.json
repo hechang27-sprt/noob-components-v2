@@ -10,16 +10,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./vite": {
-      "types": "./vite.d.ts",
-      "import": "./vite.mjs"
     }
   },
   "files": [
-    "dist",
-    "vite.mjs",
-    "vite.d.ts"
+    "dist"
   ],
   "sideEffects": false,
   "scripts": {

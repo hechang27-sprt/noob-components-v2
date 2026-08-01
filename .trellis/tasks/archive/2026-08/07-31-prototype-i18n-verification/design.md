@@ -64,7 +64,7 @@ The prototype component is rendered in an existing demo-visible page or shell ar
 ## Build boundary
 
 - The prototype package Vite config includes `src/locales/**` in the Vue I18n unplugin.
-- The demo Vite config imports the prototype source-locale include from the package-owned `@noob-naive-ui/prototype-i18n-verification/vite` subpath because workspace source aliases make the demo responsible for transforming those JSON imports. Built-package consumers need no library-source include.
+- The demo Vite config uses the repository-owned `createWorkspaceVueI18nPlugin()` preset because workspace source aliases make the demo responsible for transforming imported library JSON. The preset covers conventional app/package locale paths without naming this package; built-package consumers need no library-source include.
 - Both package and demo TypeScript configurations involved in source checking enable or inherit `resolveJsonModule: true`.
 - `vue-i18n` is a prototype package peer/external and a demo runtime dependency.
 
@@ -94,7 +94,7 @@ Browser verification established:
 Three implementation constraints amend the initial sketch:
 
 1. Vue I18n 11.4.8 initializes an inheriting local Composer's `fallbackRoot` from the root Composer. The component must set `composer.fallbackRoot = false` immediately after `useI18n()` for package-message isolation, while leaving `fallbackLocale` inherited from host authority.
-2. Source-consuming workspace hosts must precompile package locale JSON through a package-owned Vite integration export; built-package consumers need no library-source include.
+2. Source-consuming workspace hosts must precompile package locale JSON through one shared repository Vite preset; component packages must not expose source-resource paths, and built-package consumers need no workspace preset.
 3. JSON imports provide useful key inference during source typechecking, but exporting `typeof enJson` emits a declaration import for `./locales/PrototypeCard/en.json`; `unplugin-dts` does not emit that JSON into the dist-only package. Public override types therefore need an explicit interface or generated self-contained declaration unless the build deliberately copies JSON declaration resources.
 
-Verdict: the local-Composer architecture is viable for production package work with host-owned fallback, the local `fallbackRoot` correction, self-contained public locale types, and package-owned Vite integration for no-build source consumers. Literal `@` characters in JSON messages must also use Vue I18n message-syntax escaping so precompilation succeeds.
+Verdict: the local-Composer architecture is viable for production package work with host-owned fallback, the local `fallbackRoot` correction, self-contained public locale types, and a shared repository Vite preset for no-build source consumers. Literal `@` characters in JSON messages must also use Vue I18n message-syntax escaping so precompilation succeeds.

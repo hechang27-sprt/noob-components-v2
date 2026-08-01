@@ -133,7 +133,7 @@ JSON key inference, generated declarations, and the unplugin/declaration-build i
 - [ ] Identical keys in separate component-local Composers do not collide.
 - [ ] Changing the global Composer locale updates all inherited local Composers.
 - [ ] Repeated mounts do not mutate imported defaults or leak one app's overrides to another app/test/request.
-- [ ] Component-local resources are emitted from `src/locales/ComponentName/localeName.json`, precompiled by the library build, and precompiled by source-consuming workspace builds through package-owned Vite resource integration. Built-package consumers do not include library source.
+- [ ] Component-local resources are emitted from `src/locales/ComponentName/localeName.json`, precompiled by the library build, and precompiled by source-consuming workspace builds through the shared repository Vue I18n Vite preset. Built-package consumers do not include library source or workspace tooling.
 - [ ] TypeScript checks JSON imports with `resolveJsonModule: true` and exposes useful typed partial overrides.
 - [ ] Build output is compatible with the intended Vue I18n runtime/compiler configuration.
 - [ ] `AdminShell` locale preference startup precedence and synchronization behavior are explicit and verified.

@@ -269,7 +269,7 @@ If the active global locale is unavailable in package resources, inheriting loca
 The prototype found three corrections required before production rollout:
 
 1. In Vue I18n 11.4.8, `inheritLocale: true` initializes the local Composer's `fallbackRoot` from the root. After creating the local Composer, set only `composer.fallbackRoot = false`; leave `fallbackLocale` inherited from the host global Composer.
-2. A source-consuming workspace host must precompile library JSON, but it must import resource globs through a package-owned Vite integration subpath instead of hard-coding the library's relative source layout. Built-package consumers need no library-source include.
+2. A source-consuming workspace host must precompile library JSON through one shared repository Vite preset that covers conventional app/package locale paths. Individual packages and consumers must not exchange source-resource paths. Built-package consumers need no library-source include or workspace preset.
 3. `typeof canonicalEnglishJson` works during source typechecking but emits a declaration import to the JSON resource. The current `unplugin-dts` dist-only build does not emit that JSON, so production packages need explicit exported locale interfaces or generated self-contained declarations unless their build intentionally ships matching JSON declaration resources.
 
 These findings keep the selected runtime/resource architecture viable; they make host fallback authority, source-consumed build integration, public typing, and local message isolation explicit.

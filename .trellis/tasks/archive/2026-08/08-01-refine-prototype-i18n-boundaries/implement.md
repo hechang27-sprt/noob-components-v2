@@ -9,12 +9,11 @@
 - Destructure injected messages and safe Composer data refs; keep methods qualified to satisfy type-aware `unbound-method` lint and retain the Composer object for `fallbackRoot = false`.
 - Remove package fallback instrumentation.
 
-## 2. Package-Owned Vite Integration
+## 2. Shared Workspace Vite Integration
 
-- Add a documented package-root `vite` ESM subpath exporting the prototype locale-resource include glob, plus a matching declaration.
-- Add the subpath to package exports.
-- Import the include value in demo Vite config and remove the package-relative source path.
-- Preserve the existing source alias and no-build behavior.
+- Use one repository-owned `createWorkspaceVueI18nPlugin()` preset covering conventional app/package locale directories.
+- Keep package source-resource paths out of package exports and consuming Vite configs.
+- Preserve the existing source alias and no-build behavior; built-package consumers require no workspace preset.
 
 ## 3. Host Fallback Harness
 

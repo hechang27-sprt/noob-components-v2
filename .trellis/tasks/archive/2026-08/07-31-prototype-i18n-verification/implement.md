@@ -7,7 +7,7 @@
 3. Configure package JSON imports, Vue I18n precompilation, peer externalization, build, and typecheck.
 4. Implement the minimal override provider plugin with an immutable startup message snapshot; fallback remains host-owned.
 5. Implement the component-local Composer and two-stage default/override `mergeLocaleMessage()` sequence.
-6. Add the package to the demo's workspace dependencies and source aliases; expose package-owned Vite resource integration for the existing no-build workspace convention.
+6. Add the package to the demo's workspace dependencies/source aliases and use the shared repository Vue I18n preset for the existing no-build workspace convention.
 7. Create and install the demo's global Vue I18n instance with host-owned fallback configuration.
 8. After `preferences.initialize(...)`, add an immediate watcher from `preferences.locale` to `i18n.global.locale.value`.
 9. Render `PrototypeCard` in a visible demo location.

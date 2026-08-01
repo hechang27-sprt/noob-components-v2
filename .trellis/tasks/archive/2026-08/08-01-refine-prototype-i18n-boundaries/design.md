@@ -58,9 +58,9 @@ Composer methods remain qualified (`composer.t`, `composer.mergeLocaleMessage`) 
 Two consumption modes remain distinct:
 
 1. **Built package:** the library build precompiles its JSON into distributable JavaScript. Host Vite configuration does not include library source resources.
-2. **No-build workspace source consumption:** the host build compiles imported package source, so it must include the package locale JSON in `@intlify/unplugin-vue-i18n`. The package owns a stable `@noob-naive-ui/prototype-i18n-verification/vite` subpath that exports its resource include path. The demo imports that value instead of knowing `../../packages/.../src/locales/**`.
+2. **No-build workspace source consumption:** the host build compiles imported package source, so one shared repository Vue I18n preset covers `apps/*/src/locales/**` and `packages/*/src/locales/**`. Packages expose no source-resource Vite subpaths, and consumers do not enumerate libraries.
 
-For this private prototype, the Vite subpath is a small package-root ESM helper with a matching declaration file. It resolves its own locale directory from `import.meta.url`. This keeps physical layout knowledge inside the package and allows Vite config loading without prebuilding TypeScript.
+The shared preset resolves structural workspace globs from its own module. This keeps physical layout knowledge in internal tooling and allows source-consuming Vite builds without dependency prebuilds.
 
 ## Demo Verification Harness
 
@@ -83,7 +83,7 @@ This is a clean prototype API cutover; no compatibility shim remains. Update:
 
 ## Risks and Mitigations
 
-- **Vite subpath resolution:** verify `apps/demo/vite.config.ts` typechecks and starts from a clean workspace without a package build.
+- **Shared preset resolution:** verify `apps/demo/vite.config.ts` builds from source with package `dist` removed and no package-specific resource export.
 - **`objectEntries` optional keys:** package typechecking proves locale keys and values remain accepted by `mergeLocaleMessage` without casts.
 - **Root fallback inheritance:** browser scenario with active `fr` and global fallback `zh-CN` proves behavior after removing package fallback mutation.
 - **Runtime helper dependency:** `tsafe` is a normal prototype dependency and is bundled into the library output rather than exposed as a peer.
