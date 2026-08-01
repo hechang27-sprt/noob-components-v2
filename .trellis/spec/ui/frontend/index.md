@@ -7,13 +7,14 @@
 Before changing this package, read:
 
 1. [Library Boundary and Build](./library-conventions.md)
-2. [Library Boundary and Build](./library-conventions.md) before adding a specialized component or migration-facing API.
+2. [Component-Library Vue I18n Contract](./library-i18n-contract.md) before adding package-owned localized component text.
 
 ## Guides
 
 | Guide                                                  | Use it for                                                                                    |
 | ------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
 | [Library Boundary and Build](./library-conventions.md) | Public exports, Naive peer integration, theme bridge changes, library build/type verification |
+| [Component-Library Vue I18n Contract](./library-i18n-contract.md) | Local Composers, package overrides, fallback isolation, JSON precompilation, declaration typing |
 
 ## Quality Check
 

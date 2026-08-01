@@ -115,6 +115,9 @@ importers:
       '@noob-naive-ui/admin-vue-router':
         specifier: workspace:*
         version: link:../../packages/admin-vue-router
+      '@noob-naive-ui/prototype-i18n-verification':
+        specifier: workspace:*
+        version: link:../../packages/prototype-i18n-verification
       naive-ui:
         specifier: 'catalog:'
         version: 2.44.1(vue@3.5.40(typescript@7.0.2))
@@ -181,6 +184,15 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 4.4.3
+
+  packages/prototype-i18n-verification:
+    dependencies:
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.40(typescript@7.0.2)
+      vue-i18n:
+        specifier: 'catalog:'
+        version: 11.4.8(vue@3.5.40(typescript@7.0.2))
 
   packages/ui:
     dependencies:

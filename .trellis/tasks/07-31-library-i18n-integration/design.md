@@ -252,3 +252,18 @@ app.use(adminI18nPlugin, {
 
 `fallbackLocale` defaults to `"en"`. If the global locale is unavailable in the package resources, the local Composer resolves through this fallback while the global Composer remains on the host-selected locale. AdminShell's Naive UI locale adapter uses the same fallback by default.
 Before hydration completes, the synchronization effect must not overwrite restored state with the initial store default. The fallback locale is configurable through the plugin and defaults to `"en"`.
+
+## Prototype verification result — 2026-08-01
+
+`07-31-prototype-i18n-verification` validated the package-local Composer architecture in a private workspace package consumed from demo source:
+
+- defaults, partial immutable overrides, sibling preservation, global-locale inheritance, persisted preference startup, local fallback, and global-message isolation all worked;
+- package and demo builds both transformed component-first JSON into precompiled message ASTs;
+- unsupported `fr` remained the global locale while the package rendered either configured `zh-CN` fallback or default `en` fallback.
+
+The prototype found two corrections required before production rollout:
+
+1. In Vue I18n 11.4.8, `inheritLocale: true` initializes the local Composer's fallback settings from the root even when local `fallbackLocale` and `fallbackRoot` options are supplied. After creating the local Composer, set `composer.fallbackLocale.value` to the package snapshot and `composer.fallbackRoot = false` before merging messages.
+2. `typeof canonicalEnglishJson` works during source typechecking but emits a declaration import to the JSON resource. The current `unplugin-dts` dist-only build does not emit that JSON, so production packages need explicit exported locale interfaces or generated self-contained declarations unless their build intentionally ships matching JSON declaration resources.
+
+These findings keep the selected runtime/resource architecture viable; they narrow the production typing and local-fallback implementation contracts.

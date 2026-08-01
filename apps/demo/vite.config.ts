@@ -1,3 +1,4 @@
+import VueI18nPlugin from "@intlify/unplugin-vue-i18n/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { resolve } from "node:path";
 
@@ -7,7 +8,21 @@ import vueDevTools from "vite-plugin-vue-devtools";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  plugins: [tailwindcss(), vue(), vueJsx(), vueDevTools()],
+  plugins: [
+    tailwindcss(),
+    vue(),
+    vueJsx(),
+    vueDevTools(),
+    VueI18nPlugin({
+      include: [
+        resolve(__dirname, "src/locales/**"),
+        resolve(
+          __dirname,
+          "../../packages/prototype-i18n-verification/src/locales/**",
+        ),
+      ],
+    }),
+  ],
   resolve: {
     alias: [
       {
@@ -24,6 +39,13 @@ export default defineConfig({
       {
         find: /^@noob-naive-ui\/admin$/,
         replacement: resolve(__dirname, "../../packages/admin/src/index.ts"),
+      },
+      {
+        find: /^@noob-naive-ui\/prototype-i18n-verification$/,
+        replacement: resolve(
+          __dirname,
+          "../../packages/prototype-i18n-verification/src/index.ts",
+        ),
       },
       {
         find: "@noob-naive-ui/ui/style.css",

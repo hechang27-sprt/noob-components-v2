@@ -10,6 +10,7 @@ Before changing this package, read:
 2. [Shell Preferences State](./shell-preferences.md) for storage, Zod normalization, or Pinia changes.
 3. [TSX Components and Tests](./tsx-components-and-tests.md) for component or test changes.
 4. [Shell/router/host ownership decision](../../../../docs/adr/0001-separate-shell-router-and-host-ownership.md) for the boundary rationale and the [current integration contract](../../../../docs/adr/0002-admin-shell-router-host-contract.md) for exact responsibilities and runtime flow.
+5. [Component-Library Vue I18n Contract](../../ui/frontend/library-i18n-contract.md) before adding package-owned localized component text.
 
 ## Guides
 
@@ -18,6 +19,7 @@ Before changing this package, read:
 | [Frontend Runtime Contract](./runtime-contract.md)        | exports, auth/navigation inputs, and backend-boundary review |
 | [Shell Preferences State](./shell-preferences.md)         | preferences schemas, persistence, and Pinia store behavior   |
 | [TSX Components and Tests](./tsx-components-and-tests.md) | Vue TSX components, accessibility, and Vitest DOM tests      |
+| [Component-Library Vue I18n Contract](../../ui/frontend/library-i18n-contract.md) | Local Composers, package overrides, fallback isolation, JSON precompilation, declaration typing |
 
 ## Quality Check
 

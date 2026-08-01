@@ -1,0 +1,4 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ui/frontend/library-conventions.md", "reason": "Verify explicit exports, peer externalization, declarations, and package build output"}
+{"file": ".trellis/spec/demo/frontend/runtime-integration-contract.md", "reason": "Verify startup ownership, preference hydration order, build, and browser runtime behavior"}
+{"file": ".trellis/tasks/07-31-library-i18n-integration/research/vue-i18n-local-scope.md", "reason": "Check the prototype against researched Vue I18n local-scope and immutable-override invariants"}

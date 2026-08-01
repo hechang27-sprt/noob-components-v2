@@ -1,0 +1,4 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ui/frontend/library-conventions.md", "reason": "Reuse private Vue library build, peer, external, and explicit-export conventions"}
+{"file": ".trellis/spec/demo/frontend/runtime-integration-contract.md", "reason": "Preserve demo host ownership and preferences initialization order"}
+{"file": ".trellis/tasks/07-31-library-i18n-integration/research/vue-i18n-local-scope.md", "reason": "Apply the researched local Composer merge, inheritance, fallback, and mutation constraints"}

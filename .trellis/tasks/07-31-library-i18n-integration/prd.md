@@ -145,8 +145,8 @@ JSON key inference, generated declarations, and the unplugin/declaration-build i
 - Runtime-reactive replacement of package override configuration.
 - Replacing Vue I18n with an alternative runtime.
 
-## Open questions
+## Prototype-resolved constraints
 
 - The persisted preference is authoritative after store hydration; the host Composer is not synchronized back into the store.
 - The fallback defaults to `"en"` and is configurable through the package plugin. The same configured fallback governs local library message fallback and Naive UI locale selection unless an integration explicitly supplies a narrower mapping.
-- Does JSON import inference survive the source-only declaration build and unplugin transformation strongly enough to derive exported override types without explicit interfaces?
+- JSON imports preserve useful key inference during source checking, but exporting `typeof` the canonical JSON produces a declaration import to a JSON file that the current dist-only declaration build does not emit. Use explicit exported locale interfaces or generated self-contained declarations unless production builds deliberately ship matching JSON declaration resources.

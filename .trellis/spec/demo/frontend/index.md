@@ -9,6 +9,7 @@ Before changing the demo, read:
 1. [Runtime Integration Contract](./runtime-integration-contract.md) for auth, routing, menu, tab, preference, stylesheet, or command changes.
 2. `.trellis/spec/admin/frontend/runtime-contract.md` for the public shell contract.
 3. `.trellis/spec/guides/cross-layer-thinking-guide.md` for application/runtime ownership.
+4. [Component-Library Vue I18n Contract](../../ui/frontend/library-i18n-contract.md) for global Composer ownership, source-consumed locale resources, or library override verification.
 
 ## Quality Check
 
