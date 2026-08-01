@@ -33,8 +33,8 @@ const composer = useI18n({
   useScope: "local",
   inheritLocale: true,
   fallbackRoot: false,
-  fallbackLocale: configuredFallback,
 })
+composer.fallbackRoot = false
 
 composer.mergeLocaleMessage("en", en)
 composer.mergeLocaleMessage("zh-CN", zhCN)
@@ -44,7 +44,7 @@ for (const [locale, messages] of componentOverrides) {
 }
 ```
 
-The plugin provides only a startup snapshot containing fallback locale and optional component overrides. It does not create an i18n instance or register global messages.
+The plugin provides only a startup snapshot containing optional component overrides. It does not create an i18n instance, configure fallback, or register global messages. The local Composer inherits fallback locale from the host global Composer.
 
 ## Demo runtime
 
@@ -64,7 +64,7 @@ The prototype component is rendered in an existing demo-visible page or shell ar
 ## Build boundary
 
 - The prototype package Vite config includes `src/locales/**` in the Vue I18n unplugin.
-- The demo Vite config includes the prototype source locale path because workspace source aliases/source consumption make the demo responsible for transforming those JSON imports during development/build.
+- The demo Vite config imports the prototype source-locale include from the package-owned `@noob-naive-ui/prototype-i18n-verification/vite` subpath because workspace source aliases make the demo responsible for transforming those JSON imports. Built-package consumers need no library-source include.
 - Both package and demo TypeScript configurations involved in source checking enable or inherit `resolveJsonModule: true`.
 - `vue-i18n` is a prototype package peer/external and a demo runtime dependency.
 
@@ -89,11 +89,12 @@ Browser verification established:
 - English defaults render without the package plugin, and the package contributes no global messages.
 - A partial English title override preserves the default description. Mutating the caller object after `app.use()` does not alter the mounted result.
 - Preference locale changes propagate `preferences -> global Composer -> local Composer`; the persisted locale wins again after reload.
-- Unsupported global locale `fr` remains `fr` globally while the local Composer renders the configured `zh-CN` fallback; without the package plugin it falls back to `en`.
+- Unsupported global locale `fr` remains `fr` globally while the local Composer renders the host-configured `zh-CN` fallback; the package plugin owns no fallback configuration.
 
-Two implementation constraints amend the initial sketch:
+Three implementation constraints amend the initial sketch:
 
-1. Vue I18n 11.4.8 initializes an inheriting local Composer's `fallbackLocale` and `fallbackRoot` from the root Composer, overriding the local options. The component must set `composer.fallbackLocale.value` and `composer.fallbackRoot` immediately after `useI18n()` to enforce package-local fallback isolation.
-2. JSON imports provide useful key inference during source typechecking, but exporting `typeof enJson` emits a declaration import for `./locales/PrototypeCard/en.json`; `unplugin-dts` does not emit that JSON into the dist-only package. Public override types therefore need an explicit interface or generated self-contained declaration unless the build deliberately copies JSON declaration resources.
+1. Vue I18n 11.4.8 initializes an inheriting local Composer's `fallbackRoot` from the root Composer. The component must set `composer.fallbackRoot = false` immediately after `useI18n()` for package-message isolation, while leaving `fallbackLocale` inherited from host authority.
+2. Source-consuming workspace hosts must precompile package locale JSON through a package-owned Vite integration export; built-package consumers need no library-source include.
+3. JSON imports provide useful key inference during source typechecking, but exporting `typeof enJson` emits a declaration import for `./locales/PrototypeCard/en.json`; `unplugin-dts` does not emit that JSON into the dist-only package. Public override types therefore need an explicit interface or generated self-contained declaration unless the build deliberately copies JSON declaration resources.
 
-Verdict: the local-Composer architecture is viable for production package work with those two corrections. Literal `@` characters in JSON messages must also use Vue I18n message-syntax escaping so precompilation succeeds.
+Verdict: the local-Composer architecture is viable for production package work with host-owned fallback, the local `fallbackRoot` correction, self-contained public locale types, and package-owned Vite integration for no-build source consumers. Literal `@` characters in JSON messages must also use Vue I18n message-syntax escaping so precompilation succeeds.

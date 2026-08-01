@@ -1,0 +1,4 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ui/frontend/library-i18n-contract.md", "reason": "Revise the package/host i18n authority and source-consumed build contract"}
+{"file": ".trellis/spec/ui/frontend/library-conventions.md", "reason": "Preserve private library exports, bundled dependencies, peers, and no-build conventions"}
+{"file": ".trellis/spec/demo/frontend/runtime-integration-contract.md", "reason": "Keep preference hydration and host Composer ownership ordered correctly"}

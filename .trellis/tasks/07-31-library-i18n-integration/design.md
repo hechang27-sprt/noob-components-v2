@@ -241,29 +241,35 @@ flowchart TD
 `useAdminShellPreferencesStore.locale` is the sole source of the Admin application locale. After `initialize()` hydrates persisted preferences, AdminShell synchronizes that value to the global Composer. Local component Composers use `inheritLocale: true`, so they follow the global locale automatically. The Naive UI provider receives the Naive locale object selected from the same global locale. There is no reverse Composer-to-store synchronization.
 
 
-The package plugin exposes the fallback as startup configuration:
+The host global Composer owns fallback locale as startup configuration:
 
 ```ts
-app.use(adminI18nPlugin, {
+const i18n = createI18n({
+  legacy: false,
+  locale: hydratedPreference,
   fallbackLocale: "en",
+  messages: {},
+})
+
+app.use(adminI18nPlugin, {
   messages: adminOverrides,
 })
 ```
 
-`fallbackLocale` defaults to `"en"`. If the global locale is unavailable in the package resources, the local Composer resolves through this fallback while the global Composer remains on the host-selected locale. AdminShell's Naive UI locale adapter uses the same fallback by default.
-Before hydration completes, the synchronization effect must not overwrite restored state with the initial store default. The fallback locale is configurable through the plugin and defaults to `"en"`.
+If the active global locale is unavailable in package resources, inheriting local Composers resolve through the host fallback while the global active locale remains unchanged. AdminShell's Naive UI locale adapter derives from the same host locale/fallback authority. Before hydration completes, the synchronization effect must not overwrite restored state with the initial store default.
 
 ## Prototype verification result — 2026-08-01
 
 `07-31-prototype-i18n-verification` validated the package-local Composer architecture in a private workspace package consumed from demo source:
 
-- defaults, partial immutable overrides, sibling preservation, global-locale inheritance, persisted preference startup, local fallback, and global-message isolation all worked;
+- defaults, partial immutable overrides, sibling preservation, global locale/fallback inheritance, persisted preference startup, and global-message isolation all worked;
 - package and demo builds both transformed component-first JSON into precompiled message ASTs;
-- unsupported `fr` remained the global locale while the package rendered either configured `zh-CN` fallback or default `en` fallback.
+- unsupported `fr` remained the global active locale while the package rendered the host-configured `zh-CN` fallback.
 
-The prototype found two corrections required before production rollout:
+The prototype found three corrections required before production rollout:
 
-1. In Vue I18n 11.4.8, `inheritLocale: true` initializes the local Composer's fallback settings from the root even when local `fallbackLocale` and `fallbackRoot` options are supplied. After creating the local Composer, set `composer.fallbackLocale.value` to the package snapshot and `composer.fallbackRoot = false` before merging messages.
-2. `typeof canonicalEnglishJson` works during source typechecking but emits a declaration import to the JSON resource. The current `unplugin-dts` dist-only build does not emit that JSON, so production packages need explicit exported locale interfaces or generated self-contained declarations unless their build intentionally ships matching JSON declaration resources.
+1. In Vue I18n 11.4.8, `inheritLocale: true` initializes the local Composer's `fallbackRoot` from the root. After creating the local Composer, set only `composer.fallbackRoot = false`; leave `fallbackLocale` inherited from the host global Composer.
+2. A source-consuming workspace host must precompile library JSON, but it must import resource globs through a package-owned Vite integration subpath instead of hard-coding the library's relative source layout. Built-package consumers need no library-source include.
+3. `typeof canonicalEnglishJson` works during source typechecking but emits a declaration import to the JSON resource. The current `unplugin-dts` dist-only build does not emit that JSON, so production packages need explicit exported locale interfaces or generated self-contained declarations unless their build intentionally ships matching JSON declaration resources.
 
-These findings keep the selected runtime/resource architecture viable; they narrow the production typing and local-fallback implementation contracts.
+These findings keep the selected runtime/resource architecture viable; they make host fallback authority, source-consumed build integration, public typing, and local message isolation explicit.

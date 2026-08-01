@@ -39,7 +39,7 @@ Parent design task: `07-31-library-i18n-integration`.
 - [x] Installing a partial prototype override changes the specified leaf while preserving default sibling text.
 - [x] The component uses local scope and does not register package messages globally.
 - [x] Changing the AdminShell locale preference updates the global Composer and then the component-local Composer through `inheritLocale`.
-- [x] Unsupported locales use the plugin-configured fallback, defaulting to `"en"`, without changing the global locale.
+- [x] Unsupported locales use the host global Composer's configured fallback without changing its active locale.
 - [x] Mutating the caller's override input after plugin installation has no effect.
 - [x] JSON resources are precompiled in both the package build and demo source-consuming build.
 - [x] Demo build, package build/typecheck, and a browser-driven locale-switch smoke scenario pass.

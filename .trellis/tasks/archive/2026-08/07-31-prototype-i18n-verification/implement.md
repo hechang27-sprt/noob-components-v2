@@ -5,10 +5,10 @@
 1. Scaffold private package `packages/prototype-i18n-verification` using existing library package conventions.
 2. Add one `PrototypeCard` component and `src/locales/PrototypeCard/{en,zh-CN}.json`.
 3. Configure package JSON imports, Vue I18n precompilation, peer externalization, build, and typecheck.
-4. Implement the minimal override provider plugin with immutable startup snapshot and configurable `fallbackLocale`, defaulting to `"en"`.
+4. Implement the minimal override provider plugin with an immutable startup message snapshot; fallback remains host-owned.
 5. Implement the component-local Composer and two-stage default/override `mergeLocaleMessage()` sequence.
-6. Add the package to the demo's workspace dependencies and source aliases/build configuration as required by existing no-build workspace conventions.
-7. Create and install the demo's global Vue I18n instance.
+6. Add the package to the demo's workspace dependencies and source aliases; expose package-owned Vite resource integration for the existing no-build workspace convention.
+7. Create and install the demo's global Vue I18n instance with host-owned fallback configuration.
 8. After `preferences.initialize(...)`, add an immediate watcher from `preferences.locale` to `i18n.global.locale.value`.
 9. Render `PrototypeCard` in a visible demo location.
 10. Build/typecheck the package and demo, then drive the locale selector in a browser to verify English, `zh-CN`, persistence/reload, overrides, immutability, and fallback.

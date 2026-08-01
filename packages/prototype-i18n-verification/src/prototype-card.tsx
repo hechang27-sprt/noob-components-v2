@@ -1,3 +1,4 @@
+import { objectEntries } from "tsafe/objectEntries";
 import { defineComponent, inject } from "vue";
 import { useI18n } from "vue-i18n";
 
@@ -5,9 +6,8 @@ import en from "./locales/PrototypeCard/en.json";
 import zhCN from "./locales/PrototypeCard/zh-CN.json";
 import {
   DEFAULT_SNAPSHOT,
-  selectComponentOverrides,
   prototypeI18nOverridesKey,
-  type PrototypeLocale,
+  selectComponentOverrides,
 } from "./plugin";
 
 /**
@@ -17,41 +17,52 @@ import {
  * and `fallbackRoot: false`, then merges the packaged defaults first and the
  * component's plugin override slice second. Starting empty keeps each instance
  * registry independent and never mutates the module-level JSON imports.
+ * Locale and fallback-locale values inherit from the host global Composer,
+ * which remains the sole locale/fallback authority.
  */
 const PrototypeCard = defineComponent(
   () => {
-    const snapshot = inject(prototypeI18nOverridesKey, DEFAULT_SNAPSHOT);
+    // The plugin's immutable override tree; absent plugin installation yields
+    // the frozen empty snapshot, so packaged defaults always render.
+    const { messages } = inject(prototypeI18nOverridesKey, DEFAULT_SNAPSHOT);
 
+    // Fresh local registry inheriting root locale and fallback locale; the
+    // root's fallbackRoot flag is corrected below after creation.
     const composer = useI18n({
       useScope: "local",
       inheritLocale: true,
       fallbackRoot: false,
-      fallbackLocale: snapshot.fallbackLocale,
     });
 
     // Vue I18n 11.4.8: with `__root && inheritLocale` the local Composer
-    // initializes its fallbackLocale from the root/global Composer instead of
-    // the `fallbackLocale` option, and inherits the root's `fallbackRoot`.
-    // Apply the plugin-configured fallback and registry isolation explicitly
-    // right after creation so packaged behavior never depends on host globals.
-    composer.fallbackLocale.value = snapshot.fallbackLocale;
+    // initializes its fallback settings from the root/global Composer rather
+    // than the options. Keep the inherited fallback locale (host-owned) but
+    // disable root-message fallback so missing package keys never resolve
+    // from host-global message registries.
     composer.fallbackRoot = false;
+
+    // Only the reactive locale data ref is destructured; Composer methods are
+    // called through the object so their `this` binding is never in question.
+    const { locale } = composer;
 
     // Fresh registry: packaged defaults first, the component's override slice
     // second, so overrides win at the leaf without mutating the imports.
     composer.mergeLocaleMessage("en", en);
     composer.mergeLocaleMessage("zh-CN", zhCN);
-    for (const [locale, messages] of Object.entries(
-      selectComponentOverrides(snapshot, "PrototypeCard"),
+    for (const [overrideLocale, componentMessages] of objectEntries(
+      selectComponentOverrides(messages, "PrototypeCard"),
     )) {
-      composer.mergeLocaleMessage(locale as PrototypeLocale, messages);
+      // The type keeps locale keys optional, so guard the definedness that
+      // `objectEntries` iteration guarantees at runtime; no locale cast.
+      if (componentMessages !== undefined) {
+        composer.mergeLocaleMessage(overrideLocale, componentMessages);
+      }
     }
 
     return () => (
       <section
         data-prototype-i18n-card
-        data-prototype-i18n-locale={composer.locale.value}
-        data-prototype-i18n-fallback={snapshot.fallbackLocale}>
+        data-prototype-i18n-locale={locale.value}>
         <h3 data-prototype-i18n-title>{composer.t("title")}</h3>
         <p data-prototype-i18n-description>{composer.t("description")}</p>
       </section>

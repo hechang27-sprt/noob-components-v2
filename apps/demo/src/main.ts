@@ -9,7 +9,6 @@ import {
 import { createAdminRouter } from "@noob-naive-ui/admin-vue-router";
 import {
   prototypeI18nPlugin,
-  type PrototypeI18nPluginOptions,
   type PrototypeLocaleOverrides,
 } from "@noob-naive-ui/prototype-i18n-verification";
 import type { MenuOption } from "naive-ui";
@@ -97,9 +96,9 @@ preferences.initialize({
 const prototypeHarnessUrl = new URL(window.location.href);
 /** Requests the partial-override verification scenario when set to "override". */
 const prototypeI18nMode = prototypeHarnessUrl.searchParams.get("prototypeI18n");
-/** Requests a configured package fallback locale when present. */
-const prototypeFallback =
-  prototypeHarnessUrl.searchParams.get("prototypeFallback");
+/** Requests a host-owned global fallback locale when present; defaults to English. */
+const prototypeGlobalFallback =
+  prototypeHarnessUrl.searchParams.get("prototypeGlobalFallback") ?? "en";
 /** Requests an unsupported preference/global locale when present. */
 const prototypeLocale = prototypeHarnessUrl.searchParams.get("prototypeLocale");
 
@@ -113,7 +112,7 @@ if (prototypeLocale !== null) {
 const i18n = createI18n({
   legacy: false,
   locale: "en",
-  fallbackLocale: "en",
+  fallbackLocale: prototypeGlobalFallback,
 });
 
 /**
@@ -159,12 +158,6 @@ if (prototypeI18nMode === "override") {
   if (installedOverride) {
     installedOverride.title = "Mutated after install";
   }
-} else if (prototypeFallback !== null && prototypeLocale !== null) {
-  /** Configures the package fallback for the unsupported-locale scenario. */
-  const fallbackOptions: PrototypeI18nPluginOptions = {
-    fallbackLocale: prototypeFallback,
-  };
-  app.use(prototypeI18nPlugin, fallbackOptions);
 }
 
 app.mount("#app");

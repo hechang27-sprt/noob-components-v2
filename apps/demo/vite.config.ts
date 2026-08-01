@@ -1,4 +1,5 @@
 import VueI18nPlugin from "@intlify/unplugin-vue-i18n/vite";
+import { prototypeI18nResourceInclude } from "@noob-naive-ui/prototype-i18n-verification/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { resolve } from "node:path";
 
@@ -16,10 +17,8 @@ export default defineConfig({
     VueI18nPlugin({
       include: [
         resolve(__dirname, "src/locales/**"),
-        resolve(
-          __dirname,
-          "../../packages/prototype-i18n-verification/src/locales/**",
-        ),
+        // Package-owned resource glob; the host never encodes library source layout.
+        prototypeI18nResourceInclude,
       ],
     }),
   ],

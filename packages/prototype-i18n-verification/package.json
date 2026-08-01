@@ -10,16 +10,25 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./vite": {
+      "types": "./vite.d.ts",
+      "import": "./vite.mjs"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "vite.mjs",
+    "vite.d.ts"
   ],
   "sideEffects": false,
   "scripts": {
     "build": "vite build",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "tsafe": "^1.8.12"
   },
   "peerDependencies": {
     "vue": "catalog:",
