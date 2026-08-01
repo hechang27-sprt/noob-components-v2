@@ -436,3 +436,36 @@ Built and browser-verified a private component-local Vue I18n package, integrate
 ### Next Steps
 
 - None - task complete
+
+
+## Session 13: Refine prototype i18n boundaries
+
+**Date**: 2026-08-01
+**Task**: Refine prototype i18n boundaries
+**Package**: ui
+
+### Summary
+
+Moved fallback authority to the host global Composer, replaced host-relative locale paths with a package-owned Vite integration export, adopted tsafe objectEntries without casts, and reconciled prototype, parent, and shared contracts.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `A71174e48454577b2fe3462877f781239ea086e2` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

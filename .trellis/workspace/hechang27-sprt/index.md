@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 12
+- **Total Sessions**: 13
 - **Last Active**: 2026-08-01
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~438 | Active |
+| `journal-1.md` | ~471 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 13 | 2026-08-01 | Refine prototype i18n boundaries | A`71174e48454577b2fe3462877f781239ea086e2` | `-` |
 | 12 | 2026-08-01 | Prototype i18n verification | `08cadb2fb85dda69119d628294094e1c3c9decce` | `-` |
 | 11 | 2026-07-28 | Restore authentication before protected navigation | `8911dd1dd7bc8a6e85ea8c76338bca2c428fcac5` | `-` |
 | 10 | 2026-07-27 | Normalize monorepo build and typecheck workflows | `2045fb20` | `-` |
