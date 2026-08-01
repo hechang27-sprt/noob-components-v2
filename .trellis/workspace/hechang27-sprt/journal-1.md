@@ -469,3 +469,36 @@ Moved fallback authority to the host global Composer, replaced host-relative loc
 ### Next Steps
 
 - None - task complete
+
+
+## Session 14: Shared workspace Vue I18n Vite preset
+
+**Date**: 2026-08-02
+**Task**: Shared workspace Vue I18n Vite preset
+**Package**: ui
+
+### Summary
+
+Replaced package-specific locale-resource exports with one repository-owned Vue I18n Vite preset, migrated demo, removed package helper artifacts, added tooling TypeScript coverage, and verified no-prebuild source consumption plus standalone builds.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7cfbae248fd98cba5f804daaf4091a9ff4ab7e12` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
