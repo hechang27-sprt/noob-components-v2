@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 11
-- **Last Active**: 2026-07-28
+- **Total Sessions**: 12
+- **Last Active**: 2026-08-01
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~405 | Active |
+| `journal-1.md` | ~438 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 12 | 2026-08-01 | Prototype i18n verification | `08cadb2fb85dda69119d628294094e1c3c9decce` | `-` |
 | 11 | 2026-07-28 | Restore authentication before protected navigation | `8911dd1dd7bc8a6e85ea8c76338bca2c428fcac5` | `-` |
 | 10 | 2026-07-27 | Normalize monorepo build and typecheck workflows | `2045fb20` | `-` |
 | 9 | 2026-07-26 | Fix pnpm lint errors | `291e117d9824bcc79b65870f2619231084554fc4` | `-` |

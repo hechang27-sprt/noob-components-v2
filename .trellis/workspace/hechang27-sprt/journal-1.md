@@ -403,3 +403,36 @@ Added unconditional host auth restoration, protected-router readiness gating, sa
 ### Next Steps
 
 - None - task complete
+
+
+## Session 12: Prototype i18n verification
+
+**Date**: 2026-08-01
+**Task**: Prototype i18n verification
+**Package**: ui
+
+### Summary
+
+Built and browser-verified a private component-local Vue I18n package, integrated it with demo preference-driven locale synchronization, documented fallback/declaration-build findings, and fed the result into the parent design.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `08cadb2fb85dda69119d628294094e1c3c9decce` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
