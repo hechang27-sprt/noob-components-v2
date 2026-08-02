@@ -1,0 +1,3 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ui/frontend/library-i18n-contract.md", "reason": "Verify i18n invariants and required checks"}
+{"file": ".trellis/spec/demo/frontend/runtime-integration-contract.md", "reason": "Verify demo browser integration"}

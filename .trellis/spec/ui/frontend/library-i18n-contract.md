@@ -59,6 +59,7 @@ watch(
 - Package plugin installation must defensively copy caller options. Later caller mutation must not affect mounted or subsequently mounted components.
 - Locale resources live at `src/locales/ComponentName/localeName.json`. A standalone library build precompiles those resources; consumers of the built library do not include library source in host Vite configuration.
 - A no-build workspace application that aliases libraries to source must precompile source locale JSON in its own Vite build. Use the repository's shared `createWorkspaceVueI18nPlugin()` preset, which covers conventional app/package locale paths without naming individual libraries. Never hard-code `../../packages/<library>/src/locales/**` in a host.
+- The shared workspace preset also owns locale JSON HMR. It records static relative JSON imports before Intlify resolves them to virtual modules, invalidates the affected precompiled virtual dependencies, and returns only their Vue component importers as HMR boundaries. Keep this behavior generic to conventional workspace locale paths; do not add component-level HMR registries.
 - Keep `resolveJsonModule: true` for source checking. Public locale interfaces must be self-contained: the current dist-only `unplugin-dts` build does not emit imported JSON resources, so exporting `typeof canonicalJson` leaves a dangling declaration import. Use explicit interfaces or generated self-contained declarations unless the build intentionally ships matching JSON declaration resources.
 - Escape literal `@` characters using Vue I18n message syntax; an unescaped `@` is parsed as a linked-message marker and fails precompilation.
 - Keep `vue` and `vue-i18n` as library peers and Vite externals. Workspace applications own runtime dependencies.
@@ -76,14 +77,15 @@ watch(
 | Built-package host adds a library-source include | Remove it; resource precompilation belongs to the library build. |
 | Source-consumer Vite preset omits package JSON | Build/precompilation verification fails; update the shared workspace glob convention once rather than configuring each consumer/package pair. |
 | Source-consuming host hard-codes a package-relative locale path or imports a package-specific include | Replace it with the shared workspace Vue I18n preset. |
+| Workspace locale edit leaves mounted source-consumed components stale | The preset must invalidate the Intlify virtual dependency before returning its Vue component importer; refreshing only the component reuses stale precompiled messages. |
 | Exported declaration references source JSON absent from `dist` | Declaration contract is invalid; replace it with an explicit/generated self-contained type or ship the resource deliberately. |
 | JSON message contains an unescaped literal `@` | Unplugin compilation fails; encode the literal with Vue I18n message syntax. |
 
 ## 5. Good, Base, and Bad Cases
 
-- **Good:** component-first JSON; empty local Composer; defaults then component override slice; local `fallbackRoot` correction; immutable override snapshot; host owns active/fallback locale; standalone library build owns its precompilation; source-consuming workspace uses one shared repository Vite preset.
+- **Good:** component-first JSON; empty local Composer; defaults then component override slice; local `fallbackRoot` correction; immutable override snapshot; host owns active/fallback locale; standalone library build owns its precompilation; source-consuming workspace uses one shared repository preset for precompilation and component-scoped locale HMR.
 - **Base:** host installs global Vue I18n with its fallback; package defaults render without package-plugin setup.
-- **Bad:** package messages registered globally; package plugin owns fallback locale; local Composer overwrites inherited fallback; imported JSON passed as the mutable initial `messages` object; package-wide overrides merged into every component; two-way Composer/store synchronization; process-global override registry; built consumer includes library source; source consumer hard-codes package layout; exported `typeof json` points at an unshipped file.
+- **Bad:** package messages registered globally; package plugin owns fallback locale; local Composer overwrites inherited fallback; imported JSON passed as the mutable initial `messages` object; package-wide overrides merged into every component; two-way Composer/store synchronization; process-global override registry; built consumer includes library source; source consumer hard-codes package layout; exported `typeof json` points at an unshipped file; locale HMR refreshes the document or returns a component while leaving its virtual locale dependency cached.
 
 ## 6. Tests Required
 
@@ -93,6 +95,7 @@ watch(
 - Inspect declarations: root exports are deliberate and no emitted `.d.ts` imports an absent locale JSON file.
 - Inspect build output or transform evidence: package and source-consuming application both contain precompiled message ASTs.
 - Runtime/browser assertions: defaults without plugin; partial override and sibling preservation; caller-mutation isolation; global registry does not receive package messages; supported locale propagation without remount; persisted preference reload; host-configured fallback while global active locale remains unchanged.
+- During source-consumer development, edit and restore at least two locale JSON files; assert rendered messages update while a page-lifetime marker and unrelated application state remain unchanged.
 
 ## 7. Wrong vs Correct
 
