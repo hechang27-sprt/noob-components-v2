@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 14
+- **Total Sessions**: 15
 - **Last Active**: 2026-08-02
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~504 | Active |
+| `journal-1.md` | ~536 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 15 | 2026-08-02 | Fix workspace locale JSON HMR | F`3c225cb5c7131a4d8ef8ed8ff415c778be57fb1` | `-` |
 | 14 | 2026-08-02 | Shared workspace Vue I18n Vite preset | `7cfbae248fd98cba5f804daaf4091a9ff4ab7e12` | `-` |
 | 13 | 2026-08-01 | Refine prototype i18n boundaries | A`71174e48454577b2fe3462877f781239ea086e2` | `-` |
 | 12 | 2026-08-01 | Prototype i18n verification | `08cadb2fb85dda69119d628294094e1c3c9decce` | `-` |

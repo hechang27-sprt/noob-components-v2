@@ -502,3 +502,35 @@ Replaced package-specific locale-resource exports with one repository-owned Vue 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 15: Fix workspace locale JSON HMR
+
+**Date**: 2026-08-02
+**Task**: Fix workspace locale JSON HMR
+
+### Summary
+
+Added component-scoped locale HMR to the shared Vue I18n Vite preset; verified English and Chinese edits update without page reload.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `F3c225cb5c7131a4d8ef8ed8ff415c778be57fb1` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
