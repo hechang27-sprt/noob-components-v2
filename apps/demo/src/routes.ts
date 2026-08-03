@@ -71,24 +71,45 @@ export type DemoNavKey = (typeof demoRouteRegistry.navKeys)[number];
 /** Describes host-owned presentation assigned when one destination opens as an AdminShell tab. */
 type DemoTabPresentation = Pick<AdminShellTabDescriptor, "label" | "closable">;
 
-/** Resolves destination-specific tab labels and close policy outside the router registry. */
-const tabPresentation = {
+/**
+ * Resolves destination-specific tab labels and close policy outside the router registry.
+ *
+ * Labels are I18nText message keys resolved by AdminShell against the global
+ * Composer, so open and restored tabs follow locale switches reactively.
+ */
+const tabPresentation: Record<
+  DemoNavKey,
+  (destination: AdminShellDestination) => DemoTabPresentation
+> = {
   /** Supplies the fixed non-closable home-tab presentation. */
-  dashboard: () => ({ label: "Dashboard", closable: false }),
+  dashboard: () => ({
+    label: { kind: "i18n", key: "tabs.dashboard" },
+    closable: false,
+  }),
   /** Supplies the routed i18n demonstration tab presentation. */
   internationalization: () => ({
-    label: "Internationalization",
+    label: { kind: "i18n", key: "tabs.internationalization" },
     closable: true,
   }),
   /** Supplies the report-list tab presentation. */
-  reports: () => ({ label: "Reports", closable: true }),
+  reports: () => ({
+    label: { kind: "i18n", key: "tabs.reports" },
+    closable: true,
+  }),
   /** Supplies the settings tab presentation. */
-  settings: () => ({ label: "Settings", closable: true }),
+  settings: () => ({
+    label: { kind: "i18n", key: "tabs.settings" },
+    closable: true,
+  }),
   /** Supplies a parameter-aware title for one report-detail tab. */
   detail: (destination: AdminShellDestination): DemoTabPresentation => {
     const reportId = destination.payload?.reportId;
     return {
-      label: `Report ${typeof reportId === "string" ? reportId : "detail"}`,
+      label: {
+        kind: "i18n",
+        key: "tabs.detail",
+        named: { id: typeof reportId === "string" ? reportId : "detail" },
+      },
       closable: true,
     };
   },

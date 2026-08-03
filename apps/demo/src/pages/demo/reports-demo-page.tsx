@@ -1,6 +1,7 @@
 import { useAdminShell } from "@noob-naive-ui/admin";
 import { NButton } from "naive-ui";
 import { defineComponent } from "vue";
+import { useI18n } from "vue-i18n";
 
 /** Renders the reports page with an application-owned detail navigation trigger. */
 export const ReportsDemoPage = defineComponent(
@@ -8,6 +9,8 @@ export const ReportsDemoPage = defineComponent(
   () => {
     /** Retains the nearest shell's descendant navigation control. */
     const { navigate } = useAdminShell();
+    /** Reads the demo's single global Composer for page text. */
+    const { t } = useI18n({ useScope: "global" });
 
     /** Opens a new detail page instance even when the destination is already open. */
     function openDetail(): void {
@@ -22,13 +25,12 @@ export const ReportsDemoPage = defineComponent(
 
     return () => (
       <main class="p-6">
-        <h1 class="m-0 text-2xl font-semibold">Reports</h1>
+        <h1 class="m-0 text-2xl font-semibold">{t("pages.reports.title")}</h1>
         <p class="mt-3 max-w-2xl text-base leading-6">
-          Open a report detail page that is intentionally absent from the
-          sidebar menu.
+          {t("pages.reports.description")}
         </p>
         <NButton type="primary" onClick={() => openDetail()}>
-          Open quarterly report detail
+          {t("pages.reports.openDetail")}
         </NButton>
       </main>
     );

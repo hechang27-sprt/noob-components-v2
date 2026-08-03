@@ -8,25 +8,44 @@ import {
   NResult,
   NSpin,
 } from "naive-ui";
-import { defineComponent, ref, useId } from "vue";
+import { objectEntries } from "tsafe/objectEntries";
+import { defineComponent, inject, ref, useId } from "vue";
+import { useI18n } from "vue-i18n";
 
+import adminLoginPageMessages from "../locales/AdminLoginPage.json";
+import {
+  DEFAULT_SNAPSHOT,
+  adminI18nOverridesKey,
+  selectAdminLoginPageOverrides,
+} from "../i18n/plugin";
 import type { AdminAuthStatus, AdminLoginValues } from "../runtime-contract";
 import { useAdminAuthStore } from "../stores/auth";
 
 export type AdminLoginPageProps = Record<string, never>;
 
-function getAnonymousStatusMessage(
+/**
+ * Resolves the locale message key for one anonymous status reason.
+ *
+ * @param reason - The anonymous auth status reason supplied by the auth store.
+ * @returns The status message key, or undefined for the default reason.
+ */
+function getAnonymousStatusMessageKey(
   reason: Extract<AdminAuthStatus, { kind: "anonymous" }>["reason"],
-): string | undefined {
+):
+  | "status.expired"
+  | "status.forbidden"
+  | "status.signedOut"
+  | "status.unknown"
+  | undefined {
   switch (reason) {
     case "expired":
-      return "Your session expired. Sign in again to continue.";
+      return "status.expired";
     case "forbidden":
-      return "You do not have access to that page. Sign in with a different account.";
+      return "status.forbidden";
     case "signed-out":
-      return "You have signed out.";
+      return "status.signedOut";
     case "unknown":
-      return "Sign in to continue.";
+      return "status.unknown";
     default:
       return undefined;
   }
@@ -39,6 +58,51 @@ export const AdminLoginPage = defineComponent(
     const username = ref("");
     const password = ref("");
     const remember = ref(false);
+
+    // The plugin's immutable override tree; absent plugin installation yields
+    // the frozen empty snapshot, so packaged defaults always render.
+    const { messages: adminOverrides } = inject(
+      adminI18nOverridesKey,
+      DEFAULT_SNAPSHOT,
+    );
+
+    // Fresh local registry inheriting root locale and fallback locale; the
+    // root's fallbackRoot flag is corrected below after creation.
+    const composer = useI18n({
+      useScope: "local",
+      inheritLocale: true,
+      fallbackRoot: false,
+    });
+
+    // Vue I18n 11.4.8: with `__root && inheritLocale` the local Composer
+    // initializes its fallback settings from the root/global Composer rather
+    // than the options. Keep the inherited fallback locale (host-owned) but
+    // disable root-message fallback so missing package keys never resolve
+    // from host-global message registries.
+    composer.fallbackRoot = false;
+
+    // Vue I18n documents these Composer functions as safely destructurable;
+    // its types do not yet convey that to the strict unbound-method rule.
+    // oxlint-disable-next-line typescript/unbound-method
+    const { mergeLocaleMessage, t } = composer;
+
+    // Fresh registry: packaged defaults first, the AdminLoginPage override
+    // slice second, so overrides win at the leaf without mutating imports.
+    for (const [locale, componentMessages] of objectEntries(
+      adminLoginPageMessages,
+    )) {
+      mergeLocaleMessage(locale, componentMessages);
+    }
+
+    for (const [overrideLocale, componentMessages] of objectEntries(
+      selectAdminLoginPageOverrides(adminOverrides),
+    )) {
+      // The type keeps locale keys optional, so guard the definedness that
+      // `objectEntries` iteration guarantees at runtime; no locale cast.
+      if (componentMessages !== undefined) {
+        mergeLocaleMessage(overrideLocale, componentMessages);
+      }
+    }
 
     function clearFeedback(): void {
       store.loginError = undefined;
@@ -72,11 +136,11 @@ export const AdminLoginPage = defineComponent(
             class="grid min-h-dvh place-items-center p-6 max-sm:items-start max-sm:p-4"
             aria-busy="true">
             <NCard class="w-full max-w-md" content-style="padding: 0">
-              <h1 class="sr-only">Checking your session</h1>
+              <h1 class="sr-only">{t("loading.title")}</h1>
               <p class="sr-only" role="status" aria-live="polite">
-                Checking your session…
+                {t("loading.description")}
               </p>
-              <NSpin show size="large" description="Checking your session…">
+              <NSpin show size="large" description={t("loading.description")}>
                 <div class="h-48" />
               </NSpin>
             </NCard>
@@ -86,19 +150,19 @@ export const AdminLoginPage = defineComponent(
 
       if (status.kind === "authenticated") {
         const description = status.userLabel
-          ? `Signed in as ${status.userLabel}.`
-          : "You are already signed in.";
+          ? t("alreadySignedIn.signedInAs", { user: status.userLabel })
+          : t("alreadySignedIn.generic");
 
         return (
           <main class="grid min-h-dvh place-items-center p-6 max-sm:items-start max-sm:p-4">
             <NCard class="w-full max-w-md" content-style="padding: 0">
-              <h1 class="sr-only">Already signed in</h1>
+              <h1 class="sr-only">{t("alreadySignedIn.title")}</h1>
               <p class="sr-only" role="status">
                 {description}
               </p>
               <NResult
                 status="success"
-                title="Already signed in"
+                title={t("alreadySignedIn.title")}
                 description={description}
               />
             </NCard>
@@ -106,12 +170,15 @@ export const AdminLoginPage = defineComponent(
         );
       }
 
-      const anonymousStatusMessage = getAnonymousStatusMessage(status.reason);
+      const statusMessageKey = getAnonymousStatusMessageKey(status.reason);
+      const anonymousStatusMessage = statusMessageKey
+        ? t(statusMessageKey)
+        : undefined;
 
       return (
         <main class="grid min-h-dvh place-items-center p-6 max-sm:items-start max-sm:p-4">
           <NCard class="w-full max-w-md">
-            <h1 class="mb-5 text-xl font-semibold">Sign in</h1>
+            <h1 class="mb-5 text-xl font-semibold">{t("form.signIn")}</h1>
             <NForm
               onSubmit={(event: Event) => {
                 event.preventDefault();
@@ -123,7 +190,7 @@ export const AdminLoginPage = defineComponent(
                 </p>
               ) : null}
               <NFormItem
-                label="Username"
+                label={t("form.username")}
                 label-props={{ for: `${formId}-username` }}>
                 <NInput
                   value={username.value}
@@ -141,7 +208,7 @@ export const AdminLoginPage = defineComponent(
                 />
               </NFormItem>
               <NFormItem
-                label="Password"
+                label={t("form.password")}
                 label-props={{ for: `${formId}-password` }}>
                 <NInput
                   type="password"
@@ -167,7 +234,7 @@ export const AdminLoginPage = defineComponent(
                     remember.value = checked as boolean;
                     clearFeedback();
                   }}>
-                  Remember me
+                  {t("form.rememberMe")}
                 </NCheckbox>
               </NFormItem>
               {store.loginError ? (
@@ -181,7 +248,7 @@ export const AdminLoginPage = defineComponent(
                 block
                 loading={pending}
                 disabled={pending}>
-                {pending ? "Signing in…" : "Sign in"}
+                {pending ? t("form.signingIn") : t("form.signIn")}
               </NButton>
             </NForm>
           </NCard>

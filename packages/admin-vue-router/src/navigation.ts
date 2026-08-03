@@ -3,6 +3,7 @@ import {
   type AdminShellNavigation,
   type AdminShellNavigationRequest,
   type AdminShellTabDescriptor,
+  adminI18nTextSchema,
 } from "@noob-naive-ui/admin";
 import type {
   HistoryState,
@@ -22,7 +23,9 @@ const DEFAULT_ADMIN_SHELL_HISTORY_STATE_KEY = "_noobAdminShell";
 /** Validates the adapter-owned subset persisted for one tab instance. */
 const persistedAdminShellTabSchema = z.object({
   id: z.string(),
-  label: z.string(),
+  // The label persists as its I18nText representation, so `i18n` keys
+  // survive restores and render in the current locale after refresh.
+  label: adminI18nTextSchema,
   closable: z.boolean().optional(),
 });
 

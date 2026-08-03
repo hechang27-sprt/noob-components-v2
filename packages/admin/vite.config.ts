@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 
+import vueI18n from "@intlify/unplugin-vue-i18n/vite";
 import tailwindcss from "@tailwindcss/vite";
 import vueJsx from "@vitejs/plugin-vue-jsx";
 import { defineConfig } from "vitest/config";
@@ -9,6 +10,9 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
     vueJsx(),
+    vueI18n({
+      include: [resolve(__dirname, "src/locales/**")],
+    }),
     dts({ tsconfigPath: "./tsconfig.build.json" }),
   ],
   build: {

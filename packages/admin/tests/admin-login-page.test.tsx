@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
 
-import { createApp, h, nextTick, type App } from "vue";
+import { createApp, nextTick, type App } from "vue";
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createI18n } from "vue-i18n";
 
 import { AdminLoginPage } from "../src/components/admin-login-page";
 import { useAdminAuthStore } from "../src/stores/auth";
@@ -12,6 +13,14 @@ import type {
 } from "../src/runtime-contract";
 
 const mountedApps: App[] = [];
+
+/** Installs one shared global Composer so package components resolve i18n in tests. */
+const testI18n = createI18n({
+  legacy: false,
+  locale: "en",
+  fallbackLocale: "en",
+  messages: {},
+});
 
 afterEach(() => {
   for (const app of mountedApps.splice(0)) {
@@ -31,6 +40,7 @@ function mountLoginPage(
   const pinia = createPinia();
   const app = createApp(AdminLoginPage);
   app.use(pinia);
+  app.use(testI18n);
   setActivePinia(pinia);
 
   const store = useAdminAuthStore();
@@ -55,8 +65,14 @@ function mountLoginPages(
   document.body.append(target);
 
   const pinia = createPinia();
-  const app = createApp(() => h("div", [h(AdminLoginPage), h(AdminLoginPage)]));
+  const app = createApp(() => (
+    <div>
+      <AdminLoginPage />
+      <AdminLoginPage />
+    </div>
+  ));
   app.use(pinia);
+  app.use(testI18n);
   setActivePinia(pinia);
   const store = useAdminAuthStore();
   store.configure({

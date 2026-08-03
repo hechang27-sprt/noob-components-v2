@@ -9,13 +9,13 @@ import {
 import { createAdminRouter } from "@noob-naive-ui/admin-vue-router";
 import type { MenuOption } from "naive-ui";
 import { createPinia } from "pinia";
-import { createApp, ref, watch } from "vue";
-import { createI18n } from "vue-i18n";
+import { createApp, ref } from "vue";
 import { createWebHistory } from "vue-router";
 
 import "@noob-naive-ui/admin/style.css";
 
 import App from "./App";
+import { i18n } from "./i18n";
 import {
   demoRouteRegistry,
   describeDemoDestination,
@@ -45,7 +45,7 @@ async function login(values: AdminLoginValues): Promise<AdminAuthIdentity> {
   const username = values.username.trim();
   const password = values.password.trim();
   if (!username || !password) {
-    throw new Error("Username and password are required.");
+    throw new Error(i18n.global.t("login.credentialsRequired"));
   }
   const targetStorage = values.remember
     ? window.localStorage
@@ -88,27 +88,17 @@ preferences.initialize({
       { key: "zh-CN", label: "简体中文" },
     ],
   },
-});
-
-/** Creates the demo's single Composition API global Vue I18n instance. */
-const i18n = createI18n({
-  legacy: false,
-  locale: "en",
   fallbackLocale: "en",
 });
 
 /**
- * One-way locale synchronization from the preference store to the global
- * Composer. Immediate so the restored preference locale is authoritative at
- * startup; later AdminShell locale selections flow one way to the Composer.
+ * Seeds the global Composer active locale from the hydrated preference so the
+ * pre-auth login page renders the restored locale before AdminShell mounts.
+ * The store locale is string-typed by contract; the demo Composer's active
+ * locale type is the packaged message-key union. An unsupported value stays
+ * active and renders through the host-owned fallback, per the i18n contract.
  */
-watch(
-  () => preferences.locale,
-  (locale) => {
-    i18n.global.locale.value = locale;
-  },
-  { immediate: true },
-);
+i18n.global.locale.value = preferences.locale as "en" | "zh-CN";
 
 /** Supplies demo menu hierarchy through the reactive admin menu store. */
 const menu = useAdminShellMenuStore(pinia);
@@ -128,38 +118,41 @@ const router = createAdminRouter({
 /** Mounts the backend-free demonstration with the package-owned admin router. */
 const app = createApp(App).use(pinia).use(i18n).use(router);
 
-/** import a package's corresponding i18n plugin to override localization messages */
-// import { prototypeI18nPlugin } from "@noob-naive-ui/prototype-i18n-verification";
-// app.use(prototypeI18nPlugin, {
+/** Import a package's corresponding i18n plugin to override localization messages. */
+// import { adminI18nPlugin } from "@noob-naive-ui/admin";
+// app.use(adminI18nPlugin, {
 //   messages: {
-//     en: { PrototypeCard: { title: "Overridden prototype title" } },
-//     "zh-CN": { PrototypeCard: { title: "修改后的标题" } },
+//     en: { AdminShell: { account: { signOut: "Log out" } } },
+//     "zh-CN": { AdminShell: { account: { signOut: "退出" } } },
 //   },
 // });
 app.mount("#app");
 
-/** Creates one plain menu option while preserving host-owned nav-key identity. */
-function createMenuOption(navKey: DemoNavKey, label: string): MenuOption {
-  return { key: navKey, label };
+/** Creates one menu option with a reactive locale label while preserving host-owned nav-key identity. */
+function createMenuOption(
+  navKey: DemoNavKey,
+  labelKey: `nav.${string}`,
+): MenuOption {
+  return { key: navKey, label: () => i18n.global.t(labelKey) };
 }
 
 /** Supplies the demo menu tree without coupling its hierarchy to route generation. */
 function createDemoMenu(): MenuOption[] {
   return [
-    createMenuOption("dashboard", "Dashboard"),
+    createMenuOption("dashboard", "nav.dashboard"),
     {
       key: "demo",
-      label: "Demo",
+      label: () => i18n.global.t("nav.demo"),
       children: [
-        createMenuOption("internationalization", "Internationalization"),
+        createMenuOption("internationalization", "nav.internationalization"),
       ],
     },
     {
       key: "workspace",
-      label: "Workspace",
+      label: () => i18n.global.t("nav.workspace"),
       children: [
-        createMenuOption("reports", "Reports"),
-        createMenuOption("settings", "Settings"),
+        createMenuOption("reports", "nav.reports"),
+        createMenuOption("settings", "nav.settings"),
       ],
     },
   ];

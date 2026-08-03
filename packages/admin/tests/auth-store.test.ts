@@ -99,7 +99,7 @@ describe("admin auth store — waitForRestoration", () => {
     const waitPromise = store.waitForRestoration();
 
     let resolved = false;
-    waitPromise.then(() => {
+    void waitPromise.then(() => {
       resolved = true;
     });
 

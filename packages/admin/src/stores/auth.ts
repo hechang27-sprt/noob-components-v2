@@ -94,7 +94,7 @@ export const useAdminAuthStore = defineStore("admin-auth", () => {
   function startRestore(): void {
     ({ promise: restorePromise, resolve: restoreResolver } =
       Promise.withResolvers<void>());
-    loadAndRestore();
+    void loadAndRestore();
   }
 
   async function loadAndRestore(): Promise<void> {

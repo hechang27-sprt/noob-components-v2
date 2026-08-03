@@ -19,6 +19,7 @@ import {
   TextOutline,
 } from "@vicons/ionicons5";
 import { ProLayout } from "pro-naive-ui";
+import { objectEntries } from "tsafe/objectEntries";
 import {
   defineComponent,
   inject,
@@ -30,19 +31,20 @@ import {
   watch,
   type InjectionKey,
 } from "vue";
+import { useI18n } from "vue-i18n";
 
+import adminShellMessages from "../locales/AdminShell.json";
+import { resolveI18nText, type I18nText } from "../i18n/i18n-text";
+import {
+  DEFAULT_SNAPSHOT,
+  adminI18nOverridesKey,
+  selectAdminShellOverrides,
+} from "../i18n/plugin";
 import type { AdminLocaleOption } from "../runtime-contract";
 import { useAdminAuthStore } from "../stores/auth";
 import { useAdminShellPreferencesStore } from "../stores/shell-preferences";
 import { useAdminShellMenuStore } from "../stores/menu";
 import { useAdminShellNavigationStore } from "../stores/navigation";
-
-/** Presents the fixed font-size choices without rebuilding dropdown options per render. */
-const fontSizeOptions = [
-  { key: "small", label: "Small" },
-  { key: "medium", label: "Medium" },
-  { key: "large", label: "Large" },
-] satisfies DropdownOption[];
 
 /** Renders the Vicons glyph that distinguishes the account menu's logout action. */
 function renderLogoutIcon() {
@@ -52,11 +54,6 @@ function renderLogoutIcon() {
     </NIcon>
   );
 }
-
-/** Presents the fixed account actions without rebuilding their option descriptors per render. */
-const accountOptions = [
-  { key: "logout", label: "Sign out", icon: renderLogoutIcon },
-] satisfies DropdownOption[];
 
 /** Selects whether one navigation call opens a page or activates an existing page instance. */
 export type AdminShellTabNavigationDecision =
@@ -115,8 +112,12 @@ export type AdminShellTabDescriptor = {
   id: string;
   /** Supplies the router-neutral destination represented by this page instance. */
   nav: AdminShellDestination;
-  /** Supplies the user-visible tab label confirmed by the host. */
-  label: string;
+  /**
+   * Supplies the displayable tab label. `i18n` labels resolve against the
+   * host global Composer at render time (reactive to locale changes) and are
+   * persisted by their message key; `string` labels render verbatim.
+   */
+  label: I18nText;
   /** Allows the host to keep a page instance permanently open when false. */
   closable?: boolean;
 };
@@ -182,8 +183,29 @@ export type AdminShellNavigation = {
 };
 
 /** Returns a public immutable snapshot without shell-private mutable fields. */
+/**
+ * Builds one plain-data descriptor snapshot for navigation requests.
+ *
+ * Tab records live in a reactive map, so their nested objects are reactive
+ * proxies; the adapter persists descriptors with `structuredClone`, which
+ * cannot clone proxies. Shallow copies keep the snapshot plain while the tab
+ * records stay reactive for rendering.
+ */
 function snapshotTab(tab: AdminShellTab): AdminShellTabDescriptor {
-  return { id: tab.id, nav: tab.nav, label: tab.label, closable: tab.closable };
+  const label = tab.label;
+  return {
+    id: tab.id,
+    nav: { ...tab.nav },
+    label:
+      label.kind === "i18n"
+        ? {
+            kind: "i18n",
+            key: label.key,
+            named: label.named ? { ...label.named } : undefined,
+          }
+        : { kind: "string", value: label.value },
+    closable: tab.closable,
+  };
 }
 
 export const AdminShell = defineComponent(
@@ -196,6 +218,70 @@ export const AdminShell = defineComponent(
     const menu = useAdminShellMenuStore();
     /** Reads the host-configured navigation adapter from the admin package runtime. */
     const nav = useAdminShellNavigationStore();
+
+    // The plugin's immutable override tree; absent plugin installation yields
+    // the frozen empty snapshot, so packaged defaults always render.
+    const { messages: adminOverrides } = inject(
+      adminI18nOverridesKey,
+      DEFAULT_SNAPSHOT,
+    );
+
+    // Fresh local registry inheriting root locale and fallback locale; the
+    // root's fallbackRoot flag is corrected below after creation.
+    const composer = useI18n({
+      useScope: "local",
+      inheritLocale: true,
+      fallbackRoot: false,
+    });
+
+    // Vue I18n 11.4.8: with `__root && inheritLocale` the local Composer
+    // initializes its fallback settings from the root/global Composer rather
+    // than the options. Keep the inherited fallback locale (host-owned) but
+    // disable root-message fallback so missing package keys never resolve
+    // from host-global message registries.
+    composer.fallbackRoot = false;
+
+    // Vue I18n documents these Composer functions as safely destructurable;
+    // its types do not yet convey that to the strict unbound-method rule.
+    // oxlint-disable-next-line typescript/unbound-method
+    const { mergeLocaleMessage, t } = composer;
+
+    // Fresh registry: packaged defaults first, the AdminShell override slice
+    // second, so overrides win at the leaf without mutating the imports.
+    for (const [locale, componentMessages] of objectEntries(
+      adminShellMessages,
+    )) {
+      mergeLocaleMessage(locale, componentMessages);
+    }
+
+    for (const [overrideLocale, componentMessages] of objectEntries(
+      selectAdminShellOverrides(adminOverrides),
+    )) {
+      // The type keeps locale keys optional, so guard the definedness that
+      // `objectEntries` iteration guarantees at runtime; no locale cast.
+      if (componentMessages !== undefined) {
+        mergeLocaleMessage(overrideLocale, componentMessages);
+      }
+    }
+
+    /** Reads the host's single global Composer for one-way locale sync. */
+    const globalComposer = useI18n({ useScope: "global" });
+
+    /**
+     * Synchronizes the persisted preference locale into the global Composer
+     * one way. Immediate so the hydrated preference is authoritative when the
+     * shell mounts; AdminShell locale selections flow store → Composer and
+     * inheriting local Composers follow automatically. The host seeds the
+     * Composer at creation for the pre-auth login page.
+     */
+    watch(
+      () => preferences.locale,
+      (locale) => {
+        globalComposer.locale.value = locale;
+      },
+      { immediate: true },
+    );
+
     /** Stores committed page instances by immutable ID. */
     const tabs = reactive(new Map<string, AdminShellTab>());
     /** Owns the sole user-visible page-instance ordering. */
@@ -276,8 +362,9 @@ export const AdminShell = defineComponent(
           destination: snapshotTab(tab),
           current: navigation.active,
         });
-      } catch {
-        if (tabs.get(id) === tab) tabError.value = "Unable to navigate.";
+      } catch (error) {
+        console.error("activateTab failed:", error);
+        if (tabs.get(id) === tab) tabError.value = t("errors.unableToNavigate");
       } finally {
         if (tabs.get(id) === tab) tab.activationPending = false;
       }
@@ -325,9 +412,10 @@ export const AdminShell = defineComponent(
           result.active?.id === candidate.id
         )
           recordCurrentTab(result.active);
-      } catch {
+      } catch (error) {
+        console.error("requestDestination failed:", error);
         if (nav.navigation === navigation && pendingOpen.value === candidate)
-          tabError.value = "Unable to navigate.";
+          tabError.value = t("errors.unableToNavigate");
       } finally {
         if (pendingOpen.value === candidate) pendingOpen.value = undefined;
       }
@@ -376,8 +464,9 @@ export const AdminShell = defineComponent(
           if (index !== -1) visibleTabs.value.splice(index, 1);
           reindexTabs();
         }
-      } catch {
-        if (tabs.get(id) === tab) tabError.value = "Unable to close tab.";
+      } catch (error) {
+        console.error("closeTab failed:", error);
+        if (tabs.get(id) === tab) tabError.value = t("errors.unableToCloseTab");
       } finally {
         if (tabs.get(id) === tab) tab.closePending = false;
       }
@@ -487,10 +576,23 @@ export const AdminShell = defineComponent(
       const activeMenuKey = nav.navigation?.active?.nav.navKey;
       const localeOptions: AdminLocaleOption[] = preferences.availableLocales;
       const menuOptions = menu.options;
+
+      /** Presents the fixed font-size choices with reactive locale labels. */
+      const fontSizeOptions = [
+        { key: "small", label: t("fontSize.small") },
+        { key: "medium", label: t("fontSize.medium") },
+        { key: "large", label: t("fontSize.large") },
+      ] satisfies DropdownOption[];
+
+      /** Presents the fixed account actions with a reactive locale label. */
+      const accountOptions = [
+        { key: "logout", label: t("account.signOut"), icon: renderLogoutIcon },
+      ] satisfies DropdownOption[];
+
       const userLabel =
         status.kind === "authenticated"
-          ? (status.userLabel ?? "Signed in")
-          : "Signed in";
+          ? (status.userLabel ?? t("signedIn"))
+          : t("signedIn");
 
       const fontSizeLabel =
         fontSizeOptions.find(({ key }) => key === preferences.fontSize)
@@ -512,8 +614,8 @@ export const AdminShell = defineComponent(
               data-admin-control="sidebar"
               aria-label={
                 preferences.sidebarCollapsed
-                  ? "Expand sidebar"
-                  : "Collapse sidebar"
+                  ? t("aria.sidebarExpand")
+                  : t("aria.sidebarCollapse")
               }
               aria-pressed={preferences.sidebarCollapsed}
               onClick={() =>
@@ -538,8 +640,8 @@ export const AdminShell = defineComponent(
               }
               aria-label={
                 preferences.themeMode === "dark"
-                  ? "Switch to light theme"
-                  : "Switch to dark theme"
+                  ? t("aria.themeLight")
+                  : t("aria.themeDark")
               }
               onClick={toggleThemeMode}>
               <NIcon component={themeIcon} size={18} />
@@ -556,7 +658,7 @@ export const AdminShell = defineComponent(
                 circle
                 size="large"
                 data-admin-control="font-size"
-                aria-label={`Font size: ${fontSizeLabel}`}>
+                aria-label={t("aria.fontSize", { label: fontSizeLabel })}>
                 <NIcon size={18}>
                   <TextOutline />
                 </NIcon>
@@ -576,7 +678,7 @@ export const AdminShell = defineComponent(
                 size="large"
                 data-admin-control="locale"
                 disabled={localeOptions.length === 0}
-                aria-label={`Language: ${localeLabel}`}>
+                aria-label={t("aria.language", { label: localeLabel })}>
                 <NIcon size={18}>
                   <LanguageOutline />
                 </NIcon>
@@ -596,7 +698,7 @@ export const AdminShell = defineComponent(
                 data-admin-control="account"
                 disabled={pending}
                 loading={pending}
-                aria-label={`Account: ${userLabel}`}>
+                aria-label={t("aria.account", { user: userLabel })}>
                 <NThing>
                   {{
                     avatar: () => (
@@ -630,7 +732,10 @@ export const AdminShell = defineComponent(
           : undefined,
         tabbar: nav.navigation
           ? () => (
-              <div class="min-w-0" role="tablist" aria-label="Open pages">
+              <div
+                class="min-w-0"
+                role="tablist"
+                aria-label={t("tabs.openPages")}>
                 <NTabs
                   type="card"
                   size="small"
@@ -656,7 +761,11 @@ export const AdminShell = defineComponent(
                       <NTab
                         key={tab.id}
                         name={tab.id}
-                        tab={tab.label}
+                        tab={resolveI18nText(tab.label, (key, named) =>
+                          named
+                            ? globalComposer.t(key, named)
+                            : globalComposer.t(key),
+                        )}
                         closable={tab.closable !== false}
                         data-admin-tab-key={tab.id}
                         data-admin-tab-active={active}

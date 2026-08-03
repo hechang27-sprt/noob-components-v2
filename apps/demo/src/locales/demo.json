@@ -1,0 +1,88 @@
+{
+  "en": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "internationalization": "Internationalization",
+      "reports": "Reports",
+      "settings": "Settings",
+      "demo": "Demo",
+      "workspace": "Workspace"
+    },
+    "tabs": {
+      "dashboard": "Dashboard",
+      "internationalization": "Internationalization",
+      "reports": "Reports",
+      "settings": "Settings",
+      "detail": "Report {id}"
+    },
+    "login": {
+      "credentialsRequired": "Username and password are required."
+    },
+    "pages": {
+      "dashboard": {
+        "title": "Dashboard",
+        "description": "This local page demonstrates the non-closable home tab in the public admin shell."
+      },
+      "internationalization": {
+        "title": "Internationalization",
+        "description": "This routed page demonstrates the host preference-to-Composer locale synchronization and the prototype i18n verification card."
+      },
+      "reports": {
+        "title": "Reports",
+        "description": "Open a report detail page that is intentionally absent from the sidebar menu.",
+        "openDetail": "Open quarterly report detail"
+      },
+      "settings": {
+        "title": "Settings",
+        "description": "Use the runtime controls in the shell header to try its persisted frontend preferences."
+      },
+      "detail": {
+        "title": "Report detail: {id}",
+        "description": "Report {id} was opened by a page-owned action and has no sidebar menu item."
+      }
+    }
+  },
+  "zh-CN": {
+    "nav": {
+      "dashboard": "仪表盘",
+      "internationalization": "国际化",
+      "reports": "报表",
+      "settings": "设置",
+      "demo": "演示",
+      "workspace": "工作区"
+    },
+    "tabs": {
+      "dashboard": "仪表盘",
+      "internationalization": "国际化",
+      "reports": "报表",
+      "settings": "设置",
+      "detail": "报表 {id}"
+    },
+    "login": {
+      "credentialsRequired": "请输入用户名和密码。"
+    },
+    "pages": {
+      "dashboard": {
+        "title": "仪表盘",
+        "description": "此本地页面演示公共 AdminShell 中不可关闭的主页标签页。"
+      },
+      "internationalization": {
+        "title": "国际化",
+        "description": "此路由页面演示主机偏好到 Composer 的语言同步以及原型 i18n 验证卡片。"
+      },
+      "reports": {
+        "title": "报表",
+        "description": "打开一个故意不在侧边栏菜单中的报表详情页面。",
+        "openDetail": "打开季度报表详情"
+      },
+      "settings": {
+        "title": "设置",
+        "description": "使用壳层头部中的运行时控件体验其持久化的前端偏好。"
+      },
+      "detail": {
+        "title": "报表详情：{id}",
+        "description": "报表 {id} 由页面自身的操作打开，且没有侧边栏菜单项。"
+      }
+    }
+  }
+}

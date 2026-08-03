@@ -62,7 +62,10 @@ function describeDestination(
   return {
     id,
     nav,
-    label: `${nav.navKey}:${typeof reportId === "string" ? reportId : "home"}`,
+    label: {
+      kind: "string",
+      value: `${nav.navKey}:${typeof reportId === "string" ? reportId : "home"}`,
+    },
     closable: nav.navKey !== "dashboard",
   };
 }
@@ -158,7 +161,7 @@ describe("createAdminShellVueRouterRuntime", () => {
         state: {
           _noobAdminShell: {
             scopeId,
-            tab: { id: "stale-tab", label: "Stale" },
+            tab: { id: "stale-tab", label: { kind: "string", value: "Stale" } },
           },
         },
       });
@@ -210,7 +213,10 @@ describe("createAdminShellVueRouterRuntime", () => {
         (router.options.history.state as Record<string, unknown>)
           ._noobAdminShell,
       ).toMatchObject({
-        tab: { id: expect.any(String), label: expect.any(String) },
+        tab: {
+          id: expect.any(String),
+          label: { kind: "string", value: expect.any(String) },
+        },
       });
 
       remove();
@@ -253,11 +259,20 @@ describe("createAdminShellVueRouterRuntime", () => {
         string,
         unknown
       >;
-      const repairedTab = (
-        repairedState._noobAdminShell as { tab: { id: string; label: string } }
-      ).tab;
-      expect(typeof repairedTab.id).toBe("string");
-      expect(repairedTab.id.length).toBeGreaterThan(0);
+      const repairedShell = repairedState._noobAdminShell;
+      const repairedTab =
+        repairedShell !== null &&
+        typeof repairedShell === "object" &&
+        "tab" in repairedShell &&
+        repairedShell.tab !== null &&
+        typeof repairedShell.tab === "object"
+          ? repairedShell.tab
+          : undefined;
+      // The adapter stamps a home descriptor here; the guard only recovers it
+      // from Vue Router's erased HistoryState typing.
+      const persistedTab = repairedTab as { id: string };
+      expect(typeof persistedTab.id).toBe("string");
+      expect(persistedTab.id.length).toBeGreaterThan(0);
 
       remove();
     });
@@ -367,7 +382,7 @@ describe("createAdminShellVueRouterRuntime", () => {
 
     expect(navigation.active).toEqual({
       id: first?.id,
-      label: "detail:r-1",
+      label: { kind: "string", value: "detail:r-1" },
       closable: true,
       nav: {
         navKey: "detail",
@@ -429,7 +444,7 @@ describe("createAdminShellVueRouterRuntime", () => {
 
     expect(result.active).toEqual({
       id: "tab-1",
-      label: "detail:r-1",
+      label: { kind: "string", value: "detail:r-1" },
       closable: true,
       nav: {
         navKey: "detail",
@@ -439,7 +454,11 @@ describe("createAdminShellVueRouterRuntime", () => {
     expect(router.options.history.state).toMatchObject({
       section: "summary",
       _noobAdminShell: {
-        tab: { id: "tab-1", label: "detail:r-1", closable: true },
+        tab: {
+          id: "tab-1",
+          label: { kind: "string", value: "detail:r-1" },
+          closable: true,
+        },
       },
     });
     expect(JSON.stringify(router.options.history.state)).not.toContain('"nav"');
@@ -462,7 +481,7 @@ describe("createAdminShellVueRouterRuntime", () => {
           scopeId: "scope-1",
           tab: {
             id: "persisted",
-            label: "Persisted",
+            label: { kind: "string", value: "Persisted" },
             closable: true,
             extra: "strip",
           },
@@ -471,7 +490,7 @@ describe("createAdminShellVueRouterRuntime", () => {
     });
     expect(navigation.active).toEqual({
       id: "persisted",
-      label: "Persisted",
+      label: { kind: "string", value: "Persisted" },
       closable: true,
       nav: {
         navKey: "detail",
@@ -491,7 +510,10 @@ describe("createAdminShellVueRouterRuntime", () => {
       },
     });
     expect(navigation.active?.id).toBe("generated-1");
-    expect(navigation.active?.label).toBe("detail:r-3");
+    expect(navigation.active?.label).toEqual({
+      kind: "string",
+      value: "detail:r-3",
+    });
   });
 
   it("activates and closes through exact fallback descriptors", async () => {

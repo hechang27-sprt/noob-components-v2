@@ -1,0 +1,50 @@
+{
+  "en": {
+    "loading": {
+      "title": "Checking your session",
+      "description": "Checking your session…"
+    },
+    "alreadySignedIn": {
+      "title": "Already signed in",
+      "signedInAs": "Signed in as {user}.",
+      "generic": "You are already signed in."
+    },
+    "status": {
+      "expired": "Your session expired. Sign in again to continue.",
+      "forbidden": "You do not have access to that page. Sign in with a different account.",
+      "signedOut": "You have signed out.",
+      "unknown": "Sign in to continue."
+    },
+    "form": {
+      "signIn": "Sign in",
+      "username": "Username",
+      "password": "Password",
+      "rememberMe": "Remember me",
+      "signingIn": "Signing in…"
+    }
+  },
+  "zh-CN": {
+    "loading": {
+      "title": "正在检查会话",
+      "description": "正在检查会话…"
+    },
+    "alreadySignedIn": {
+      "title": "已登录",
+      "signedInAs": "已以 {user} 身份登录。",
+      "generic": "您已经登录。"
+    },
+    "status": {
+      "expired": "您的会话已过期，请重新登录以继续。",
+      "forbidden": "您无权访问该页面，请使用其他账户登录。",
+      "signedOut": "您已退出登录。",
+      "unknown": "请登录以继续。"
+    },
+    "form": {
+      "signIn": "登录",
+      "username": "用户名",
+      "password": "密码",
+      "rememberMe": "记住我",
+      "signingIn": "正在登录…"
+    }
+  }
+}

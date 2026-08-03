@@ -36,6 +36,7 @@
   "dependencies": {
     "@noob-naive-ui/ui": "workspace:*",
     "@vicons/ionicons5": "^0.13.0",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "tsafe": "^1.8.12"
   }
 }

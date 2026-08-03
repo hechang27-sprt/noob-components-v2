@@ -1,0 +1,40 @@
+{
+  "en": {
+    "account": { "signOut": "Sign out" },
+    "fontSize": { "small": "Small", "medium": "Medium", "large": "Large" },
+    "aria": {
+      "fontSize": "Font size: {label}",
+      "language": "Language: {label}",
+      "account": "Account: {user}",
+      "themeLight": "Switch to light theme",
+      "themeDark": "Switch to dark theme",
+      "sidebarExpand": "Expand sidebar",
+      "sidebarCollapse": "Collapse sidebar"
+    },
+    "tabs": { "openPages": "Open pages" },
+    "errors": {
+      "unableToNavigate": "Unable to navigate.",
+      "unableToCloseTab": "Unable to close tab."
+    },
+    "signedIn": "Signed in"
+  },
+  "zh-CN": {
+    "account": { "signOut": "退出登录" },
+    "fontSize": { "small": "小", "medium": "中", "large": "大" },
+    "aria": {
+      "fontSize": "字号：{label}",
+      "language": "语言：{label}",
+      "account": "账户：{user}",
+      "themeLight": "切换到浅色主题",
+      "themeDark": "切换到深色主题",
+      "sidebarExpand": "展开侧边栏",
+      "sidebarCollapse": "收起侧边栏"
+    },
+    "tabs": { "openPages": "打开的页面" },
+    "errors": {
+      "unableToNavigate": "无法导航。",
+      "unableToCloseTab": "无法关闭标签页。"
+    },
+    "signedIn": "已登录"
+  }
+}

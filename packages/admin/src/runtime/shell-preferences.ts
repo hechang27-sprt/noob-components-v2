@@ -15,12 +15,16 @@ export type AdminShellPreferencesStorage = Pick<
 export type AdminShellPreferencesStoreOptions = {
   defaults?: Partial<AdminShellPreferences>;
   storage?: AdminShellPreferencesStorage | null;
+  /** Host-owned naive-ui fallback locale; runtime-only, never persisted. */
+  fallbackLocale?: string;
 };
 
 const STORAGE_KEY = "@noob-naive-ui/admin:shell-preferences";
 const DEFAULT_THEME_MODE: AdminThemeMode = "system";
 const DEFAULT_FONT_SIZE: AdminFontSize = "medium";
 const DEFAULT_LOCALE = "en";
+/** Host-owned naive-ui fallback locale applied when the active locale is unsupported. */
+export const DEFAULT_FALLBACK_LOCALE = "en";
 
 const themeModeValues = [
   "light",

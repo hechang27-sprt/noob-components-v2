@@ -22,6 +22,24 @@ export { useAdminShellMenuStore } from "./stores/menu";
 export { useAdminShellNavigationStore } from "./stores/navigation";
 
 export {
+  adminI18nPlugin,
+  selectAdminLoginPageOverrides,
+  selectAdminShellOverrides,
+} from "./i18n/plugin";
+export type {
+  AdminComponentId,
+  AdminLocale,
+  AdminLocaleName,
+  AdminLocaleOverrides,
+  AdminLoginPageLocale,
+  AdminShellLocale,
+} from "./i18n/admin-locale";
+export type { AdminI18nPluginOptions, AdminI18nSnapshot } from "./i18n/plugin";
+
+export { resolveAdminNaiveUiLocale } from "./runtime/naive-ui-config";
+export type { AdminNaiveUiConfig } from "./runtime/naive-ui-config";
+
+export {
   AdminLoginPage,
   type AdminLoginPageProps,
 } from "./components/admin-login-page";
@@ -41,3 +59,6 @@ export {
   type AdminShellTabNavigationResolver,
   useAdminShell,
 } from "./components/admin-shell";
+
+export { adminI18nTextSchema, resolveI18nText } from "./i18n/i18n-text";
+export type { I18nText } from "./i18n/i18n-text";

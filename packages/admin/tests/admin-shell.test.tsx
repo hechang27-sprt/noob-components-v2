@@ -5,13 +5,13 @@ import { createPinia, setActivePinia } from "pinia";
 import {
   createApp,
   defineComponent,
-  h,
   nextTick,
   reactive,
   type App,
   type VNodeChild,
 } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createI18n } from "vue-i18n";
 
 import { AdminShell, useAdminShell } from "../src/components/admin-shell";
 import type {
@@ -52,6 +52,17 @@ const ShellContextConsumer = defineComponent(
 /** Retains mounted apps until cleanup prevents DOM and Pinia state leakage between tests. */
 const mountedApps: App[] = [];
 
+/** Installs one shared global Composer so package components resolve i18n in tests. */
+const testI18n = createI18n({
+  legacy: false,
+  locale: "en",
+  fallbackLocale: "en",
+  messages: {
+    en: { tabs: { home: "Home tab" } },
+    "zh-CN": { tabs: { home: "中文首页" } },
+  },
+});
+
 /**
  * Unmounts every mounted application and clears the happy-dom document.
  *
@@ -62,6 +73,7 @@ function cleanMountedApps(): void {
     app.unmount();
   }
   document.body.replaceChildren();
+  testI18n.global.locale.value = "en";
 }
 
 afterEach(cleanMountedApps);
@@ -115,20 +127,19 @@ function mountShell(
   const slots = {
     default:
       options.defaultSlot ??
-      (options.content
-        ? () => h("div", { "data-slot": options.content })
-        : undefined),
+      (options.content ? () => <div data-slot={options.content} /> : undefined),
     sidebar: options.sidebarContent
-      ? () => h("div", { "data-slot": options.sidebarContent })
+      ? () => <div data-slot={options.sidebarContent} />
       : undefined,
     tabbar: options.tabbarContent
-      ? () => h("div", { "data-slot": options.tabbarContent })
+      ? () => <div data-slot={options.tabbarContent} />
       : undefined,
   };
   const app = createApp({
-    setup: () => () => h(AdminShell, {}, slots),
+    setup: () => () => <AdminShell v-slots={slots} />,
   });
   app.use(pinia);
+  app.use(testI18n);
   app.mount(target);
   mountedApps.push(app);
   return target;
@@ -219,8 +230,11 @@ describe("AdminShell", () => {
         children: [
           {
             key: "home",
-            label: () =>
-              h("a", { href: "/home", "data-menu-link": "home" }, "Home"),
+            label: () => (
+              <a href="/home" data-menu-link="home">
+                Home
+              </a>
+            ),
           },
         ],
       },
@@ -304,8 +318,72 @@ describe("AdminShell", () => {
     expect(logoutSpy).toHaveBeenCalledTimes(1);
   });
 
+  it("synchronizes the preference locale one way into the global Composer", async () => {
+    const container = mountShell({ content: "router-view" });
+    const preferences = useAdminShellPreferencesStore();
+
+    expect(testI18n.global.locale.value).toBe("en");
+    preferences.setLocale("zh-CN");
+    await settle();
+
+    // The AdminShell watcher mirrors the store locale into the host Composer.
+    expect(testI18n.global.locale.value).toBe("zh-CN");
+    // The shell's own local Composer follows the global locale reactively.
+    const fontSize = container.querySelector<HTMLElement>(
+      '[data-admin-control="font-size"]',
+    );
+    expect(fontSize?.getAttribute("aria-label")).toBe("字号：中");
+  });
+
+  it("resolves i18n-kind tab labels reactively against the global Composer", async () => {
+    const home = {
+      id: "home",
+      nav: { navKey: "home" },
+      label: { kind: "i18n", key: "tabs.home" } as const,
+      closable: false,
+    };
+    const navigation = reactive<AdminShellNavigation>({
+      active: home,
+      handleNavigation: vi.fn(async (request) => ({
+        active:
+          request.kind === "open"
+            ? {
+                ...request.candidate,
+                label: { kind: "string", value: "New report" } as const,
+              }
+            : {
+                ...request.destination,
+                label: { kind: "string", value: "Persisted label" } as const,
+              },
+      })),
+    });
+    const container = mountShell({ navigation });
+    await settle();
+
+    const tab = container.querySelector("[data-admin-tab-key=home]");
+    expect(tab?.textContent).toContain("Home tab");
+
+    // A locale switch re-renders the open tab through the global Composer.
+    useAdminShellPreferencesStore().setLocale("zh-CN");
+    await settle();
+    expect(tab?.textContent).toContain("中文首页");
+
+    // An adapter round-trip returns a string-kind label; the shell re-renders
+    // it verbatim while i18n-kind labels keep resolving reactively.
+    navigation.active = {
+      ...home,
+      label: { kind: "string", value: "Persisted label" } as const,
+    };
+    await settle();
+    expect(tab?.textContent).toContain("Persisted label");
+  });
+
   it("provides only navigation control to descendants", async () => {
-    const home = { id: "home", nav: { navKey: "home" }, label: "Home" };
+    const home = {
+      id: "home",
+      nav: { navKey: "home" },
+      label: { kind: "string", value: "Home" } as const,
+    };
     const navigation = reactive<AdminShellNavigation>({
       active: home,
       handleNavigation: vi.fn(async (request) => ({
@@ -314,14 +392,14 @@ describe("AdminShell", () => {
             ? {
                 id: request.candidate.id,
                 nav: request.candidate.nav,
-                label: "Settings",
+                label: { kind: "string", value: "Settings" } as const,
               }
             : null,
       })),
     });
     const container = mountShell({
       navigation,
-      defaultSlot: () => h(ShellContextConsumer),
+      defaultSlot: () => <ShellContextConsumer />,
     });
     await settle();
     expect(
@@ -342,20 +420,28 @@ describe("AdminShell", () => {
 
   it("isolates descendant context between concurrently mounted shells", async () => {
     const firstNavigation: AdminShellNavigation = {
-      active: { id: "first", nav: { navKey: "first" }, label: "First" },
+      active: {
+        id: "first",
+        nav: { navKey: "first" },
+        label: { kind: "string", value: "First" } as const,
+      },
       handleNavigation: vi.fn(async () => ({ active: null })),
     };
     const secondNavigation: AdminShellNavigation = {
-      active: { id: "second", nav: { navKey: "second" }, label: "Second" },
+      active: {
+        id: "second",
+        nav: { navKey: "second" },
+        label: { kind: "string", value: "Second" } as const,
+      },
       handleNavigation: vi.fn(async () => ({ active: null })),
     };
     const first = mountShell({
       navigation: firstNavigation,
-      defaultSlot: () => h(ShellContextConsumer),
+      defaultSlot: () => <ShellContextConsumer />,
     });
     const second = mountShell({
       navigation: secondNavigation,
-      defaultSlot: () => h(ShellContextConsumer),
+      defaultSlot: () => <ShellContextConsumer />,
     });
     await settle();
     expect(first.querySelector("[data-shell-context-keys]")?.textContent).toBe(
@@ -386,7 +472,7 @@ describe("AdminShell", () => {
     const home = {
       id: "home-1",
       nav: { navKey: "home" },
-      label: "Home",
+      label: { kind: "string", value: "Home" } as const,
       closable: false,
     };
     const navigation = reactive<AdminShellNavigation>({
@@ -419,7 +505,7 @@ describe("AdminShell", () => {
     const confirmed = {
       id: request.candidate.id,
       nav: request.candidate.nav,
-      label: "Settings",
+      label: { kind: "string", value: "Settings" } as const,
       closable: true,
     };
     navigation.active = confirmed;
@@ -432,7 +518,11 @@ describe("AdminShell", () => {
 
   it("does not commit a rejected open candidate", async () => {
     const navigation: AdminShellNavigation = {
-      active: { id: "home-1", nav: { navKey: "home" }, label: "Home" },
+      active: {
+        id: "home-1",
+        nav: { navKey: "home" },
+        label: { kind: "string", value: "Home" } as const,
+      },
       handleNavigation: vi.fn(async () => {
         throw new Error("private failure");
       }),
@@ -451,16 +541,20 @@ describe("AdminShell", () => {
   });
 
   it("activates the newest matching navKey while ignoring parameters", async () => {
-    const home = { id: "home", nav: { navKey: "home" }, label: "Home" };
+    const home = {
+      id: "home",
+      nav: { navKey: "home" },
+      label: { kind: "string", value: "Home" } as const,
+    };
     const older = {
       id: "report-1",
       nav: { navKey: "reports", params: { id: 1 } },
-      label: "Report 1",
+      label: { kind: "string", value: "Report 1" } as const,
     };
     const newer = {
       id: "report-2",
       nav: { navKey: "reports", params: { id: 2 } },
-      label: "Report 2",
+      label: { kind: "string", value: "Report 2" } as const,
     };
     const navigation = reactive<AdminShellNavigation>({
       active: home,
@@ -491,29 +585,37 @@ describe("AdminShell", () => {
   });
 
   it("accepts a call-specific resolver without storing it in the destination", async () => {
-    const home = { id: "home", nav: { navKey: "home" }, label: "Home" };
+    const home = {
+      id: "home",
+      nav: { navKey: "home" },
+      label: { kind: "string", value: "Home" } as const,
+    };
     const report = {
       id: "report-1",
       nav: { navKey: "reports" },
-      label: "Report",
+      label: { kind: "string", value: "Report" } as const,
     };
     const navigation = reactive<AdminShellNavigation>({
       active: home,
       handleNavigation: vi.fn(async (request) => ({
         active:
           request.kind === "open"
-            ? { ...request.candidate, label: "New report" }
+            ? {
+                ...request.candidate,
+                label: { kind: "string", value: "New report" } as const,
+              }
             : request.destination,
       })),
     });
     const resolver = vi.fn(() => ({ kind: "open" as const }));
     const container = mountShell({
       navigation,
-      defaultSlot: ({ navigate }) =>
-        h("button", {
-          "data-open-report": "",
-          onClick: () => void navigate({ navKey: "reports" }, resolver),
-        }),
+      defaultSlot: ({ navigate }) => (
+        <button
+          data-open-report=""
+          onClick={() => void navigate({ navKey: "reports" }, resolver)}
+        />
+      ),
     });
     await settle();
     navigation.active = report;
@@ -534,13 +636,13 @@ describe("AdminShell", () => {
     const first = {
       id: "same-1",
       nav: { navKey: "reports", params: { id: 1 } },
-      label: "First",
+      label: { kind: "string", value: "First" } as const,
       closable: true,
     };
     const second = {
       id: "same-2",
       nav: { navKey: "reports", params: { id: 1 } },
-      label: "Second",
+      label: { kind: "string", value: "Second" } as const,
       closable: true,
     };
     const navigation = reactive<AdminShellNavigation>({
@@ -584,7 +686,11 @@ describe("useAdminShellNavigationStore", () => {
     const pinia = createPinia();
     setActivePinia(pinia);
     const navigation: AdminShellNavigation = {
-      active: { id: "home", nav: { navKey: "home" }, label: "Home" },
+      active: {
+        id: "home",
+        nav: { navKey: "home" },
+        label: { kind: "string", value: "Home" } as const,
+      },
       handleNavigation: vi.fn(async () => ({ active: null })),
     };
 
@@ -598,13 +704,21 @@ describe("useAdminShellNavigationStore", () => {
     setActivePinia(pinia);
     const store = useAdminShellNavigationStore();
     const first: AdminShellNavigation = {
-      active: { id: "one", nav: { navKey: "one" }, label: "One" },
+      active: {
+        id: "one",
+        nav: { navKey: "one" },
+        label: { kind: "string", value: "One" } as const,
+      },
       handleNavigation: vi.fn(async () => ({ active: null })),
     };
     store.configure(first);
     expect(store.navigation).toBe(first);
     const second: AdminShellNavigation = {
-      active: { id: "two", nav: { navKey: "two" }, label: "Two" },
+      active: {
+        id: "two",
+        nav: { navKey: "two" },
+        label: { kind: "string", value: "Two" } as const,
+      },
       handleNavigation: vi.fn(async () => ({ active: null })),
     };
     store.configure(second);
@@ -615,7 +729,11 @@ describe("useAdminShellNavigationStore", () => {
     const piniaA = createPinia();
     setActivePinia(piniaA);
     const navA: AdminShellNavigation = {
-      active: { id: "a", nav: { navKey: "a" }, label: "A" },
+      active: {
+        id: "a",
+        nav: { navKey: "a" },
+        label: { kind: "string", value: "A" } as const,
+      },
       handleNavigation: vi.fn(async () => ({ active: null })),
     };
     useAdminShellNavigationStore().configure(navA);
@@ -624,7 +742,11 @@ describe("useAdminShellNavigationStore", () => {
     setActivePinia(piniaB);
     expect(useAdminShellNavigationStore().navigation).toBeNull();
     const navB: AdminShellNavigation = {
-      active: { id: "b", nav: { navKey: "b" }, label: "B" },
+      active: {
+        id: "b",
+        nav: { navKey: "b" },
+        label: { kind: "string", value: "B" } as const,
+      },
       handleNavigation: vi.fn(async () => ({ active: null })),
     };
     useAdminShellNavigationStore().configure(navB);
@@ -637,7 +759,11 @@ describe("useAdminShellNavigationStore", () => {
   it("reactively reflects navigation active changes", async () => {
     const pinia = createPinia();
     setActivePinia(pinia);
-    const home = { id: "home", nav: { navKey: "home" }, label: "Home" };
+    const home = {
+      id: "home",
+      nav: { navKey: "home" },
+      label: { kind: "string", value: "Home" } as const,
+    };
     const navigation = reactive<AdminShellNavigation>({
       active: home,
       handleNavigation: vi.fn(async () => ({ active: null })),
@@ -648,7 +774,7 @@ describe("useAdminShellNavigationStore", () => {
     const updated = {
       id: "settings",
       nav: { navKey: "settings" },
-      label: "Settings",
+      label: { kind: "string", value: "Settings" } as const,
     };
     navigation.active = updated;
     await nextTick();

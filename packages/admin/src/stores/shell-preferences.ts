@@ -9,6 +9,7 @@ import type {
 } from "../runtime-contract";
 import {
   createDefaultAdminShellPreferences,
+  DEFAULT_FALLBACK_LOCALE,
   loadAdminShellPreferences,
   normalizeShellPreferences,
   persistAdminShellPreferences,
@@ -16,6 +17,12 @@ import {
   type AdminShellPreferencesStorage,
   type AdminShellPreferencesStoreOptions,
 } from "../runtime/shell-preferences";
+import {
+  FONT_SIZE_OVERRIDES,
+  resolveAdminNaiveUiLocale,
+  resolveAdminNaiveUiTheme,
+  type AdminNaiveUiConfig,
+} from "../runtime/naive-ui-config";
 
 export const useAdminShellPreferencesStore = defineStore(
   "admin-shell-preferences",
@@ -26,11 +33,15 @@ export const useAdminShellPreferencesStore = defineStore(
     const availableLocales = ref<AdminLocaleOption[]>([]);
     const sidebarCollapsed = ref(false);
     const isHydrated = ref(false);
+    /** Runtime-only browser dark-mode signal fed by the host matchMedia listener. */
+    const systemUsesDark = ref(false);
 
     let storage: AdminShellPreferencesStorage | null = null;
     let defaults = createDefaultAdminShellPreferences();
     let stopPersistence: (() => void) | null = null;
     let enablePersistence = true;
+    /** Host-owned naive-ui fallback locale; runtime-only, never persisted. */
+    let fallbackLocale = DEFAULT_FALLBACK_LOCALE;
 
     const preferences = computed<AdminShellPreferences>(() => ({
       themeMode: themeMode.value,
@@ -43,6 +54,7 @@ export const useAdminShellPreferencesStore = defineStore(
     function initialize(options: AdminShellPreferencesStoreOptions = {}): void {
       defaults = createDefaultAdminShellPreferences(options.defaults);
       storage = resolveAdminShellPreferencesStorage(options.storage);
+      fallbackLocale = options.fallbackLocale ?? DEFAULT_FALLBACK_LOCALE;
       ensurePersistenceSubscription();
 
       runWithoutPersistence(() => {
@@ -75,6 +87,17 @@ export const useAdminShellPreferencesStore = defineStore(
 
     function setSidebarCollapsed(value: boolean): void {
       sidebarCollapsed.value = value;
+    }
+
+    /**
+     * Updates the runtime-only system dark-mode signal used by the
+     * `naiveUiConfig` theme derivation in system mode.
+     *
+     * @param value - Whether the host browser currently reports dark mode.
+     * @returns Nothing after updating the reactive signal.
+     */
+    function setSystemUsesDark(value: boolean): void {
+      systemUsesDark.value = value;
     }
 
     function toggleSidebar(): void {
@@ -135,6 +158,14 @@ export const useAdminShellPreferencesStore = defineStore(
       sidebarCollapsed.value = value.sidebarCollapsed;
     }
 
+    /** NConfigProvider props derived from preferences; never serialized. */
+    const naiveUiConfig = computed<AdminNaiveUiConfig>(() => ({
+      theme: resolveAdminNaiveUiTheme(themeMode.value, systemUsesDark.value),
+      themeOverrides: FONT_SIZE_OVERRIDES[fontSize.value],
+      locale: resolveAdminNaiveUiLocale(locale.value, fallbackLocale),
+      size: fontSize.value,
+    }));
+
     return {
       themeMode,
       fontSize,
@@ -143,7 +174,9 @@ export const useAdminShellPreferencesStore = defineStore(
       sidebarCollapsed,
       isHydrated,
       preferences,
+      naiveUiConfig,
       initialize,
+      setSystemUsesDark,
       replacePreferences,
       reset,
       setAvailableLocales,

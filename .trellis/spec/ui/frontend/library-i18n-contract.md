@@ -31,30 +31,26 @@ for (const [locale, defaults] of objectEntries(componentMessages)) {
 composer.mergeLocaleMessage(overrideLocale, componentOverrides)
 ```
 
-A source-consuming host configures fallback globally and synchronizes locale only after preference hydration:
+A source-consuming host owns locale/fallback and seeds the Composer with the hydrated preference; AdminShell owns all later store → Composer synchronization:
 
 ```ts
+preferences.initialize({ defaults, fallbackLocale: hostFallbackLocale })
 const i18n = createI18n({
   legacy: false,
-  locale: initialLocale,
+  locale: preferences.locale,
   fallbackLocale: hostFallbackLocale,
-  messages: {},
+  messages: hostMessages,
 })
-
-preferences.initialize(options)
-watch(
-  () => preferences.locale,
-  (locale) => {
-    i18n.global.locale.value = locale
-  },
-  { immediate: true },
-)
+// No host watcher: AdminShell synchronizes preferences.locale → i18n.global
+// with an immediate watcher; the host seed covers the pre-auth login page.
 ```
 
 ## 3. Contracts
 
 - The host must install one `createI18n({ legacy: false })` instance before package components mount. The host owns both active and fallback locale. Package plugins never create a Composer, configure fallback, or register global messages.
-- The preference store is the one-way active-locale authority: hydrated preference -> global Composer -> inheriting local Composers. Neither Composer belongs in serializable Pinia state.
+- The preference store is the one-way active-locale authority: hydrated preference -> global Composer -> inheriting local Composers. `AdminShell` owns the ongoing store → Composer synchronization via an immediate watcher; the host seeds the Composer with the hydrated preference at startup so pre-auth screens render the restored locale before `AdminShell` mounts. Neither Composer belongs in serializable Pinia state.
+- Displayable tab titles use the shared `I18nText` discriminated union (`{ kind: "string"; value: string }` or `{ kind: "i18n"; key: string; named?: Record<string, string | number | boolean> }`). `i18n`-kind labels resolve against the host global Composer at render time, so open AND history-restored tabs follow locale switches. The navigation adapter persists the label as its I18nText representation via `adminI18nTextSchema`; `named` values persist with history state and must stay JSON-serializable primitives.
+- Descriptors handed to the navigation adapter must be plain data. `structuredClone` throws `DOMException: Proxy object could not be cloned` on reactive objects, and tab records live in a reactive map — snapshot them to plain copies (`{ ...nav }`, plain label with copied `named`) before requesting navigation.
 - Every translating component starts with an empty local Composer, merges its packaged defaults first, then merges only its own override slice. `fallbackRoot` remains false so missing package keys never resolve from host-global messages.
 - Vue I18n 11.4.8 initializes an inheriting local Composer's `fallbackRoot` from the root. Set `composer.fallbackRoot = false` immediately after `useI18n()`. Do not overwrite `composer.fallbackLocale`: the local Composer must inherit the host-owned global fallback.
 - Package plugin installation must defensively copy caller options. Later caller mutation must not affect mounted or subsequently mounted components.
@@ -75,6 +71,9 @@ watch(
 | Partial component override installed | Specified leaves override defaults; unspecified siblings remain. |
 | Caller mutates options after `app.use()` | Mounted and future component instances retain the installation snapshot. |
 | Global locale is unsupported by the package | Local Composer renders the host-configured global fallback; global active locale stays unchanged. |
+| `i18n`-kind tab label with a locale switch | The shell resolves the label against the global Composer at render time; open and restored tabs follow the locale. |
+| Restored history entry carries an `i18n`-kind label | It renders through the message key in the current locale; `string`-kind labels render verbatim. |
+| Reactive tab descriptor handed to the navigation adapter | Snapshot to plain data first; `structuredClone` cannot clone Vue reactive proxies. |
 | Two components use the same local key | Each resolves from its own local registry; no global collision occurs. |
 | Built-package host adds a library-source include | Remove it; resource precompilation belongs to the library build. |
 | Workspace preset omitted | Source-consuming dev server and production build still work; locale-file HMR and the shared development transform are unavailable. |

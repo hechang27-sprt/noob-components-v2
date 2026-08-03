@@ -44,7 +44,12 @@ function describeDestination(
   id: string,
   nav: AdminShellDestination,
 ): AdminShellTabDescriptor {
-  return { id, nav, label: String(nav.navKey), closable: true };
+  return {
+    id,
+    nav,
+    label: { kind: "string", value: String(nav.navKey) },
+    closable: true,
+  };
 }
 
 /** Describes optional test-router configuration for a particular route registry. */

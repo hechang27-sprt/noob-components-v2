@@ -12,6 +12,14 @@ Keep this parsing and normalization in the runtime helper. Do not scatter `JSON.
 
 The storage key is internal: `@noob-naive-ui/admin:shell-preferences`. Persist only `themeMode`, `fontSize`, `locale`, and `sidebarCollapsed`. `availableLocales` is runtime state supplied by initialization defaults and updateable through `setAvailableLocales`; it must not be serialized. `packages/admin/tests/shell-preferences.test.ts` verifies persistence merge behavior.
 
+Runtime-only presentation state, never persisted:
+
+- `naiveUiConfig` computed — `{ theme, themeOverrides, locale, size }` props for the host `n-config-provider`, derived from `themeMode` (incl. system dark via the `systemUsesDark` signal), `fontSize` (px overrides + naive-ui size tier), and `locale` (naive-ui locale via `resolveAdminNaiveUiLocale`, falling back through the host-owned `fallbackLocale` supplied to `initialize`). Hosts bind it directly: `<n-config-provider v-bind="preferences.naiveUiConfig">`. Mapping functions live in `src/runtime/naive-ui-config.ts`; the store imports them rather than owning naive-ui knowledge.
+- `setSystemUsesDark(value)` action — the browser color-scheme signal the host feeds from its `matchMedia` listener; used only by the system-mode theme derivation.
+- `fallbackLocale` — host-owned naive-ui fallback authority passed to `initialize({ fallbackLocale })`, default `en`.
+
+Boundary tests must cover the naive-ui config derivation: theme per mode incl. system + `setSystemUsesDark`, size mapping, locale mapping with unsupported-locale fallback, and non-persistence of these runtime-only fields.
+
 `cloneShellPreferences` and the computed `preferences` snapshot clone locale options. The store also exposes the raw `availableLocales` ref, so consumers must not mutate that array directly; use `setAvailableLocales` to retain locale realignment and persistence behavior.
 
 ## Pinia store pattern
