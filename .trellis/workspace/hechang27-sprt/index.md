@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 17
-- **Last Active**: 2026-08-03
+- **Total Sessions**: 18
+- **Last Active**: 2026-08-04
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~621 | Active |
+| `journal-1.md` | ~672 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 18 | 2026-08-04 | Extract shared i18n composables into @noob-naive-ui/i18n | `b69530c9` | `-` |
 | 17 | 2026-08-03 | Library i18n scaffolding with I18nText tab labels | `412714b6` | `-` |
 | 16 | 2026-08-03 | Refine workspace i18n demo | `966b90026085d9ab4089055900754a9c12af6b93` | `-` |
 | 15 | 2026-08-02 | Fix workspace locale JSON HMR | F`3c225cb5c7131a4d8ef8ed8ff415c778be57fb1` | `-` |

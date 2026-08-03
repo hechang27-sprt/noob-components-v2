@@ -619,3 +619,54 @@ Also fixed two pre-existing lint errors (floating promises in auth.ts / auth-sto
 ### Next Steps
 
 - None - task complete
+
+
+## Session 18: Extract shared i18n composables into @noob-naive-ui/i18n
+
+**Date**: 2026-08-04
+**Task**: Extract shared i18n composables into @noob-naive-ui/i18n
+**Package**: admin
+
+### Summary
+
+Session summary was not supplied.
+
+### Main Changes
+
+Extracted the duplicated AdminShell/AdminLoginPage i18n setup into a new internal workspace package @noob-naive-ui/i18n (packages/i18n) with shared composables and primitives.
+
+Package contents:
+- i18n-text.ts: I18nText primitives moved from packages/admin/src/i18n/ (type, Zod codec renamed adminI18nTextSchema -> i18nTextSchema, resolveI18nText). Clean cutover: admin barrel no longer re-exports them; admin-vue-router imports i18nTextSchema from the new package.
+- use-component-i18n.ts: useComponentI18n({ messages, overridesKey, emptySnapshot, selectOverrides }) -> { composer, t, locale }. Encapsulates the previously duplicated block: inject override snapshot with frozen empty fallback, fresh local Composer (useScope local, inheritLocale true), the vue-i18n 11.4.8 post-creation fallbackRoot=false correction, defaults-then-overrides merge loops with the undefined guard. Generic over the plugin snapshot (S extends { messages: M }) so package plugins keep their typed keys/selectors.
+- use-global-i18n-sync.ts: useGlobalI18nSync(source, { immediate }) -> global Composer; one-way store locale -> global Composer watcher (immediate by default), replacing AdminShell's manual watcher.
+
+Refactors:
+- admin-login-page.tsx / admin-shell.tsx: one composable call each; shell syncs via useGlobalI18nSync(() => preferences.locale) and resolves reactive tab labels against the returned global Composer.
+- Dependency wiring: admin deps, router peers, demo deps declare @noob-naive-ui/i18n; router vite externalizes it (was bundling a schema copy); root + package tsconfig path maps.
+
+Typing notes (design risk resolutions):
+- tsafe objectEntries widens generic keys to string|number|symbol, failing mergeLocaleMessage's Locale key -> merge loops use Object.entries (identical runtime semantics, cast-free).
+- Bare vue-i18n I18n type annotation loses the Legacy=false binding (global becomes VueI18n|Composer union) -> tests infer createI18n's return type instead of annotating.
+
+Tests: 15 new in packages/i18n (schema/resolver, composable defaults/override-precedence/absent-plugin/fallbackRoot/locale-follow, sync immediate/deferred/change). Full gates green: tsc -b --noEmit, oxlint, format:check, all 5 package builds, 51 admin + 69 router + 15 i18n tests. Browser regression on demo: login page, sign-in, zh-CN switch (shell/menu/page/reactive tab titles), detail tab named interpolation + activation, en switch-back with 3 open tabs, fr fallback with preference unchanged.
+
+trellis-check agent reviewed all files against the task specs; fixed one defect: unused tsafe dependency in the new package (removed from package.json, vite external, lockfile).
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b69530c9` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
