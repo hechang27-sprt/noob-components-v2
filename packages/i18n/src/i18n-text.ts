@@ -9,7 +9,7 @@ import { z } from "zod";
  * and survives history-state persistence as its key rather than a translated
  * snapshot.
  */
-export const adminI18nTextSchema = z.discriminatedUnion("kind", [
+export const i18nTextSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("string"), value: z.string() }),
   z.object({
     kind: z.literal("i18n"),
@@ -23,7 +23,7 @@ export const adminI18nTextSchema = z.discriminatedUnion("kind", [
 ]);
 
 /** One displayable text value: verbatim text or a resolvable message key. */
-export type I18nText = z.infer<typeof adminI18nTextSchema>;
+export type I18nText = z.infer<typeof i18nTextSchema>;
 
 /**
  * Resolves one I18nText value against a translator.

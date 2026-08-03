@@ -1,6 +1,7 @@
 packages:
   - packages/ui
   - packages/admin
+  - packages/i18n
   - packages/prototype-i18n-verification
   - apps/admin-starter
   - packages/admin-vue-router

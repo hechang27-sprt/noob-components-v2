@@ -17,18 +17,18 @@ app.use(packageI18nPlugin, {
   messages: packageOverrides,
 })
 
-const composer = useI18n({
-  useScope: "local",
-  inheritLocale: true,
-  fallbackRoot: false,
+// Shared composable (packages/i18n): fresh local Composer inheriting the
+// host's root locale and fallback, merged packaged defaults then the
+// component's override slice, fallbackRoot already corrected.
+const { composer, t, locale } = useComponentI18n({
+  messages: componentMessages,            // locale-first packaged defaults
+  overridesKey: packageI18nOverridesKey,  // InjectionKey of the plugin snapshot
+  emptySnapshot: DEFAULT_SNAPSHOT,        // frozen empty snapshot
+  selectOverrides: selectComponentOverrides,
 })
 
-// Vue I18n 11.4.8 inherits fallbackRoot from the root Composer.
-composer.fallbackRoot = false
-for (const [locale, defaults] of objectEntries(componentMessages)) {
-  composer.mergeLocaleMessage(locale, defaults)
-}
-composer.mergeLocaleMessage(overrideLocale, componentOverrides)
+// One-way store → global Composer synchronization, shell-owned.
+const globalComposer = useGlobalI18nSync(() => preferences.locale)
 ```
 
 A source-consuming host owns locale/fallback and seeds the Composer with the hydrated preference; AdminShell owns all later store → Composer synchronization:
@@ -49,9 +49,10 @@ const i18n = createI18n({
 
 - The host must install one `createI18n({ legacy: false })` instance before package components mount. The host owns both active and fallback locale. Package plugins never create a Composer, configure fallback, or register global messages.
 - The preference store is the one-way active-locale authority: hydrated preference -> global Composer -> inheriting local Composers. `AdminShell` owns the ongoing store → Composer synchronization via an immediate watcher; the host seeds the Composer with the hydrated preference at startup so pre-auth screens render the restored locale before `AdminShell` mounts. Neither Composer belongs in serializable Pinia state.
-- Displayable tab titles use the shared `I18nText` discriminated union (`{ kind: "string"; value: string }` or `{ kind: "i18n"; key: string; named?: Record<string, string | number | boolean> }`). `i18n`-kind labels resolve against the host global Composer at render time, so open AND history-restored tabs follow locale switches. The navigation adapter persists the label as its I18nText representation via `adminI18nTextSchema`; `named` values persist with history state and must stay JSON-serializable primitives.
+- Shared i18n logic lives in the internal `@noob-naive-ui/i18n` package (`packages/i18n`): the `I18nText` primitives (`I18nText`, `i18nTextSchema`, `resolveI18nText`) and the composables `useComponentI18n` and `useGlobalI18nSync`. Package plugins keep their typed snapshot, injection key, and component selectors in the consuming package; `useComponentI18n` consumes them generically via `{ messages, overridesKey, emptySnapshot, selectOverrides }`.
+- Displayable tab titles use the shared `I18nText` discriminated union (`{ kind: "string"; value: string }` or `{ kind: "i18n"; key: string; named?: Record<string, string | number | boolean> }`). `i18n`-kind labels resolve against the host global Composer at render time, so open AND history-restored tabs follow locale switches. The navigation adapter persists the label as its I18nText representation via `i18nTextSchema`; `named` values persist with history state and must stay JSON-serializable primitives.
 - Descriptors handed to the navigation adapter must be plain data. `structuredClone` throws `DOMException: Proxy object could not be cloned` on reactive objects, and tab records live in a reactive map — snapshot them to plain copies (`{ ...nav }`, plain label with copied `named`) before requesting navigation.
-- Every translating component starts with an empty local Composer, merges its packaged defaults first, then merges only its own override slice. `fallbackRoot` remains false so missing package keys never resolve from host-global messages.
+- Every translating component obtains its registry from `useComponentI18n`: a fresh local Composer, packaged defaults merged first, then only its own override slice. `fallbackRoot` remains false so missing package keys never resolve from host-global messages.
 - Vue I18n 11.4.8 initializes an inheriting local Composer's `fallbackRoot` from the root. Set `composer.fallbackRoot = false` immediately after `useI18n()`. Do not overwrite `composer.fallbackLocale`: the local Composer must inherit the host-owned global fallback.
 - Package plugin installation must defensively copy caller options. Later caller mutation must not affect mounted or subsequently mounted components.
 - Locale resources live at `src/locales/<ComponentName>.json`. Each component file is a locale-first object whose top-level keys are all supported locale identifiers and whose values share that component's message schema. A standalone library build precompiles those resources; consumers of the built library do not include library source in host Vite configuration.
@@ -116,7 +117,8 @@ composer.fallbackLocale.value = packageFallback
 
 ```ts
 // Correct: self-contained public schema, locale-first component resource,
-// host fallback inheritance, and a fresh isolated local message registry.
+// host fallback inheritance, and a fresh isolated local message registry —
+// obtained through the shared composable.
 export interface ComponentMessages {
   title: string
   description: string
@@ -127,16 +129,12 @@ const componentMessages = {
   "zh-CN": { title: "标题", description: "描述" },
 }
 
-const composer = useI18n({
-  useScope: "local",
-  inheritLocale: true,
-  fallbackRoot: false,
+const { composer, t } = useComponentI18n({
+  messages: componentMessages,
+  overridesKey: packageI18nOverridesKey,
+  emptySnapshot: DEFAULT_SNAPSHOT,
+  selectOverrides: selectComponentOverrides,
 })
-composer.fallbackRoot = false
-for (const [locale, defaults] of objectEntries(componentMessages)) {
-  composer.mergeLocaleMessage(locale, defaults)
-}
-composer.mergeLocaleMessage(activeOverrideLocale, componentOverrides)
 ```
 
 ```ts

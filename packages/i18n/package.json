@@ -1,6 +1,6 @@
 {
-  "name": "@noob-naive-ui/admin-vue-router",
-  "version": "0.0.0",
+  "name": "@noob-naive-ui/i18n",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -22,12 +22,9 @@
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
-  "peerDependencies": {
-    "@noob-naive-ui/admin": "workspace:*",
-    "@noob-naive-ui/i18n": "workspace:*",
-    "pinia": "catalog:",
+  "dependencies": {
     "vue": "catalog:",
-    "vue-router": "catalog:",
+    "vue-i18n": "catalog:",
     "zod": "catalog:"
   }
 }

@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/ui/frontend/library-i18n-contract.md", "reason": "Verify composable matches contract"}
+{"file": ".trellis/spec/admin/frontend/runtime-contract.md", "reason": "Verify label/persistence boundaries intact"}
+{"file": ".trellis/spec/ui/frontend/index.md", "reason": "Quality check baseline"}

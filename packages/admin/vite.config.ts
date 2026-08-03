@@ -25,6 +25,7 @@ export default defineConfig({
     rolldownOptions: {
       external: [
         "@vicons/ionicons5",
+        "@noob-naive-ui/i18n",
         "@noob-naive-ui/ui",
         "naive-ui",
         "pinia",

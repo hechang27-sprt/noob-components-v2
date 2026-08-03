@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ui/frontend/library-i18n-contract.md", "reason": "Composable contract, locale-first resources, plugin override semantics"}
+{"file": ".trellis/spec/admin/frontend/runtime-contract.md", "reason": "AdminShellTabDescriptor label contract and i18n ownership"}
+{"file": ".trellis/spec/admin/frontend/shell-preferences.md", "reason": "Store locale authority and naiveUiConfig context"}
+{"file": ".trellis/spec/ui/frontend/index.md", "reason": "UI package conventions (TSX, tests)"}

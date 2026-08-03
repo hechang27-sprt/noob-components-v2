@@ -8,9 +8,8 @@ import {
   NResult,
   NSpin,
 } from "naive-ui";
-import { objectEntries } from "tsafe/objectEntries";
-import { defineComponent, inject, ref, useId } from "vue";
-import { useI18n } from "vue-i18n";
+import { useComponentI18n } from "@noob-naive-ui/i18n";
+import { defineComponent, ref, useId } from "vue";
 
 import adminLoginPageMessages from "../locales/AdminLoginPage.json";
 import {
@@ -59,50 +58,14 @@ export const AdminLoginPage = defineComponent(
     const password = ref("");
     const remember = ref(false);
 
-    // The plugin's immutable override tree; absent plugin installation yields
-    // the frozen empty snapshot, so packaged defaults always render.
-    const { messages: adminOverrides } = inject(
-      adminI18nOverridesKey,
-      DEFAULT_SNAPSHOT,
-    );
-
-    // Fresh local registry inheriting root locale and fallback locale; the
-    // root's fallbackRoot flag is corrected below after creation.
-    const composer = useI18n({
-      useScope: "local",
-      inheritLocale: true,
-      fallbackRoot: false,
+    // Fresh local registry: packaged defaults first, the AdminLoginPage
+    // override slice second, so overrides win at the leaf.
+    const { t } = useComponentI18n({
+      messages: adminLoginPageMessages,
+      overridesKey: adminI18nOverridesKey,
+      emptySnapshot: DEFAULT_SNAPSHOT,
+      selectOverrides: selectAdminLoginPageOverrides,
     });
-
-    // Vue I18n 11.4.8: with `__root && inheritLocale` the local Composer
-    // initializes its fallback settings from the root/global Composer rather
-    // than the options. Keep the inherited fallback locale (host-owned) but
-    // disable root-message fallback so missing package keys never resolve
-    // from host-global message registries.
-    composer.fallbackRoot = false;
-
-    // Vue I18n documents these Composer functions as safely destructurable;
-    // its types do not yet convey that to the strict unbound-method rule.
-    // oxlint-disable-next-line typescript/unbound-method
-    const { mergeLocaleMessage, t } = composer;
-
-    // Fresh registry: packaged defaults first, the AdminLoginPage override
-    // slice second, so overrides win at the leaf without mutating imports.
-    for (const [locale, componentMessages] of objectEntries(
-      adminLoginPageMessages,
-    )) {
-      mergeLocaleMessage(locale, componentMessages);
-    }
-
-    for (const [overrideLocale, componentMessages] of objectEntries(
-      selectAdminLoginPageOverrides(adminOverrides),
-    )) {
-      // The type keeps locale keys optional, so guard the definedness that
-      // `objectEntries` iteration guarantees at runtime; no locale cast.
-      if (componentMessages !== undefined) {
-        mergeLocaleMessage(overrideLocale, componentMessages);
-      }
-    }
 
     function clearFeedback(): void {
       store.loginError = undefined;

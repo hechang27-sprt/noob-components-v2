@@ -3,8 +3,7 @@
   "compilerOptions": {
     "rootDir": "../..",
     "paths": {
-      "@noob-naive-ui/i18n": ["../i18n/src/index.ts"],
-      "@noob-naive-ui/ui": ["../ui/src/index.ts"]
+      "@noob-naive-ui/i18n": ["../i18n/src/index.ts"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts", "tests/**/*.tsx"]

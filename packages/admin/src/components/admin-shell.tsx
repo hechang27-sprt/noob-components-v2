@@ -19,7 +19,6 @@ import {
   TextOutline,
 } from "@vicons/ionicons5";
 import { ProLayout } from "pro-naive-ui";
-import { objectEntries } from "tsafe/objectEntries";
 import {
   defineComponent,
   inject,
@@ -31,10 +30,14 @@ import {
   watch,
   type InjectionKey,
 } from "vue";
-import { useI18n } from "vue-i18n";
 
+import {
+  resolveI18nText,
+  useComponentI18n,
+  useGlobalI18nSync,
+  type I18nText,
+} from "@noob-naive-ui/i18n";
 import adminShellMessages from "../locales/AdminShell.json";
-import { resolveI18nText, type I18nText } from "../i18n/i18n-text";
 import {
   DEFAULT_SNAPSHOT,
   adminI18nOverridesKey,
@@ -219,53 +222,14 @@ export const AdminShell = defineComponent(
     /** Reads the host-configured navigation adapter from the admin package runtime. */
     const nav = useAdminShellNavigationStore();
 
-    // The plugin's immutable override tree; absent plugin installation yields
-    // the frozen empty snapshot, so packaged defaults always render.
-    const { messages: adminOverrides } = inject(
-      adminI18nOverridesKey,
-      DEFAULT_SNAPSHOT,
-    );
-
-    // Fresh local registry inheriting root locale and fallback locale; the
-    // root's fallbackRoot flag is corrected below after creation.
-    const composer = useI18n({
-      useScope: "local",
-      inheritLocale: true,
-      fallbackRoot: false,
+    // Fresh local registry: packaged defaults first, the AdminShell override
+    // slice second, so overrides win at the leaf.
+    const { t } = useComponentI18n({
+      messages: adminShellMessages,
+      overridesKey: adminI18nOverridesKey,
+      emptySnapshot: DEFAULT_SNAPSHOT,
+      selectOverrides: selectAdminShellOverrides,
     });
-
-    // Vue I18n 11.4.8: with `__root && inheritLocale` the local Composer
-    // initializes its fallback settings from the root/global Composer rather
-    // than the options. Keep the inherited fallback locale (host-owned) but
-    // disable root-message fallback so missing package keys never resolve
-    // from host-global message registries.
-    composer.fallbackRoot = false;
-
-    // Vue I18n documents these Composer functions as safely destructurable;
-    // its types do not yet convey that to the strict unbound-method rule.
-    // oxlint-disable-next-line typescript/unbound-method
-    const { mergeLocaleMessage, t } = composer;
-
-    // Fresh registry: packaged defaults first, the AdminShell override slice
-    // second, so overrides win at the leaf without mutating the imports.
-    for (const [locale, componentMessages] of objectEntries(
-      adminShellMessages,
-    )) {
-      mergeLocaleMessage(locale, componentMessages);
-    }
-
-    for (const [overrideLocale, componentMessages] of objectEntries(
-      selectAdminShellOverrides(adminOverrides),
-    )) {
-      // The type keeps locale keys optional, so guard the definedness that
-      // `objectEntries` iteration guarantees at runtime; no locale cast.
-      if (componentMessages !== undefined) {
-        mergeLocaleMessage(overrideLocale, componentMessages);
-      }
-    }
-
-    /** Reads the host's single global Composer for one-way locale sync. */
-    const globalComposer = useI18n({ useScope: "global" });
 
     /**
      * Synchronizes the persisted preference locale into the global Composer
@@ -274,13 +238,7 @@ export const AdminShell = defineComponent(
      * inheriting local Composers follow automatically. The host seeds the
      * Composer at creation for the pre-auth login page.
      */
-    watch(
-      () => preferences.locale,
-      (locale) => {
-        globalComposer.locale.value = locale;
-      },
-      { immediate: true },
-    );
+    const globalComposer = useGlobalI18nSync(() => preferences.locale);
 
     /** Stores committed page instances by immutable ID. */
     const tabs = reactive(new Map<string, AdminShellTab>());

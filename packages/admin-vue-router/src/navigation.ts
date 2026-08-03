@@ -3,8 +3,8 @@ import {
   type AdminShellNavigation,
   type AdminShellNavigationRequest,
   type AdminShellTabDescriptor,
-  adminI18nTextSchema,
 } from "@noob-naive-ui/admin";
+import { i18nTextSchema } from "@noob-naive-ui/i18n";
 import type {
   HistoryState,
   RouteLocationNormalizedLoaded,
@@ -25,7 +25,7 @@ const persistedAdminShellTabSchema = z.object({
   id: z.string(),
   // The label persists as its I18nText representation, so `i18n` keys
   // survive restores and render in the current locale after refresh.
-  label: adminI18nTextSchema,
+  label: i18nTextSchema,
   closable: z.boolean().optional(),
 });
 

@@ -59,6 +59,3 @@ export {
   type AdminShellTabNavigationResolver,
   useAdminShell,
 } from "./components/admin-shell";
-
-export { adminI18nTextSchema, resolveI18nText } from "./i18n/i18n-text";
-export type { I18nText } from "./i18n/i18n-text";

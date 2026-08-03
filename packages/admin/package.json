@@ -34,6 +34,7 @@
     "vue-i18n": "catalog:"
   },
   "dependencies": {
+    "@noob-naive-ui/i18n": "workspace:*",
     "@noob-naive-ui/ui": "workspace:*",
     "@vicons/ionicons5": "^0.13.0",
     "zod": "catalog:",

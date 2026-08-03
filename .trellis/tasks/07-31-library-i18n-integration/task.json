@@ -18,7 +18,9 @@
   "commit": null,
   "pr_url": null,
   "subtasks": [],
-  "children": [],
+  "children": [
+    "08-04-shared-i18n-composables"
+  ],
   "parent": null,
   "relatedFiles": [],
   "notes": "",
