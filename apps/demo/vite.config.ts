@@ -13,8 +13,9 @@ export default defineConfig({
     vue(),
     vueJsx(),
     vueDevTools(),
-    // Workspace-wide locale precompilation for source-consuming builds;
-    // built-package consumers configure nothing.
+    // Optional monorepo tooling for source-locale transforms and HMR.
+    // Without it, the dev server and production build must still work; built
+    // package consumers configure nothing.
     createWorkspaceVueI18nPlugin(),
   ],
   resolve: {

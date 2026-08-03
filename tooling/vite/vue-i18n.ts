@@ -1,9 +1,10 @@
 import VueI18nPlugin from "@intlify/unplugin-vue-i18n/vite";
-import { dirname, resolve } from "node:path";
+import { dirname, matchesGlob, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   normalizePath,
   type HmrContext,
+  type ModuleNode,
   type Plugin,
   type PluginOption,
 } from "vite";
@@ -42,14 +43,11 @@ const workspaceSourceRoots = [
  */
 function isWorkspaceLocaleResource(file: string): boolean {
   const normalized = normalizePath(file);
-  if (!normalized.endsWith(".json")) return false;
   for (const root of workspaceSourceRoots) {
-    const prefix = `${normalizePath(root)}/`;
-    if (!normalized.startsWith(prefix)) continue;
-    const remainder = normalized.slice(prefix.length);
-    const packageBoundary = remainder.indexOf("/");
-    if (packageBoundary <= 0) continue;
-    return remainder.startsWith("src/locales/", packageBoundary + 1);
+    const prefix = normalizePath(root);
+    if (matchesGlob(normalized, `${prefix}/*/src/locales/**/*.json`)) {
+      return true;
+    }
   }
   return false;
 }
@@ -127,10 +125,11 @@ function createWorkspaceLocaleHmrPlugin(): Plugin {
         if (!isWorkspaceLocaleResource(localeFile)) continue;
 
         const normalizedLocaleFile = normalizePath(localeFile);
-        const importers =
-          localeImporters.get(normalizedLocaleFile) ?? new Set();
+        const importers = localeImporters.getOrInsertComputed(
+          normalizedLocaleFile,
+          () => new Set(),
+        );
         importers.add(normalizePath(id));
-        localeImporters.set(normalizedLocaleFile, importers);
       }
       return;
     },
@@ -153,7 +152,7 @@ function createWorkspaceLocaleHmrPlugin(): Plugin {
 
       // Component refresh alone would reuse the stale precompiled virtual
       // dependency. Invalidate those dependencies before Vue reloads setup.
-      const invalidatedModules = new Set();
+      const invalidatedModules = new Set<ModuleNode>();
       for (const componentModule of componentModules) {
         for (const dependency of componentModule.importedModules) {
           if (!dependency.id?.startsWith(INTLIFY_LOCALE_VIRTUAL_PREFIX))
