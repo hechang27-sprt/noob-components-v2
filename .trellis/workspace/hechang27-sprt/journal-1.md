@@ -534,3 +534,35 @@ Added component-scoped locale HMR to the shared Vue I18n Vite preset; verified E
 ### Next Steps
 
 - None - task complete
+
+
+## Session 16: Refine workspace i18n demo
+
+**Date**: 2026-08-03
+**Task**: Refine workspace i18n demo
+
+### Summary
+
+Flattened component locale resources, refined workspace HMR tooling, added i18n contract tests and documentation, moved the locale demo to Demo > Internationalization, and separated routed pages under pages/demo with a consolidated routes.ts module.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `966b90026085d9ab4089055900754a9c12af6b93` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
