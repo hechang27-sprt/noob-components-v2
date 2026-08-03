@@ -566,3 +566,56 @@ Flattened component locale resources, refined workspace HMR tooling, added i18n 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 17: Library i18n scaffolding with I18nText tab labels
+
+**Date**: 2026-08-03
+**Task**: Library i18n scaffolding with I18nText tab labels
+**Package**: admin
+
+### Summary
+
+Session summary was not supplied.
+
+### Main Changes
+
+Implemented production i18n scaffolding across the workspace.
+
+Admin package:
+- Component-local Vue I18n for AdminShell and AdminLoginPage with bundled en/zh-CN locale-first resources (src/locales/AdminShell.json, AdminLoginPage.json), precompiled by the Intlify plugin added to the admin build.
+- adminI18nPlugin override transport (immutable startup snapshot, typed partial overrides, self-contained locale interfaces, tsafe objectEntries).
+- Store-owned naiveUiConfig computed (theme incl. system dark via setSystemUsesDark, 13/14/16px font overrides, naive-ui size tier, naive-ui locale via resolveAdminNaiveUiLocale with host fallbackLocale initialize option); host binds n-config-provider.
+- AdminShell owns store -> global Composer locale sync via an immediate watcher; host seeds createI18n with the hydrated preference for the pre-auth login page.
+
+Shared I18nText (design revision after user feedback):
+- I18nText discriminated union ({kind:"string",value} | {kind:"i18n",key,named}) in admin i18n/i18n-text.ts with Zod codec and resolver; AdminShellTabDescriptor.label is I18nText; the shell resolves i18n-kind labels against the global Composer at render time, so open AND history-restored tabs follow locale switches; the adapter persists labels as I18nText (named values must be JSON primitives).
+- Fixed DOMException "Proxy object could not be cloned" from structuredClone on reactive tab labels: snapshotTab returns plain-data copies; navigation catches log the original error before the localized tab error.
+
+Demo host:
+- App-level demo messages (src/locales/demo.json), shared i18n.ts module, menu labels as reactive render functions, tab labels as I18nText keys (detail uses named interpolation), all pages localized, matchMedia -> setSystemUsesDark, n-config-provider bound to naiveUiConfig.
+
+ui package: i18n plugin scaffold with empty component registry.
+
+Tests: 51 admin (i18n-contract plugin/fallback/zh-CN, shell locale sync + I18nText reactivity), 69 router (label persistence schema). Browser-verified: en/zh-CN switching incl. tab titles, persistence, fr unsupported-locale fallback with active locale unchanged.
+
+Also fixed two pre-existing lint errors (floating promises in auth.ts / auth-store.test.ts) with the void operator.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `412714b6` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
