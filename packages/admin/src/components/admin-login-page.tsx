@@ -30,21 +30,16 @@ export type AdminLoginPageProps = Record<string, never>;
  */
 function getAnonymousStatusMessageKey(
   reason: Extract<AdminAuthStatus, { kind: "anonymous" }>["reason"],
-):
-  | "status.expired"
-  | "status.forbidden"
-  | "status.signedOut"
-  | "status.unknown"
-  | undefined {
+) {
   switch (reason) {
     case "expired":
-      return "status.expired";
+      return "status.expired" as const;
     case "forbidden":
-      return "status.forbidden";
+      return "status.forbidden" as const;
     case "signed-out":
-      return "status.signedOut";
+      return "status.signedOut" as const;
     case "unknown":
-      return "status.unknown";
+      return "status.unknown" as const;
     default:
       return undefined;
   }

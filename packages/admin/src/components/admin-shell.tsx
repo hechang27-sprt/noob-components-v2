@@ -27,6 +27,7 @@ import {
   reactive,
   ref,
   shallowRef,
+  toRaw,
   watch,
   type InjectionKey,
 } from "vue";
@@ -185,30 +186,26 @@ export type AdminShellNavigation = {
   ) => Promise<AdminShellNavigationResult>;
 };
 
-/** Returns a public immutable snapshot without shell-private mutable fields. */
 /**
- * Builds one plain-data descriptor snapshot for navigation requests.
+ * Returns one public immutable descriptor snapshot without shell-private mutable fields.
  *
- * Tab records live in a reactive map, so their nested objects are reactive
- * proxies; the adapter persists descriptors with `structuredClone`, which
- * cannot clone proxies. Shallow copies keep the snapshot plain while the tab
- * records stay reactive for rendering.
+ * Records are stored plain — `recordCurrentTab` strips write-side proxies
+ * with `toRaw` — but the reactive map re-wraps every value on read, so the
+ * tab passed here is still a proxy. `toRaw` unwraps it to the stored plain
+ * record, and `structuredClone` deep-copies the public fields so the
+ * snapshot shares nothing with the reactive record (which stays reactive
+ * for rendering). Cloning is safe precisely because the write boundary
+ * guarantees proxy-free records; the adapter persists descriptors with
+ * `structuredClone` for the same reason.
  */
 function snapshotTab(tab: AdminShellTab): AdminShellTabDescriptor {
-  const label = tab.label;
-  return {
-    id: tab.id,
-    nav: { ...tab.nav },
-    label:
-      label.kind === "i18n"
-        ? {
-            kind: "i18n",
-            key: label.key,
-            named: label.named ? { ...label.named } : undefined,
-          }
-        : { kind: "string", value: label.value },
-    closable: tab.closable,
-  };
+  const raw = toRaw(tab);
+  return structuredClone({
+    id: raw.id,
+    nav: raw.nav,
+    label: raw.label,
+    closable: raw.closable,
+  });
 }
 
 export const AdminShell = defineComponent(
@@ -266,23 +263,30 @@ export const AdminShell = defineComponent(
       tabError.value = undefined;
     }
 
-    /** Records or refreshes one host-confirmed descriptor by page-instance ID. */
+    /**
+     * Records or refreshes one host-confirmed descriptor by page-instance ID.
+     *
+     * The host adapter may hand back reactive descriptors, so `toRaw` strips
+     * any read-time proxy here: the map only ever stores plain records, which
+     * lets `snapshotTab` rebuild snapshots from raw data.
+     */
     function recordCurrentTab(current: AdminShellTabDescriptor | null): void {
       if (!current) return;
-      const existing = tabs.get(current.id);
+      const tab = toRaw(current);
+      const existing = tabs.get(tab.id);
       if (existing) {
-        existing.nav = current.nav;
-        existing.label = current.label;
-        existing.closable = current.closable;
+        existing.nav = tab.nav;
+        existing.label = tab.label;
+        existing.closable = tab.closable;
         return;
       }
-      tabs.set(current.id, {
-        ...current,
+      tabs.set(tab.id, {
+        ...tab,
         index: visibleTabs.value.length,
         activationPending: false,
         closePending: false,
       });
-      visibleTabs.value.push(current.id);
+      visibleTabs.value.push(tab.id);
     }
 
     /** Returns all committed public descriptors in visible order. */
