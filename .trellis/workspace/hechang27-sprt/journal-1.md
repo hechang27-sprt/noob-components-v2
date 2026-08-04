@@ -770,3 +770,45 @@ Note: demo dev server does not register the plugin (its config only loads the sh
 ### Next Steps
 
 - None - task complete
+
+
+## Session 21: Split dev watcher plugin for locale type regeneration
+
+**Date**: 2026-08-04
+**Task**: Split dev watcher plugin for locale type regeneration
+**Package**: admin
+
+### Summary
+
+Session summary was not supplied.
+
+### Main Changes
+
+Follow-up to the locale type generator (direct change, no task): split the watchChange hook out of the build plugin into a dedicated dev watcher plugin, per the user's architecture point that a library build never watches.
+
+tooling/vite/json-locale-types.ts:
+- createJsonLocaleTypesPlugin is now build-time only (buildStart generation, hard-fail on empty dir/parse errors) — its watchChange was dead code in its only registration site (the admin library build has no watcher).
+- New createJsonLocaleTypesWatcherPlugin: buildStart (initial freshness) + watchChange on *.json under dir; failures logged via a shared regenerateOrWarn helper, never fatal (mid-save parse errors retry on the next event). Guards: isJsonUnderDir excludes the .ts output file; regenerateLocaleTypes only writes on content change.
+
+apps/demo/vite.config.ts: registers the watcher plugin pointed at packages/admin/src/locales (consistent with the existing admin→src alias dev pattern), so editing an admin locale JSON in demo dev regenerates the committed generated types for tsserver/watch-mode runs.
+
+Verified live: demo dev server running, added __wcProbe to AdminShell.json → locale-types.generated.ts contained __wcProbe within ~3s; reverted → file reverted (count 0); drift-guard test green (66/66).
+
+Docs: library-i18n-contract.md and the archived task design.md now describe the two-plugin split (library registers the build plugin; dev-facing apps register the watcher).
+
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
