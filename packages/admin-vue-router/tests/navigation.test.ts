@@ -93,6 +93,130 @@ async function createHarness() {
 }
 
 describe("createAdminShellVueRouterRuntime", () => {
+  describe("heal", () => {
+    /** Resolves after the next afterEach hook fires. */
+    function afterNextNavigation(
+      router: ReturnType<typeof createRouter>,
+    ): Promise<void> {
+      return new Promise<void>((resolve) => {
+        const removeAfter = router.afterEach(() => {
+          removeAfter();
+          resolve();
+        });
+      });
+    }
+
+    it("restamps a stale stamped entry in place with the committed descriptor", async () => {
+      const { navigation, router } = await createHarness();
+      const first = describeDestination("tab-1", {
+        navKey: "detail",
+        payload: { reportId: "r-1" },
+      });
+      const second = describeDestination("tab-2", {
+        navKey: "detail",
+        payload: { reportId: "r-1" },
+      });
+      await navigation.handleNavigation({
+        kind: "open",
+        candidate: { id: "tab-1", nav: first.nav },
+        current: navigation.active,
+        closeCurrent: false,
+      });
+      await navigation.handleNavigation({
+        kind: "open",
+        candidate: { id: "tab-2", nav: second.nav },
+        current: navigation.active,
+        closeCurrent: false,
+      });
+
+      // Traverse back to the older entry, then heal it to the committed tab.
+      router.back();
+      await afterNextNavigation(router);
+      expect(navigation.active?.id).toBe("tab-1");
+      const position = router.options.history.state.position;
+
+      const result = await navigation.handleNavigation({
+        kind: "heal",
+        destination: second,
+        current: navigation.active,
+      });
+
+      expect(result.active?.id).toBe("tab-2");
+      // The entry is rewritten in place: same history position, same URL,
+      // committed identity stamped into the persisted metadata.
+      expect(router.options.history.state.position).toBe(position);
+      expect(router.currentRoute.value.fullPath).toBe("/detail/r-1");
+      expect(router.options.history.state).toMatchObject({
+        _noobAdminShell: {
+          tab: { id: "tab-2" },
+        },
+      });
+    });
+
+    it("no-ops healing when the committed destination is a different page", async () => {
+      const { navigation, router } = await createHarness();
+      const first = describeDestination("tab-1", {
+        navKey: "detail",
+        payload: { reportId: "r-1" },
+      });
+      const other = describeDestination("tab-2", {
+        navKey: "detail",
+        payload: { reportId: "r-2" },
+      });
+      await navigation.handleNavigation({
+        kind: "open",
+        candidate: { id: "tab-1", nav: first.nav },
+        current: navigation.active,
+        closeCurrent: false,
+      });
+      await navigation.handleNavigation({
+        kind: "open",
+        candidate: { id: "tab-2", nav: other.nav },
+        current: navigation.active,
+        closeCurrent: false,
+      });
+
+      router.back();
+      await afterNextNavigation(router);
+      expect(navigation.active?.id).toBe("tab-1");
+      const before = JSON.stringify(router.options.history.state);
+
+      const result = await navigation.handleNavigation({
+        kind: "heal",
+        destination: other,
+        current: navigation.active,
+      });
+
+      // A payload-bearing destination must not be silently redirected.
+      expect(result.active?.id).toBe("tab-1");
+      expect(JSON.stringify(router.options.history.state)).toBe(before);
+    });
+
+    it("no-ops healing when the current entry already matches the destination", async () => {
+      const { navigation, router } = await createHarness();
+      const first = describeDestination("tab-1", {
+        navKey: "detail",
+        payload: { reportId: "r-1" },
+      });
+      await navigation.handleNavigation({
+        kind: "open",
+        candidate: { id: "tab-1", nav: first.nav },
+        current: navigation.active,
+        closeCurrent: false,
+      });
+      const before = JSON.stringify(router.options.history.state);
+
+      const result = await navigation.handleNavigation({
+        kind: "heal",
+        destination: first,
+        current: navigation.active,
+      });
+
+      expect(result.active?.id).toBe("tab-1");
+      expect(JSON.stringify(router.options.history.state)).toBe(before);
+    });
+  });
+
   describe("scope guard", () => {
     const scopeIds = { current: "scope-active" };
 

@@ -10,7 +10,7 @@ The admin package owns:
 - package-owned Pinia stores for auth presentation state, opaque `MenuOption[]`, router-neutral `AdminShellNavigation`, and local shell preferences;
 - router-neutral `AdminShellDestination` values containing a stable host-defined navigation target key and optional canonical plain-object payload;
 - page-instance membership, ordering, pending state, close fallback, and immutable page-instance identity, currently represented by `AdminShellTabDescriptor.id`;
-- open, activate, and close requests sent through the configured `AdminShellNavigation` controller.
+- open, activate, close, and heal requests sent through the configured `AdminShellNavigation` controller. `heal` restamps the current browser-history entry in place with an exact committed page instance, so a history revive of a closed tab whose destination already has a committed instance never surfaces a duplicate tab.
 
 The host-authoritative `AdminShellNavigation.active` value controls selected menu and tab state. Destination equality is navigation-target-key plus canonical-payload equality; it does not imply page-instance equality, and several page instances may represent equal destinations. “Page instance” is the domain concept; “tab” is only its current visual representation and remains in some public type names. The Admin shell does not import Vue Router, interpret route records, filter menu visibility, call backend APIs, own session data, or package business pages.
 

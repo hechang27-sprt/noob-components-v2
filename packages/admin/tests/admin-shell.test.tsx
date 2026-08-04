@@ -540,7 +540,7 @@ describe("AdminShell", () => {
     expect(container.textContent).not.toContain("private failure");
   });
 
-  it("activates the newest matching navKey while ignoring parameters", async () => {
+  it("activates the newest committed tab with an equal destination", async () => {
     const home = {
       id: "home",
       nav: { navKey: "home" },
@@ -548,12 +548,12 @@ describe("AdminShell", () => {
     };
     const older = {
       id: "report-1",
-      nav: { navKey: "reports", params: { id: 1 } },
+      nav: { navKey: "reports" },
       label: { kind: "string", value: "Report 1" } as const,
     };
     const newer = {
       id: "report-2",
-      nav: { navKey: "reports", params: { id: 2 } },
+      nav: { navKey: "reports" },
       label: { kind: "string", value: "Report 2" } as const,
     };
     const navigation = reactive<AdminShellNavigation>({
@@ -581,6 +581,53 @@ describe("AdminShell", () => {
       kind: "activate",
       destination: newer,
       current: home,
+    });
+  });
+
+  it("opens a new page instance when the committed destination payload differs", async () => {
+    const home = {
+      id: "home",
+      nav: { navKey: "home" },
+      label: { kind: "string", value: "Home" } as const,
+    };
+    const first = {
+      id: "report-1",
+      nav: { navKey: "reports", payload: { id: 1 } },
+      label: { kind: "string", value: "Report 1" } as const,
+    };
+    const second = {
+      id: "report-2",
+      nav: { navKey: "reports", payload: { id: 2 } },
+      label: { kind: "string", value: "Report 2" } as const,
+    };
+    const navigation = reactive<AdminShellNavigation>({
+      active: home,
+      handleNavigation: vi.fn(async (request) => {
+        const active = request.kind === "open" ? null : request.destination;
+        navigation.active = active;
+        return { active };
+      }),
+    });
+    const container = mountShell({
+      menuOptions: [{ key: "reports", label: "Reports" }],
+      navigation,
+    });
+    await settle();
+    navigation.active = first;
+    await settle();
+    navigation.active = second;
+    await settle();
+    navigation.active = home;
+    await settle();
+    // The menu destination carries no payload, so neither payload-bearing
+    // report tab is the same page — the request opens a fresh instance.
+    container.querySelector<HTMLElement>(".n-menu-item-content")!.click();
+    await settle();
+    expect(navigation.handleNavigation).toHaveBeenLastCalledWith({
+      kind: "open",
+      candidate: { id: expect.any(String), nav: { navKey: "reports" } },
+      current: home,
+      closeCurrent: false,
     });
   });
 
@@ -635,13 +682,13 @@ describe("AdminShell", () => {
   it("keeps duplicate destinations as independently closable page instances", async () => {
     const first = {
       id: "same-1",
-      nav: { navKey: "reports", params: { id: 1 } },
+      nav: { navKey: "reports", payload: { id: 1 } },
       label: { kind: "string", value: "First" } as const,
       closable: true,
     };
     const second = {
       id: "same-2",
-      nav: { navKey: "reports", params: { id: 1 } },
+      nav: { navKey: "reports", payload: { id: 1 } },
       label: { kind: "string", value: "Second" } as const,
       closable: true,
     };
@@ -671,6 +718,168 @@ describe("AdminShell", () => {
     expect(
       container.querySelector('[data-admin-tab-key="same-2"]'),
     ).not.toBeNull();
+  });
+
+  it("heals a revived closed tab onto the committed instance of the same destination", async () => {
+    const home = {
+      id: "home",
+      nav: { navKey: "home" },
+      label: { kind: "string", value: "Home" } as const,
+      closable: false,
+    };
+    const closed = {
+      id: "settings-1",
+      nav: { navKey: "settings" },
+      label: { kind: "string", value: "Settings" } as const,
+      closable: true,
+    };
+    const committed = {
+      id: "settings-2",
+      nav: { navKey: "settings" },
+      label: { kind: "string", value: "Settings" } as const,
+      closable: true,
+    };
+    const navigation = reactive<AdminShellNavigation>({
+      active: home,
+      handleNavigation: vi.fn(async (request) => {
+        // The adapter contract: close navigates to the fallback; heal
+        // restamps the current entry and leaves the committed tab active.
+        const active =
+          request.kind === "close"
+            ? request.destination
+            : request.kind === "heal"
+              ? request.destination
+              : null;
+        navigation.active = active;
+        return { active };
+      }),
+    });
+    const container = mountShell({ navigation });
+    await settle();
+    navigation.active = closed;
+    await settle();
+    navigation.active = committed;
+    await settle();
+    // Close the first settings instance; the committed one remains.
+    getTabClose(container, "settings-1")!.click();
+    await settle();
+    expect(container.querySelector('[data-admin-tab-key="settings-1"]')).toBeNull();
+    expect(
+      container.querySelector('[data-admin-tab-key="settings-2"]'),
+    ).not.toBeNull();
+
+    // History traversal revives the closed instance — the shell must heal the
+    // stale entry instead of surfacing a duplicate tab.
+    navigation.active = closed;
+    await settle();
+    expect(navigation.handleNavigation).toHaveBeenLastCalledWith({
+      kind: "heal",
+      destination: expect.objectContaining({ id: "settings-2" }),
+      current: closed,
+    });
+    expect(container.querySelector('[data-admin-tab-key="settings-1"]')).toBeNull();
+    const settingsTabs = container.querySelectorAll(
+      '[data-admin-tab-key^="settings-"]',
+    );
+    expect(settingsTabs.length).toBe(1);
+    expect(
+      container.querySelector('[data-admin-tab-key="settings-2"]'),
+    ).not.toBeNull();
+  });
+
+  it("records a revived closed tab when no committed instance shares its destination", async () => {
+    const home = {
+      id: "home",
+      nav: { navKey: "home" },
+      label: { kind: "string", value: "Home" } as const,
+      closable: false,
+    };
+    const closed = {
+      id: "settings-1",
+      nav: { navKey: "settings" },
+      label: { kind: "string", value: "Settings" } as const,
+      closable: true,
+    };
+    const navigation = reactive<AdminShellNavigation>({
+      active: home,
+      handleNavigation: vi.fn(async (request) => {
+        // The adapter contract: close navigates the router to the fallback,
+        // so the confirmed active state moves with the entry.
+        const active =
+          request.kind === "close" ? request.destination : null;
+        navigation.active = active;
+        return { active };
+      }),
+    });
+    const container = mountShell({ navigation });
+    await settle();
+    navigation.active = closed;
+    await settle();
+    getTabClose(container, "settings-1")!.click();
+    await settle();
+    expect(container.querySelector('[data-admin-tab-key="settings-1"]')).toBeNull();
+
+    // Back revives the only settings instance — recorded as its own tab
+    // (history restore), never healed without a committed match.
+    navigation.active = closed;
+    await settle();
+    expect(navigation.handleNavigation).not.toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "heal" }),
+    );
+    expect(
+      container.querySelector('[data-admin-tab-key="settings-1"]'),
+    ).not.toBeNull();
+  });
+
+  it("does not heal a revived tab onto a committed instance with a different payload", async () => {
+    const home = {
+      id: "home",
+      nav: { navKey: "home" },
+      label: { kind: "string", value: "Home" } as const,
+      closable: false,
+    };
+    const closed = {
+      id: "detail-1",
+      nav: { navKey: "detail", payload: { reportId: "r-1" } },
+      label: { kind: "string", value: "Detail: r-1" } as const,
+      closable: true,
+    };
+    const committed = {
+      id: "detail-2",
+      nav: { navKey: "detail", payload: { reportId: "r-2" } },
+      label: { kind: "string", value: "Detail: r-2" } as const,
+      closable: true,
+    };
+    const navigation = reactive<AdminShellNavigation>({
+      active: home,
+      handleNavigation: vi.fn(async (request) => {
+        const active =
+          request.kind === "close" ? request.destination : null;
+        navigation.active = active;
+        return { active };
+      }),
+    });
+    const container = mountShell({ navigation });
+    await settle();
+    navigation.active = closed;
+    await settle();
+    navigation.active = committed;
+    await settle();
+    getTabClose(container, "detail-1")!.click();
+    await settle();
+    expect(container.querySelector('[data-admin-tab-key="detail-1"]')).toBeNull();
+
+    // The revived r-1 entry is a different page than the committed r-2
+    // instance, so it is recorded as its own tab instead of being healed.
+    navigation.active = closed;
+    await settle();
+    expect(navigation.handleNavigation).not.toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "heal" }),
+    );
+    const detailTabs = container.querySelectorAll(
+      '[data-admin-tab-key^="detail-"]',
+    );
+    expect(detailTabs.length).toBe(2);
   });
 });
 
