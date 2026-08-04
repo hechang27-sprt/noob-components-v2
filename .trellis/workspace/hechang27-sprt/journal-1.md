@@ -844,3 +844,36 @@ Added createLibraryI18nPlugin to @noob-naive-ui/i18n: factory owns plugin transp
 ### Next Steps
 
 - None - task complete
+
+
+## Session 23: Refactor createAdminRouter into a Vue plugin (createAdminRouterPlugin)
+
+**Date**: 2026-08-04
+**Task**: Refactor createAdminRouter into a Vue plugin (createAdminRouterPlugin)
+**Package**: admin
+
+### Summary
+
+Converted admin-vue-router's createAdminRouter factory into createAdminRouterPlugin, a Vue plugin whose install resolves Pinia via getActivePinia() (throws if not installed), binds admin stores, registers four extracted lifecycle helpers (installRouterErrorHandler, installAuthGuard, installScopeGuard, installAuthTransitionGuard), installs the router, and provides cleanup via app.provide(ADMIN_DISPOSE_KEY) instead of an Object.defineProperty hack. Removed the pinia option; demo + tests updated to plugin shape; admin package gained the owning-module AdminAuthStore type export. All gates green (72 package tests, typechecks, builds) and demo browser smoke passed (deep link redirect, login restore, logout).
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `xlupzpvn` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

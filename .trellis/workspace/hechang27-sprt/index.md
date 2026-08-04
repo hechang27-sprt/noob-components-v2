@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 22
+- **Total Sessions**: 23
 - **Last Active**: 2026-08-04
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~846 | Active |
+| `journal-1.md` | ~879 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 23 | 2026-08-04 | Refactor createAdminRouter into a Vue plugin (createAdminRouterPlugin) | xlupzpvn | `-` |
 | 22 | 2026-08-04 | Fold per-package i18n plugin logic into shared factory | `ece31612` | `-` |
 | 21 | 2026-08-04 | Split dev watcher plugin for locale type regeneration | - | `-` |
 | 20 | 2026-08-04 | Dev watchChange regeneration for locale type generator | `ee4e9fe7` | `-` |
