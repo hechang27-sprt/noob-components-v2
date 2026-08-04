@@ -42,10 +42,16 @@ export function regenerateLocaleTypes(
   options?: { typeName?: (stem: string) => string; mapName?: string },
 ): boolean
 
-/** Vite plugin: scans `dir`, regenerates `outFile` on buildStart and on
- * locale JSON changes during dev (`watchChange`, guarded against the
- * output file itself and mid-save parse errors). */
+/** Build-time plugin: scans `dir`, regenerates `outFile` at buildStart
+ * (hard-fail on empty dir / parse errors). Registered by the library. */
 export function createJsonLocaleTypesPlugin(
+  options: CreateJsonLocaleTypesPluginOptions,
+): Plugin
+
+/** Dev watcher plugin: regenerates at buildStart and on locale JSON
+ * changes (`watchChange`); failures are logged, not fatal. Registered by
+ * dev-facing apps (e.g. apps/demo) pointed at the library's locale dir. */
+export function createJsonLocaleTypesWatcherPlugin(
   options: CreateJsonLocaleTypesPluginOptions,
 ): Plugin
 ```
