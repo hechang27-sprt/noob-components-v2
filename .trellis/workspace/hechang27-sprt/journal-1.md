@@ -799,7 +799,7 @@ Docs: library-i18n-contract.md and the archived task design.md now describe the 
 
 ### Git Commits
 
-(No commits - planning session)
+- `c258e303` feat: split dev watcher plugin from build-time locale type plugin; register in demo
 
 ### Testing
 
