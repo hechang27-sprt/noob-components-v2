@@ -35,7 +35,16 @@ export function generateJsonLocaleTypes(
 /** Recursive, sorted `*.json` scan (exported for tests/drift guard). */
 export function scanJsonLocaleFiles(dir: string): JsonLocaleTypeFile[]
 
-/** Vite plugin: scans `dir`, regenerates `outFile` on buildStart. */
+/** Regenerates `outFile` from `dir`; true when it changed. Testable. */
+export function regenerateLocaleTypes(
+  dir: string,
+  outFile: string,
+  options?: { typeName?: (stem: string) => string; mapName?: string },
+): boolean
+
+/** Vite plugin: scans `dir`, regenerates `outFile` on buildStart and on
+ * locale JSON changes during dev (`watchChange`, guarded against the
+ * output file itself and mid-save parse errors). */
 export function createJsonLocaleTypesPlugin(
   options: CreateJsonLocaleTypesPluginOptions,
 ): Plugin

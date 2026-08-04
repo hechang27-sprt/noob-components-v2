@@ -1,5 +1,18 @@
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { dirname, extname, join, relative, resolve } from "node:path";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync,
+} from "node:fs";
+import {
+  dirname,
+  extname,
+  isAbsolute,
+  join,
+  relative,
+  resolve,
+} from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Plugin } from "vite";
 
@@ -186,13 +199,54 @@ export function scanJsonLocaleFiles(dir: string): JsonLocaleTypeFile[] {
 }
 
 /**
+ * Regenerates `outFile` from the JSON files under `dir`.
+ *
+ * @param dir - Directory scanned recursively for `*.json` files.
+ * @param outFile - Absolute output path of the generated TS module.
+ * @param options - Naming options forwarded to the generator.
+ * @returns True when the file changed, false when it was already up to date.
+ * @throws When the directory cannot be scanned or a JSON file fails to
+ * parse (the error names the offending file).
+ */
+export function regenerateLocaleTypes(
+  dir: string,
+  outFile: string,
+  options: { typeName?: (stem: string) => string; mapName?: string } = {},
+): boolean {
+  const files = scanJsonLocaleFiles(dir);
+  const source = generateJsonLocaleTypes(files, {
+    ...options,
+    sourceDir: relative(workspaceRoot, dir),
+  });
+  const current = existsSync(outFile) ? readFileSync(outFile, "utf8") : null;
+  if (current === source) return false;
+  mkdirSync(dirname(outFile), { recursive: true });
+  writeFileSync(outFile, source, "utf8");
+  return true;
+}
+
+/** True when `id` is a `*.json` file inside `dir`. */
+function isJsonUnderDir(id: string, dir: string): boolean {
+  const rel = relative(dir, id);
+  return (
+    rel !== "" &&
+    !rel.startsWith("..") &&
+    !isAbsolute(rel) &&
+    extname(id) === ".json"
+  );
+}
+
+/**
  * Creates the JSON → TS type Vite plugin: on `buildStart` it scans `dir`
  * for JSON files, generates the type module, and writes `outFile` before
- * the module graph (and any declaration emitter) is processed.
+ * the module graph (and any declaration emitter) is processed. During dev
+ * servers, `watchChange` regenerates it whenever a locale JSON under `dir`
+ * changes, so tsserver and watch-mode test runs stay fresh.
  *
  * The output file is committed: plain `tsc --noEmit` and CI typechecks read
  * it without running Vite. Parse errors and name collisions fail the build
- * naming the offending file.
+ * naming the offending file (mid-save parse errors during dev are logged
+ * and retried on the next change event).
  *
  * @param options - Scan directory, output path, and naming options.
  * @returns The Vite plugin.
@@ -205,29 +259,26 @@ export function createJsonLocaleTypesPlugin(
     name: "noob-json-locale-types",
     enforce: "pre",
     async buildStart() {
-      let files: JsonLocaleTypeFile[];
-      try {
-        files = scanJsonLocaleFiles(dir);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        throw new Error(
-          message.startsWith("[json-locale-types]")
-            ? message
-            : `[json-locale-types] Cannot scan "${dir}": ${message}`,
-        );
-      }
-      if (files.length === 0) {
+      if (scanJsonLocaleFiles(dir).length === 0) {
         throw new Error(
           `[json-locale-types] No *.json files found under "${dir}".`,
         );
       }
-      const source = generateJsonLocaleTypes(files, {
-        typeName,
-        mapName,
-        sourceDir: relative(workspaceRoot, dir),
-      });
-      mkdirSync(dirname(outFile), { recursive: true });
-      writeFileSync(outFile, source, "utf8");
+      regenerateLocaleTypes(dir, outFile, { typeName, mapName });
+    },
+    watchChange(id) {
+      if (!isJsonUnderDir(id, dir)) return;
+      try {
+        regenerateLocaleTypes(dir, outFile, { typeName, mapName });
+      } catch (error) {
+        // A mid-save JSON may be momentarily unparseable; the next change
+        // event retries. Log instead of failing the dev server.
+        this.warn(
+          `[json-locale-types] Failed to regenerate "${outFile}" after "${id}" changed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
     },
   };
 }

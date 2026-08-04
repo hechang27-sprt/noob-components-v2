@@ -1,11 +1,20 @@
-import { readFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+  existsSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   generateJsonLocaleTypes,
   pascalCaseTypeName,
+  regenerateLocaleTypes,
   scanJsonLocaleFiles,
   type JsonLocaleTypeFile,
 } from "../../../tooling/vite/json-locale-types";
@@ -100,6 +109,86 @@ describe("generateJsonLocaleTypes", () => {
     const first = generateJsonLocaleTypes(files);
     const second = generateJsonLocaleTypes(files);
     expect(second).toBe(first);
+  });
+});
+
+describe("regenerateLocaleTypes", () => {
+  /** Temp fixture directories created by these tests. */
+  const tmpDirs: string[] = [];
+
+  afterEach(() => {
+    for (const dir of tmpDirs.splice(0))
+      rmSync(dir, { recursive: true, force: true });
+  });
+
+  /** Creates an isolated fixture dir with one locale JSON. */
+  function fixture(content: unknown): {
+    dir: string;
+    outFile: string;
+    json: string;
+  } {
+    const dir = mkdtempSync(join(tmpdir(), "json-locale-types-"));
+    tmpDirs.push(dir);
+    const json = join(dir, "Messages.json");
+    writeFileSync(json, JSON.stringify(content));
+    return { dir, outFile: join(dir, "generated.ts"), json };
+  }
+
+  it("writes the module on first run and reports a change", () => {
+    const { dir, outFile } = fixture({ en: { ok: "OK" } });
+    expect(regenerateLocaleTypes(dir, outFile)).toBe(true);
+    expect(readFileSync(outFile, "utf8")).toContain(
+      "export interface Messages {",
+    );
+  });
+
+  it("is a no-op when already up to date", () => {
+    const { dir, outFile } = fixture({ en: { ok: "OK" } });
+    regenerateLocaleTypes(dir, outFile);
+    expect(regenerateLocaleTypes(dir, outFile)).toBe(false);
+  });
+
+  it("picks up type-visible JSON edits and deletions (watchChange path)", () => {
+    const { dir, outFile, json } = fixture({ en: { ok: "OK" } });
+    regenerateLocaleTypes(dir, outFile);
+
+    // A value-only edit leaves the widened type unchanged (correct no-op);
+    // a shape edit must regenerate.
+    writeFileSync(json, JSON.stringify({ en: { ok: "OK", extra: true } }));
+    expect(regenerateLocaleTypes(dir, outFile)).toBe(true);
+    expect(readFileSync(outFile, "utf8")).toContain("extra: boolean;");
+
+    rmSync(json);
+    expect(regenerateLocaleTypes(dir, outFile)).toBe(true);
+    expect(readFileSync(outFile, "utf8")).not.toContain(
+      "export interface Messages",
+    );
+  });
+
+  it("throws on unparseable JSON naming the file", () => {
+    const { dir, outFile, json } = fixture({ en: { ok: "OK" } });
+    writeFileSync(json, "{ nope");
+    expect(() => regenerateLocaleTypes(dir, outFile)).toThrow(/Messages\.json/);
+  });
+
+  it("throws on type-name collisions", () => {
+    const { dir, outFile } = fixture({ en: { ok: "OK" } });
+    writeFileSync(
+      join(dir, "Messages.json"),
+      JSON.stringify({ en: { ok: "OK" } }),
+    );
+    writeFileSync(
+      join(dir, "messages.json"),
+      JSON.stringify({ en: { ok: "OK" } }),
+    );
+    expect(() => regenerateLocaleTypes(dir, outFile)).toThrow(/collision/i);
+  });
+
+  it("creates missing output directories", () => {
+    const { dir } = fixture({ en: { ok: "OK" } });
+    const nested = join(dir, "nested", "deeper", "generated.ts");
+    expect(regenerateLocaleTypes(dir, nested)).toBe(true);
+    expect(existsSync(nested)).toBe(true);
   });
 });
 
