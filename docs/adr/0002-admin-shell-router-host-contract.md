@@ -20,7 +20,7 @@ The admin router runtime depends on `@noob-naive-ui/admin` contracts and owns:
 
 - `AdminRouteRegistry`, which binds host-defined navigation target keys to child route records and optional reversible payload codecs;
 - conversion between router-neutral destinations and named Vue Router locations;
-- generated login and authenticated-shell route records through `createAdminRouter()`;
+- generated login and authenticated-shell route records through `createAdminRouterPlugin()`;
 - configuration of the Admin-shell navigation store with a Vue Router-backed controller;
 - auth guards, post-login redirect restoration, logout routing, authenticated navigation-scope entry, stale-history scope repair, and deterministic guard/subscription disposal;
 - browser-history metadata needed to reconstruct page-instance descriptors without exposing Vue Router state to the Admin shell.
@@ -46,15 +46,15 @@ A navigation scope exists only to isolate browser-history entries across host-de
 ## Current runtime flow
 
 1. The host creates Pinia and configures auth callbacks, preferences, and the final menu tree.
-2. The host calls `createAdminRouter()` with history, route registry, home destination, descriptor policy, page-ID factory, and navigation-scope accessor.
-3. The admin router runtime generates login/shell routes, installs auth and history-scope guards, and configures the Admin shell's router-neutral navigation store.
+2. The host calls `createAdminRouterPlugin()` with history, route registry, home destination, descriptor policy, page-ID factory, and navigation-scope accessor, then installs the returned plugin on the app after `app.use(pinia)`.
+3. During plugin install the admin router runtime resolves the app Pinia via `getActivePinia()`, generates login/shell routes, installs auth and history-scope guards, and configures the Admin shell's router-neutral navigation store.
 4. `AdminShell` renders the host menu unchanged and emits destination-based open, activate, or close requests.
 5. The admin router runtime validates and encodes destinations, performs Vue Router navigation, reconstructs the confirmed active page descriptor from route/history authority, and returns it to the shell controller.
 6. Auth-state transitions drive router effects: anonymous access to protected routes goes to login; successful login enters a fresh navigation scope at a restored or home destination; logout from a protected route returns to login.
 
 ## Demo example
 
-`apps/demo/src/main.ts` demonstrates the host role without a backend. It creates Pinia, owns a navigation-scope ID that rotates across its example authentication transitions, configures fake login/logout callbacks, initializes preferences, builds the final menu, and calls `createAdminRouter()` with `demoRouteRegistry`, dashboard as the home destination, `describeDemoDestination`, UUID page IDs, and the current scope accessor. The demo is an example host, not an additional architecture owner or a source of shared-package policy.
+`apps/demo/src/main.ts` demonstrates the host role without a backend. It creates Pinia, owns a navigation-scope ID that rotates across its example authentication transitions, configures fake login/logout callbacks, initializes preferences, builds the final menu, and calls `createAdminRouterPlugin()` with `demoRouteRegistry`, dashboard as the home destination, `describeDemoDestination`, UUID page IDs, and the current scope accessor, then installs the returned plugin after `app.use(pinia)`. The demo is an example host, not an additional architecture owner or a source of shared-package policy.
 
 ## Consequences
 

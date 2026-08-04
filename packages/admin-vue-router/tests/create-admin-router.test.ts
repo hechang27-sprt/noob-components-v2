@@ -1,23 +1,26 @@
 import {
   useAdminAuthStore,
   useAdminShellNavigationStore,
+  type AdminAuthStore,
   type AdminShellDestination,
   type AdminShellTabDescriptor,
 } from "@noob-naive-ui/admin";
-import { createPinia, type Pinia } from "pinia";
+import { createPinia, setActivePinia, type Pinia } from "pinia";
 import { describe, expect, it, vi } from "vitest";
-import { defineComponent } from "vue";
+import { createApp, defineComponent, inject, type App } from "vue";
 import { z } from "zod";
 import { createMemoryHistory, type Router } from "vue-router";
 
 import {
-  createAdminRouter,
+  ADMIN_DISPOSE_KEY,
+  createAdminRouterPlugin,
   createAdminShellVueRouterRuntime,
   defineAdminRouteRegistry,
   defineAdminRouteUrlCodec,
   type AdminRouteDefinitions,
   type AdminRouteOverride,
   type AdminRouteRegistry,
+  type AdminRouterPlugin,
   type CreateAdminRouterOptions,
 } from "../src";
 
@@ -70,7 +73,7 @@ type RouteDefinitionsFor<TRegistry> =
  * Creates the minimum valid options for a test router.
  *
  * @param overrides - Replaces default test options, including a registry with its own route keys.
- * @returns Complete options whose registry type is retained for createAdminRouter.
+ * @returns Complete options whose registry type is retained for createAdminRouterPlugin.
  */
 function createOptions<TDefinitions extends AdminRouteDefinitions>(
   overrides: CreateOptionsOverrides<TDefinitions> = {},
@@ -79,7 +82,6 @@ function createOptions<TDefinitions extends AdminRouteDefinitions>(
     overrides.registry ??
     (createRegistry() as unknown as AdminRouteRegistry<TDefinitions>);
   return {
-    pinia: createPinia(),
     history: createMemoryHistory(),
     registry,
     homeDestination: { navKey: "dashboard" },
@@ -88,6 +90,24 @@ function createOptions<TDefinitions extends AdminRouteDefinitions>(
     getNavigationScopeId: () => "test-scope",
     ...overrides,
   };
+}
+
+/**
+ * Creates an app with Pinia and the admin router plugin installed.
+ *
+ * @param overrides - Replaces default test options.
+ * @param pinia - Optional pre-created Pinia (e.g. with pre-set auth state).
+ * @returns The app, its Pinia, the installed plugin, and the created Router.
+ */
+function createTestHarness<TDefinitions extends AdminRouteDefinitions>(
+  overrides: CreateOptionsOverrides<TDefinitions> = {},
+  pinia: Pinia = createPinia(),
+): { app: App; pinia: Pinia; plugin: AdminRouterPlugin; router: Router } {
+  const app = createApp({});
+  app.use(pinia);
+  const plugin = createAdminRouterPlugin(createOptions(overrides));
+  app.use(plugin);
+  return { app, pinia, plugin, router: plugin.router };
 }
 
 /** Default restore result for tests — resolves as authenticated immediately. */
@@ -117,13 +137,14 @@ async function authenticate(pinia: Pinia) {
 }
 
 /** Configures the auth store for anonymous state. */
-function configureAuth(pinia: Pinia) {
+function configureAuth(pinia: Pinia): AdminAuthStore {
   const auth = useAdminAuthStore(pinia);
   auth.configure({
     login: async () => ({ userLabel: "tester" }),
     logout: async () => {},
     restore: anonymousRestore,
   });
+  return auth;
 }
 
 /**
@@ -142,31 +163,24 @@ function mockWaitForRestoration(pinia: Pinia): {
   return { resolve, promise };
 }
 
-/** Resolves the dispose method from a factory-created router. */
-function getDispose(router: Router): (() => void) | undefined {
-  const descriptors = Object.getOwnPropertyDescriptors(router);
-  for (const key of Object.getOwnPropertySymbols(router)) {
-    const desc = descriptors[key as unknown as string];
-    if (desc && typeof desc.value === "function" && !desc.enumerable) {
-      return desc.value as () => void;
-    }
-  }
-  return undefined;
+/** Resolves the dispose function provided by the plugin install. */
+function getDispose(app: App): (() => void) | undefined {
+  return app.runWithContext(() => inject(ADMIN_DISPOSE_KEY));
 }
 
 // ---------------------------------------------------------------------------
 // Slice 1 — Contract and validation
 // ---------------------------------------------------------------------------
 
-describe("createAdminRouter — contract", () => {
+describe("createAdminRouterPlugin — contract", () => {
   it("returns a configured Vue Router with internal routes", () => {
-    const router = createAdminRouter(createOptions());
+    const { router } = createTestHarness();
     expect(router).toBeDefined();
     expect(router.getRoutes().length).toBeGreaterThanOrEqual(2);
   });
 
   it("generates login route at default path /login", () => {
-    const router = createAdminRouter(createOptions());
+    const { router } = createTestHarness();
     const loginRoute = router
       .getRoutes()
       .find((r) => r.name === "_noobAdminLogin");
@@ -175,7 +189,7 @@ describe("createAdminRouter — contract", () => {
   });
 
   it("generates shell route at default path / with registry children", () => {
-    const router = createAdminRouter(createOptions());
+    const { router } = createTestHarness();
     const shellRoute = router
       .getRoutes()
       .find((r) => r.name === "_noobAdminShell");
@@ -187,26 +201,26 @@ describe("createAdminRouter — contract", () => {
   });
 
   it("stamps namespaced auth metadata on shell parent", () => {
-    const router = createAdminRouter(createOptions());
+    const { router } = createTestHarness();
     const resolved = router.resolve("/");
     expect(resolved.meta._noobAdminMeta).toEqual({ requiresAuth: true });
   });
 
   it("does not stamp namespaced auth metadata on login route", () => {
-    const router = createAdminRouter(createOptions());
+    const { router } = createTestHarness();
     const resolved = router.resolve("/login");
     expect(resolved.meta._noobAdminMeta).toBeUndefined();
   });
 
   it("rejects identical login and shell paths", () => {
     expect(() =>
-      createAdminRouter(createOptions({ loginRoute: { path: "/" } })),
+      createAdminRouterPlugin(createOptions({ loginRoute: { path: "/" } })),
     ).toThrow("must be distinct");
   });
 
   it("rejects additional route whose name collides with internal login name", () => {
     expect(() =>
-      createAdminRouter(
+      createAdminRouterPlugin(
         createOptions({
           additionalRoutes: [
             {
@@ -222,7 +236,7 @@ describe("createAdminRouter — contract", () => {
 
   it("rejects additional route whose name collides with internal shell name", () => {
     expect(() =>
-      createAdminRouter(
+      createAdminRouterPlugin(
         createOptions({
           additionalRoutes: [
             {
@@ -238,7 +252,7 @@ describe("createAdminRouter — contract", () => {
 
   it("rejects additional route whose name collides with a registered route", () => {
     expect(() =>
-      createAdminRouter(
+      createAdminRouterPlugin(
         createOptions({
           additionalRoutes: [
             { path: "/public", name: "dashboard", component: createPage() },
@@ -250,7 +264,7 @@ describe("createAdminRouter — contract", () => {
 
   it("rejects additional route whose path collides with internal login path", () => {
     expect(() =>
-      createAdminRouter(
+      createAdminRouterPlugin(
         createOptions({
           additionalRoutes: [
             {
@@ -266,7 +280,7 @@ describe("createAdminRouter — contract", () => {
 
   it("rejects additional route whose path collides with internal shell path", () => {
     expect(() =>
-      createAdminRouter(
+      createAdminRouterPlugin(
         createOptions({
           additionalRoutes: [
             { path: "/", name: "dup-shell", component: createPage() },
@@ -277,26 +291,22 @@ describe("createAdminRouter — contract", () => {
   });
 
   it("accepts valid additional routes without collision", () => {
-    const router = createAdminRouter(
-      createOptions({
-        additionalRoutes: [
-          { path: "/help", name: "help", component: createPage() },
-          { path: "/cb", name: "oauth-callback", component: createPage() },
-        ],
-      }),
-    );
+    const { router } = createTestHarness({
+      additionalRoutes: [
+        { path: "/help", name: "help", component: createPage() },
+        { path: "/cb", name: "oauth-callback", component: createPage() },
+      ],
+    });
     const names = router.getRoutes().map((r) => r.name);
     expect(names).toContain("help");
     expect(names).toContain("oauth-callback");
   });
 
   it("accepts custom login and shell paths", () => {
-    const router = createAdminRouter(
-      createOptions({
-        loginRoute: { path: "/signin" },
-        shellRoute: { path: "/app" },
-      }),
-    );
+    const { router } = createTestHarness({
+      loginRoute: { path: "/signin" },
+      shellRoute: { path: "/app" },
+    });
     const loginRoute = router
       .getRoutes()
       .find((r) => r.name === "_noobAdminLogin");
@@ -310,12 +320,10 @@ describe("createAdminRouter — contract", () => {
   it("innerComponent overrides are rendered inside package-owned route wrappers", () => {
     const CustomLogin = defineComponent(() => () => null);
     const CustomShell = defineComponent(() => () => null);
-    const router = createAdminRouter(
-      createOptions({
-        loginRoute: { innerComponent: CustomLogin },
-        shellRoute: { innerComponent: CustomShell },
-      }),
-    );
+    const { router } = createTestHarness({
+      loginRoute: { innerComponent: CustomLogin },
+      shellRoute: { innerComponent: CustomShell },
+    });
     const loginRoute = router
       .getRoutes()
       .find((r) => r.name === "_noobAdminLogin");
@@ -334,26 +342,24 @@ describe("createAdminRouter — contract", () => {
   });
 
   it("merges custom meta on shell route", () => {
-    const router = createAdminRouter(
-      createOptions({ shellRoute: { meta: { layout: "admin" } } }),
-    );
+    const { router } = createTestHarness({
+      shellRoute: { meta: { layout: "admin" } },
+    });
     const resolved = router.resolve("/");
     expect(resolved.meta._noobAdminMeta).toEqual({ requiresAuth: true });
     expect(resolved.meta.layout).toBe("admin");
   });
 
   it("keeps host metadata separate from package-owned auth metadata", () => {
-    const router = createAdminRouter(
-      createOptions({
-        shellRoute: {
-          meta: {
-            _noobAdminMeta: { requiresAuth: false },
-            requiresAuth: false,
-            layout: "admin",
-          },
+    const { router } = createTestHarness({
+      shellRoute: {
+        meta: {
+          _noobAdminMeta: { requiresAuth: false },
+          requiresAuth: false,
+          layout: "admin",
         },
-      }),
-    );
+      },
+    });
     const resolved = router.resolve("/");
     expect(resolved.meta._noobAdminMeta).toEqual({ requiresAuth: true });
     expect(resolved.meta.requiresAuth).toBe(false);
@@ -361,17 +367,15 @@ describe("createAdminRouter — contract", () => {
   });
 
   it("preserves host metadata on the login route", () => {
-    const router = createAdminRouter(
-      createOptions({
-        loginRoute: {
-          meta: {
-            _noobAdminMeta: { requiresAuth: true },
-            requiresAuth: true,
-            custom: "value",
-          },
+    const { router } = createTestHarness({
+      loginRoute: {
+        meta: {
+          _noobAdminMeta: { requiresAuth: true },
+          requiresAuth: true,
+          custom: "value",
         },
-      }),
-    );
+      },
+    });
     const resolved = router.resolve("/login");
     expect(resolved.meta._noobAdminMeta).toBeUndefined();
     expect(resolved.meta.requiresAuth).toBe(true);
@@ -384,9 +388,8 @@ describe("createAdminRouter — contract", () => {
   });
 
   it("configures only the shell-facing controller into Pinia", () => {
-    const opts = createOptions();
-    createAdminRouter(opts);
-    const store = useAdminShellNavigationStore(opts.pinia);
+    const { pinia } = createTestHarness();
+    const store = useAdminShellNavigationStore(pinia);
     expect(store.navigation).not.toBeNull();
     expect(store.navigation!.active).toBeNull();
     expect(store.navigation!.handleNavigation).toBeTypeOf("function");
@@ -394,15 +397,80 @@ describe("createAdminRouter — contract", () => {
     expect("installScopeGuard" in store.navigation!).toBe(false);
     expect("enterScope" in store.navigation!).toBe(false);
   });
+
+  it("throws when installed before Pinia is initialized", () => {
+    setActivePinia(undefined);
+    const app = createApp({});
+    const plugin = createAdminRouterPlugin(createOptions());
+    expect(() => app.use(plugin)).toThrow(/Pinia/);
+  });
+
+  it("rejects installing the same plugin instance twice", () => {
+    const { plugin } = createTestHarness();
+    const app = createApp({});
+    app.use(createPinia());
+    expect(() => app.use(plugin)).toThrow(/more than once/);
+  });
+
+  it("provides dispose via ADMIN_DISPOSE_KEY that removes installed effects", async () => {
+    const { app, pinia, router } = createTestHarness();
+    configureAuth(pinia);
+
+    const dispose = getDispose(app);
+    expect(dispose).toBeTypeOf("function");
+    // The dispose function is provided on the app, not attached to the Router.
+    expect(Object.getOwnPropertySymbols(router)).not.toContain(
+      ADMIN_DISPOSE_KEY,
+    );
+
+    dispose?.();
+
+    // Auth guard removed: anonymous protected navigation is not redirected.
+    await router.push("/");
+    await router.isReady();
+    await router.push("/reports");
+    expect(router.currentRoute.value.name).toBe("reports");
+
+    // Auth-transition subscription removed: an auth mutation on the login
+    // route no longer triggers scope-entry navigation. Pinia's $subscribe
+    // fires through a Vue pre-flush watcher, so one microtask flush drains
+    // the scheduler queue; a residual subscription would have initiated
+    // router.replace synchronously during that flush.
+    const replaceSpy = vi.spyOn(router, "replace");
+    await router.push("/login");
+    const auth = useAdminAuthStore(pinia);
+    auth.status = { kind: "authenticated", userLabel: "tester" };
+    await Promise.resolve();
+    expect(replaceSpy).not.toHaveBeenCalled();
+    replaceSpy.mockRestore();
+
+    // Error reporter removed: a failed navigation is not re-reported through
+    // the package-owned onError handler. The navigation rejection settles
+    // before the awaited push completes, so no extra flush is needed.
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const removeGuard = router.beforeEach(() => {
+      throw new Error("Simulated post-dispose failure");
+    });
+    try {
+      await router.push("/dashboard").catch(() => {});
+      expect(errorSpy).not.toHaveBeenCalledWith(
+        "Admin router navigation failed:",
+        expect.anything(),
+      );
+    } finally {
+      errorSpy.mockRestore();
+      removeGuard();
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------
 // Slice 2 — Generated records and internal components
 // ---------------------------------------------------------------------------
 
-describe("createAdminRouter — route records", () => {
+describe("createAdminRouterPlugin — route records", () => {
   it("shell children include all registry routes", () => {
-    const router = createAdminRouter(createOptions());
+    const { router } = createTestHarness();
     const shellRoute = router
       .getRoutes()
       .find((r) => r.name === "_noobAdminShell");
@@ -413,7 +481,7 @@ describe("createAdminRouter — route records", () => {
   });
 
   it("resolves registry child routes under shell path", () => {
-    const router = createAdminRouter(createOptions());
+    const { router } = createTestHarness();
     const resolved = router.resolve("/reports");
     expect(resolved.name).toBe("reports");
     expect(resolved.matched.some((r) => r.name === "_noobAdminShell")).toBe(
@@ -422,13 +490,11 @@ describe("createAdminRouter — route records", () => {
   });
 
   it("additional routes are siblings, not shell children", () => {
-    const router = createAdminRouter(
-      createOptions({
-        additionalRoutes: [
-          { path: "/help", name: "help", component: createPage() },
-        ],
-      }),
-    );
+    const { router } = createTestHarness({
+      additionalRoutes: [
+        { path: "/help", name: "help", component: createPage() },
+      ],
+    });
     const resolved = router.resolve("/help");
     expect(resolved.name).toBe("help");
     const isShellChild = resolved.matched.some(
@@ -439,7 +505,7 @@ describe("createAdminRouter — route records", () => {
 
   it("scrollBehavior is forwarded when provided", () => {
     const sb = () => ({ left: 0, top: 0 });
-    const router = createAdminRouter(createOptions({ scrollBehavior: sb }));
+    const { router } = createTestHarness({ scrollBehavior: sb });
     expect(router.options.scrollBehavior).toBe(sb);
   });
 });
@@ -448,11 +514,10 @@ describe("createAdminRouter — route records", () => {
 // Slice 4 — Auth guard and redirect lifecycle
 // ---------------------------------------------------------------------------
 
-describe("createAdminRouter — auth guard", () => {
+describe("createAdminRouterPlugin — auth guard", () => {
   it("redirects anonymous user from protected route to login with redirectUrl", async () => {
-    const opts = createOptions();
-    configureAuth(opts.pinia);
-    const router = createAdminRouter(opts);
+    const { pinia, router } = createTestHarness();
+    configureAuth(pinia);
     // Trigger initial navigation so the guard chain settles before isReady
     await router.push("/");
     await router.isReady();
@@ -464,9 +529,8 @@ describe("createAdminRouter — auth guard", () => {
   });
 
   it("redirects authenticated user from login to home", async () => {
-    const opts = createOptions();
-    await authenticate(opts.pinia);
-    const router = createAdminRouter(opts);
+    const { pinia, router } = createTestHarness();
+    await authenticate(pinia);
     await router.push("/");
     await router.isReady();
 
@@ -476,9 +540,8 @@ describe("createAdminRouter — auth guard", () => {
   });
 
   it("allows authenticated user to access protected route", async () => {
-    const opts = createOptions();
-    await authenticate(opts.pinia);
-    const router = createAdminRouter(opts);
+    const { pinia, router } = createTestHarness();
+    await authenticate(pinia);
     await router.push("/");
     await router.isReady();
 
@@ -487,9 +550,8 @@ describe("createAdminRouter — auth guard", () => {
   });
 
   it("allows anonymous user to access login route", async () => {
-    const opts = createOptions();
-    configureAuth(opts.pinia);
-    const router = createAdminRouter(opts);
+    const { pinia, router } = createTestHarness();
+    configureAuth(pinia);
     await router.push("/");
     await router.isReady();
 
@@ -498,13 +560,12 @@ describe("createAdminRouter — auth guard", () => {
   });
 
   it("allows anonymous user to access additional public route", async () => {
-    const opts = createOptions({
+    const { pinia, router } = createTestHarness({
       additionalRoutes: [
         { path: "/help", name: "help", component: createPage() },
       ],
     });
-    configureAuth(opts.pinia);
-    const router = createAdminRouter(opts);
+    configureAuth(pinia);
     await router.push("/");
     await router.isReady();
 
@@ -513,9 +574,8 @@ describe("createAdminRouter — auth guard", () => {
   });
 
   it("preserves deep link path in redirectUrl query", async () => {
-    const opts = createOptions();
-    configureAuth(opts.pinia);
-    const router = createAdminRouter(opts);
+    const { pinia, router } = createTestHarness();
+    configureAuth(pinia);
     await router.push("/");
     await router.isReady();
 
@@ -525,9 +585,8 @@ describe("createAdminRouter — auth guard", () => {
   });
 
   it("does not redirect authenticated user for protected deep link", async () => {
-    const opts = createOptions();
-    await authenticate(opts.pinia);
-    const router = createAdminRouter(opts);
+    const { pinia, router } = createTestHarness();
+    await authenticate(pinia);
     await router.push("/");
     await router.isReady();
 
@@ -537,16 +596,16 @@ describe("createAdminRouter — auth guard", () => {
 });
 
 // ---------------------------------------------------------------------------
-describe("createAdminRouter — restoration gate", () => {
+describe("createAdminRouterPlugin — restoration gate", () => {
   it("waits for restoration before admitting protected navigation", async () => {
-    const opts = createOptions();
-    const auth = useAdminAuthStore(opts.pinia);
+    const pinia = createPinia();
+    const auth = useAdminAuthStore(pinia);
 
     auth.isConfigured = true;
     auth.status = { kind: "loading" };
-    const waiter = mockWaitForRestoration(opts.pinia);
+    const waiter = mockWaitForRestoration(pinia);
 
-    const router = createAdminRouter(opts);
+    const { router } = createTestHarness({}, pinia);
 
     // Start initial navigation — guard will wait for restoration.
     const initNav = router.push("/");
@@ -564,14 +623,14 @@ describe("createAdminRouter — restoration gate", () => {
   });
 
   it("redirects anonymous after restoration settles unauthenticated", async () => {
-    const opts = createOptions();
-    const auth = useAdminAuthStore(opts.pinia);
+    const pinia = createPinia();
+    const auth = useAdminAuthStore(pinia);
 
     auth.isConfigured = true;
     auth.status = { kind: "loading" };
-    const waiter = mockWaitForRestoration(opts.pinia);
+    const waiter = mockWaitForRestoration(pinia);
 
-    const router = createAdminRouter(opts);
+    const { router } = createTestHarness({}, pinia);
 
     const initNav = router.push("/");
 
@@ -588,14 +647,14 @@ describe("createAdminRouter — restoration gate", () => {
   });
 
   it("settles all concurrent waiters when restoration resolves", async () => {
-    const opts = createOptions();
-    const auth = useAdminAuthStore(opts.pinia);
+    const pinia = createPinia();
+    const auth = useAdminAuthStore(pinia);
 
     auth.isConfigured = true;
     auth.status = { kind: "loading" };
-    const waiter = mockWaitForRestoration(opts.pinia);
+    const waiter = mockWaitForRestoration(pinia);
 
-    const router = createAdminRouter(opts);
+    const { router } = createTestHarness({}, pinia);
 
     // Start initial navigation so the router has a current route.
     const initNav = router.push("/");
@@ -614,14 +673,14 @@ describe("createAdminRouter — restoration gate", () => {
   });
 
   it("does not render protected content while restoration is pending", async () => {
-    const opts = createOptions();
-    const auth = useAdminAuthStore(opts.pinia);
+    const pinia = createPinia();
+    const auth = useAdminAuthStore(pinia);
 
     auth.isConfigured = true;
     auth.status = { kind: "loading" };
-    const waiter = mockWaitForRestoration(opts.pinia);
+    const waiter = mockWaitForRestoration(pinia);
 
-    const router = createAdminRouter(opts);
+    const { router } = createTestHarness({}, pinia);
 
     // Start protected navigation while loading — should block.
     const navPromise = router.push("/reports");
@@ -644,13 +703,12 @@ describe("createAdminRouter — restoration gate", () => {
 // Slice 5 — R3 Auth-transition settlement regression
 // ---------------------------------------------------------------------------
 
-describe("createAdminRouter — auth-transition settlement", () => {
+describe("createAdminRouterPlugin — auth-transition settlement", () => {
   it("rejected scope entry still allows a later authenticated transition to enter scope", async () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const warningSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const opts = createOptions();
-    configureAuth(opts.pinia);
-    const router = createAdminRouter(opts);
+    const { app, pinia, router } = createTestHarness();
+    configureAuth(pinia);
     await router.push("/");
     await router.isReady();
     await router.push("/login");
@@ -666,7 +724,7 @@ describe("createAdminRouter — auth-transition settlement", () => {
     });
 
     try {
-      const auth = useAdminAuthStore(opts.pinia);
+      const auth = useAdminAuthStore(pinia);
 
       // First login — enterScope rejects, scopeEntryPending stays true (RED).
       // The guard throws on the first dashboard navigation so enterScope fails.
@@ -700,14 +758,14 @@ describe("createAdminRouter — auth-transition settlement", () => {
       errorSpy.mockRestore();
       warningSpy.mockRestore();
       removeGuard();
-      getDispose(router)?.();
+      getDispose(app)?.();
     }
   });
 });
 
 // ---------------------------------------------------------------------------
 // Slice 6 — R4 Redirect reconstruction regression
-describe("createAdminRouter — redirect reconstruction", () => {
+describe("createAdminRouterPlugin — redirect reconstruction", () => {
   it("malformed codec payload falls back to home", async () => {
     const registry = defineAdminRouteRegistry({
       dashboard: { route: { path: "", component: createPage() } },
@@ -721,9 +779,8 @@ describe("createAdminRouter — redirect reconstruction", () => {
       },
     });
 
-    const opts = createOptions({ registry });
-    configureAuth(opts.pinia);
-    const router = createAdminRouter(opts);
+    const { pinia, router } = createTestHarness({ registry });
+    configureAuth(pinia);
 
     // Navigate to login with malformed redirectUrl
     await router.push({
@@ -740,7 +797,7 @@ describe("createAdminRouter — redirect reconstruction", () => {
     });
 
     // Trigger auth transition
-    const auth = useAdminAuthStore(opts.pinia);
+    const auth = useAdminAuthStore(pinia);
     auth.status = { kind: "authenticated", userLabel: "tester" };
 
     // Wait for scope entry (or failure-fallback) navigation
@@ -772,9 +829,8 @@ describe("createAdminRouter — redirect reconstruction", () => {
       },
     });
 
-    const opts = createOptions({ registry });
-    configureAuth(opts.pinia);
-    const router = createAdminRouter(opts);
+    const { pinia, router } = createTestHarness({ registry });
+    configureAuth(pinia);
 
     await router.push({
       name: "_noobAdminLogin",
@@ -788,7 +844,7 @@ describe("createAdminRouter — redirect reconstruction", () => {
       navResolve();
     });
 
-    const auth = useAdminAuthStore(opts.pinia);
+    const auth = useAdminAuthStore(pinia);
     auth.status = { kind: "authenticated", userLabel: "tester" };
     await navPromise;
 
@@ -798,9 +854,8 @@ describe("createAdminRouter — redirect reconstruction", () => {
   });
 
   it("valid protected redirect URL restores destination", async () => {
-    const opts = createOptions();
-    configureAuth(opts.pinia);
-    const router = createAdminRouter(opts);
+    const { pinia, router } = createTestHarness();
+    configureAuth(pinia);
 
     await router.push({
       name: "_noobAdminLogin",
@@ -814,7 +869,7 @@ describe("createAdminRouter — redirect reconstruction", () => {
       navResolve();
     });
 
-    const auth = useAdminAuthStore(opts.pinia);
+    const auth = useAdminAuthStore(pinia);
     auth.status = { kind: "authenticated", userLabel: "tester" };
     await navPromise;
 
@@ -826,13 +881,12 @@ describe("createAdminRouter — redirect reconstruction", () => {
 // Type safety
 // ---------------------------------------------------------------------------
 
-describe("createAdminRouter — type safety", () => {
+describe("createAdminRouterPlugin — type safety", () => {
   it("CreateAdminRouterOptions accepts registry typed from defineAdminRouteRegistry", () => {
     const registry = createRegistry();
     const options: CreateAdminRouterOptions<
       RouteDefinitionsFor<typeof registry>
     > = {
-      pinia: createPinia(),
       history: createMemoryHistory(),
       registry,
       homeDestination: { navKey: "dashboard" },
@@ -840,7 +894,8 @@ describe("createAdminRouter — type safety", () => {
       createPageId: () => "test",
       getNavigationScopeId: () => "test",
     };
-    expect(options).toBeDefined();
+    const plugin: AdminRouterPlugin = createAdminRouterPlugin(options);
+    expect(plugin.router).toBeDefined();
   });
   it("AdminRouteOverride accepts path, innerComponent, and meta overrides", () => {
     const override: AdminRouteOverride = {

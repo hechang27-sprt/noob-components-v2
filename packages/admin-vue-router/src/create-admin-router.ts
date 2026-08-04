@@ -3,11 +3,18 @@ import {
   AdminShell,
   useAdminAuthStore,
   useAdminShellNavigationStore,
+  type AdminAuthStore,
   type AdminShellDestination,
   type AdminShellTabDescriptor,
 } from "@noob-naive-ui/admin";
-import type { Pinia } from "pinia";
-import { h, defineComponent, type Component } from "vue";
+import { getActivePinia } from "pinia";
+import {
+  h,
+  defineComponent,
+  type App,
+  type Component,
+  type InjectionKey,
+} from "vue";
 import type {
   RouteMeta,
   RouteRecordRaw,
@@ -21,10 +28,11 @@ import type {
   AdminRouteRegistry,
   RouteReadInput,
 } from "./route-registry";
+import type { AdminShellVueRouterRuntime } from "./navigation";
 import { createAdminShellVueRouterRuntime } from "./navigation";
 
 // ---------------------------------------------------------------------------
-// createAdminRouter — factory-owned Vue Router with auth/scope lifecycle
+// createAdminRouterPlugin — plugin-owned Vue Router with auth/scope lifecycle
 // ---------------------------------------------------------------------------
 
 /** Identifies the package-owned login route without colliding with host names. */
@@ -63,12 +71,10 @@ export interface AdminRouteOverride {
   meta?: Record<string, unknown>;
 }
 
-/** Supplies host-owned configuration for the factory-owned admin router. */
+/** Supplies host-owned configuration for the plugin-owned admin router. */
 export interface CreateAdminRouterOptions<
   TDefinitions extends AdminRouteDefinitions,
 > {
-  /** Supplies the application Pinia instance owning auth, menu, and preferences stores. */
-  pinia: Pinia;
   /** Supplies the host-selected history implementation, base path, and mode. */
   history: RouterHistory;
   /** Supplies the bound host route registry for destination conversion and child routes. */
@@ -108,16 +114,19 @@ function validateAdditionalRoutes(
   shellPath: string,
 ): void {
   if (!additionalRoutes) return;
-  const internalNames = new Set([
-    ADMIN_LOGIN_ROUTE_NAME,
-    ADMIN_SHELL_ROUTE_NAME,
-  ]);
+  const internalNames: Record<string, true> = {
+    [ADMIN_LOGIN_ROUTE_NAME]: true,
+    [ADMIN_SHELL_ROUTE_NAME]: true,
+  };
   const registryNames = new Set(registry.navKeys);
-  const internalPaths = new Set([loginPath, shellPath]);
+  const internalPaths: Record<string, true> = {
+    [loginPath]: true,
+    [shellPath]: true,
+  };
   for (const route of additionalRoutes) {
     if (route.name) {
       const name = String(route.name);
-      if (internalNames.has(name)) {
+      if (internalNames[name]) {
         throw new Error(
           `Additional route "${name}" conflicts with internal admin route name.`,
         );
@@ -128,7 +137,7 @@ function validateAdditionalRoutes(
         );
       }
     }
-    if (route.path && internalPaths.has(route.path)) {
+    if (route.path && internalPaths[route.path]) {
       throw new Error(
         `Additional route path "${route.path}" conflicts with an internal admin route path.`,
       );
@@ -181,25 +190,236 @@ function createShellRouteComponent(innerComponent: Component): Component {
   );
 }
 
-/** Non-enumerable cleanup symbol for deterministic guard/subscription teardown. */
-const ADMIN_DISPOSE_KEY = Symbol("adminRouterDispose");
+/**
+ * App-level injection key for the deterministic cleanup function installed
+ * with the admin router plugin.
+ *
+ * The provided value removes the factory-installed router error handler,
+ * auth guard, history-scope guard, and auth-transition subscription in
+ * registration order. Resolve it with `inject(ADMIN_DISPOSE_KEY)` inside a
+ * component setup, or `app.runWithContext(() => inject(ADMIN_DISPOSE_KEY))`
+ * at app scope.
+ */
+export const ADMIN_DISPOSE_KEY: InjectionKey<() => void> = Symbol(
+  "adminRouterDispose",
+);
+
+/** The Vue plugin returned by `createAdminRouterPlugin`, installed after Pinia. */
+export interface AdminRouterPlugin {
+  /**
+   * Installs the admin router runtime on the target app.
+   *
+   * Resolves Pinia from the active instance set by `app.use(pinia)`, binds
+   * the admin auth and navigation stores against it, registers the router
+   * lifecycle handlers, installs the router, and provides the dispose
+   * function under {@link ADMIN_DISPOSE_KEY}.
+   *
+   * @param app - The host application that already installed Pinia.
+   * @throws When Pinia was not installed on the app before this plugin.
+   * @throws When this plugin instance was already installed.
+   */
+  install(app: App): void;
+  /**
+   * The fully configured Router created by the factory.
+   *
+   * Route records and the navigation runtime are created eagerly; only
+   * store binding and lifecycle registration wait for `install`.
+   */
+  readonly router: Router;
+}
 
 /**
- * Creates the complete Vue Router instance owning admin route records, auth
- * guards, scope repair, and navigation adapter.
+ * Reports router navigation failures through stderr so detached lifecycle
+ * effects never leave Vue Router to classify a handled rejection as uncaught.
+ *
+ * @param error - Navigation failure reported by Vue Router.
+ * @returns Nothing after reporting the failure.
+ */
+function reportRouterError(error: unknown): void {
+  console.error("Admin router navigation failed:", error);
+}
+
+/**
+ * Installs the factory-owned navigation error reporter on the router.
+ *
+ * @param router - The router whose navigation rejections are reported.
+ * @returns A removal function that unregisters the reporter.
+ */
+function installRouterErrorHandler(router: Router): () => void {
+  return router.onError(reportRouterError);
+}
+
+/**
+ * Installs the auth guard before the scope guard.
+ *
+ * When status is loading the guard awaits restoration settlement before
+ * evaluating the destination, so protected content is never rendered
+ * optimistically. After settlement the same decision block runs regardless
+ * of the path taken.
+ *
+ * @param router - The router receiving the guard.
+ * @param auth - The package-owned auth store resolved against the app Pinia.
+ * @param homeDestination - The fallback destination for authenticated login visits.
+ * @returns A removal function that unregisters the guard.
+ */
+function installAuthGuard(
+  router: Router,
+  auth: AdminAuthStore,
+  homeDestination: AdminShellDestination,
+): () => void {
+  return router.beforeEach(async (to) => {
+    if (auth.status.kind === "loading") {
+      await auth.waitForRestoration();
+    }
+
+    const protectedTarget = to.matched.some((record) =>
+      requiresAdminAuth(record.meta),
+    );
+    if (protectedTarget && auth.status.kind !== "authenticated") {
+      return {
+        name: ADMIN_LOGIN_ROUTE_NAME,
+        query: { redirectUrl: to.fullPath },
+      };
+    }
+    if (
+      to.name === ADMIN_LOGIN_ROUTE_NAME &&
+      auth.status.kind === "authenticated"
+    ) {
+      return { name: String(homeDestination.navKey) };
+    }
+    return true;
+  });
+}
+
+/**
+ * Installs the history-scope guard through the navigation runtime.
+ *
+ * @param navigationRuntime - The router-bound navigation runtime owning the guard.
+ * @returns A removal function that unregisters the guard.
+ * @throws When the runtime was created without a home destination.
+ */
+function installScopeGuard(
+  navigationRuntime: AdminShellVueRouterRuntime,
+): () => void {
+  return navigationRuntime.installScopeGuard();
+}
+
+/**
+ * Installs auth-transition routing for the plugin-owned router.
+ *
+ * Subscribes to the auth store and orchestrates scope entry after login
+ * (with redirect URL resolution) and logout routing. Rejected scope entry
+ * resets the pending state and does not suppress a later eligible attempt.
+ *
+ * @param auth - The package-owned auth store resolved against the app Pinia.
+ * @param router - The router receiving transition effects.
+ * @param navigationRuntime - The router-bound runtime owning scope entry.
+ * @param registry - The bound registry used for redirect resolution.
+ * @param homeDestination - The fallback destination for non-restorable redirects.
+ * @returns A removal function that unsubscribes from auth transitions.
+ */
+function installAuthTransitionGuard(
+  auth: AdminAuthStore,
+  router: Router,
+  navigationRuntime: AdminShellVueRouterRuntime,
+  registry: AdminRouteRegistry<AdminRouteDefinitions>,
+  homeDestination: AdminShellDestination,
+): () => void {
+  /** Prevents duplicate scope entry while one authenticated transition is pending. */
+  let scopeEntryPending = false;
+
+  /**
+   * Applies login scope entry or protected-shell logout routing for one auth transition.
+   *
+   * @param kind - Current package auth status discriminator.
+   * @returns A promise that settles after any required router effect.
+   */
+  async function handleAuthTransition(kind: string): Promise<void> {
+    // No-op during loading — the guard awaits restoration, transition handler
+    // will fire again when status settles to authenticated or anonymous.
+    if (kind === "loading") return;
+
+    if (kind === "anonymous") {
+      scopeEntryPending = false;
+      if (
+        router.currentRoute.value.matched.some((record) =>
+          requiresAdminAuth(record.meta),
+        )
+      ) {
+        await router.replace({ name: ADMIN_LOGIN_ROUTE_NAME });
+      }
+      return;
+    }
+    if (
+      kind !== "authenticated" ||
+      scopeEntryPending ||
+      router.currentRoute.value.name !== ADMIN_LOGIN_ROUTE_NAME
+    ) {
+      return;
+    }
+    scopeEntryPending = true;
+    const redirectContext: LoginRedirectContext = {
+      registry,
+      homeDestination,
+    };
+    try {
+      await navigationRuntime.enterScope(
+        resolvePostLoginDestination(
+          router.currentRoute.value.query.redirectUrl,
+          router,
+          redirectContext,
+        ),
+      );
+    } finally {
+      scopeEntryPending = false;
+    }
+  }
+
+  /**
+   * Starts one auth-driven router effect while containing recoverable navigation failure.
+   *
+   * @param kind - Current package auth status discriminator.
+   * @returns Nothing; router failures settle inside the detached lifecycle effect.
+   */
+  function runAuthTransition(kind: string): void {
+    void handleAuthTransition(kind).catch((err) => {
+      // Preserve the original failure message for detached auth transitions;
+      // the rejection is contained so Vue Router never classifies it as
+      // an uncaught navigation error.
+      console.error(`Unknown Error: ${err}`);
+      return undefined;
+    });
+  }
+
+  /** Owns auth-transition effects for the same lifetime as the plugin install. */
+  const unsubscribe = auth.$subscribe(
+    (_mutation, state) => runAuthTransition(state.status.kind),
+    { detached: true },
+  );
+  runAuthTransition(auth.status.kind);
+
+  return unsubscribe;
+}
+
+/**
+ * Creates the plugin owning the complete Vue Router instance, admin route
+ * records, auth guards, scope repair, and navigation adapter.
+ *
+ * The factory creates the Router eagerly; the returned plugin's `install`
+ * binds the admin stores to the app Pinia, registers the lifecycle handlers,
+ * installs the router, and provides the dispose function under
+ * {@link ADMIN_DISPOSE_KEY}.
  *
  * @param options - Host-owned configuration: history, registry, auth callbacks,
  *   and presentation policy.
- * @returns The fully configured Vue Router with deterministic cleanup via
- *   a non-enumerable `[Symbol("adminRouterDispose")]()` method.
+ * @returns The installable plugin exposing the fully configured Router.
  * @throws When additional routes collide with generated admin records or
  *   login/shell paths are identical.
  */
-export function createAdminRouter<TDefinitions extends AdminRouteDefinitions>(
+export function createAdminRouterPlugin<TDefinitions extends AdminRouteDefinitions>(
   options: CreateAdminRouterOptions<TDefinitions>,
-): Router {
+): AdminRouterPlugin {
   const {
-    pinia,
     history,
     registry,
     homeDestination,
@@ -223,8 +443,6 @@ export function createAdminRouter<TDefinitions extends AdminRouteDefinitions>(
   }
 
   validateAdditionalRoutes(additionalRoutes, registry, loginPath, shellPath);
-
-  const auth = useAdminAuthStore(pinia);
 
   // Build internal route components bound to this router's adapter
   const LoginRouteComponent = createLoginRouteComponent(
@@ -270,19 +488,6 @@ export function createAdminRouter<TDefinitions extends AdminRouteDefinitions>(
     routes: allRoutes,
     ...(scrollBehavior ? { scrollBehavior } : {}),
   });
-  /**
-   * Reports router navigation failures through stderr so detached lifecycle
-   * effects never leave Vue Router to classify a handled rejection as uncaught.
-   *
-   * @param error - Navigation failure reported by Vue Router.
-   * @returns Nothing after reporting the failure.
-   */
-  function reportRouterError(error: unknown): void {
-    console.error("Admin router navigation failed:", error);
-  }
-
-  /** Removes the factory-owned navigation error reporter during disposal. */
-  const removeRouterErrorHandler = router.onError(reportRouterError);
 
   // Create the navigation runtime bound to this router.
   const navigationRuntime = createAdminShellVueRouterRuntime({
@@ -293,127 +498,52 @@ export function createAdminRouter<TDefinitions extends AdminRouteDefinitions>(
     getNavigationScopeId,
     homeDestination,
   });
-  useAdminShellNavigationStore(pinia).configure(navigationRuntime.navigation);
 
-  /** Prevents duplicate scope entry while one authenticated transition is pending. */
-  let scopeEntryPending = false;
+  /** Collects removal functions for every factory-installed router effect. */
+  const cleanupFunctions: Array<() => void> = [];
+  /** Rejects a second install of the same plugin instance. */
+  let installed = false;
 
-  /**
-   * Applies login scope entry or protected-shell logout routing for one auth transition.
-   *
-   * @param kind - Current package auth status discriminator.
-   * @returns A promise that settles after any required router effect.
-   */
-  async function handleAuthTransition(kind: string): Promise<void> {
-    // No-op during loading — the guard awaits restoration, transition handler
-    // will fire again when status settles to authenticated or anonymous.
-    if (kind === "loading") return;
-
-    if (kind === "anonymous") {
-      scopeEntryPending = false;
-      if (
-        router.currentRoute.value.matched.some((record) =>
-          requiresAdminAuth(record.meta),
-        )
-      ) {
-        await router.replace({ name: ADMIN_LOGIN_ROUTE_NAME });
+  return {
+    router,
+    install(app) {
+      if (installed) {
+        throw new Error(
+          "createAdminRouterPlugin cannot be installed more than once.",
+        );
       }
-      return;
-    }
-    if (
-      kind !== "authenticated" ||
-      scopeEntryPending ||
-      router.currentRoute.value.name !== ADMIN_LOGIN_ROUTE_NAME
-    ) {
-      return;
-    }
-    scopeEntryPending = true;
-    const redirectContext: LoginRedirectContext = {
-      registry: registry as AdminRouteRegistry<AdminRouteDefinitions>,
-      homeDestination,
-    };
-    try {
-      await navigationRuntime.enterScope(
-        resolvePostLoginDestination(
-          router.currentRoute.value.query.redirectUrl,
+      const pinia = getActivePinia();
+      if (!pinia) {
+        throw new Error(
+          "createAdminRouterPlugin requires Pinia to be installed on the app " +
+            "(app.use(pinia)) before the plugin is installed.",
+        );
+      }
+      installed = true;
+
+      // Bind the package stores against the app Pinia now that it is active.
+      const auth = useAdminAuthStore(pinia);
+      useAdminShellNavigationStore(pinia).configure(
+        navigationRuntime.navigation,
+      );
+
+      cleanupFunctions.push(
+        installRouterErrorHandler(router),
+        installAuthGuard(router, auth, homeDestination),
+        installScopeGuard(navigationRuntime),
+        installAuthTransitionGuard(
+          auth,
           router,
-          redirectContext,
+          navigationRuntime,
+          registry as AdminRouteRegistry<AdminRouteDefinitions>,
+          homeDestination,
         ),
       );
-    } finally {
-      scopeEntryPending = false;
-    }
-  }
-  /**
-   * Starts one auth-driven router effect while containing recoverable navigation failure.
-   *
-   * @param kind - Current package auth status discriminator.
-   * @returns Nothing; router failures settle inside the detached lifecycle effect.
-   */
-  function runAuthTransition(kind: string): void {
-    void handleAuthTransition(kind).catch(() => undefined);
-  }
 
-  /** Owns auth-transition effects for the same lifetime as the factory router. */
-  const removeAuthTransitionGuard = auth.$subscribe(
-    (_mutation, state) => runAuthTransition(state.status.kind),
-    { detached: true },
-  );
-  runAuthTransition(auth.status.kind);
-
-  /**
-   * Auth guard installed before the scope guard.
-   *
-   * When status is loading the guard awaits restoration settlement
-   * before evaluating the destination, so protected content is never
-   * rendered optimistically.  After settlement the same decision
-   * block runs regardless of the path taken.
-   *
-   * @returns A route location to redirect, `true` to proceed, or a
-   *          Promise of either when restoration is pending.
-   */
-  const removeAuthGuard = router.beforeEach(async (to) => {
-    if (auth.status.kind === "loading") {
-      await auth.waitForRestoration();
-    }
-
-    const protectedTarget = to.matched.some((record) =>
-      requiresAdminAuth(record.meta),
-    );
-    if (protectedTarget && auth.status.kind !== "authenticated") {
-      return {
-        name: ADMIN_LOGIN_ROUTE_NAME,
-        query: { redirectUrl: to.fullPath },
-      };
-    }
-    if (
-      to.name === ADMIN_LOGIN_ROUTE_NAME &&
-      auth.status.kind === "authenticated"
-    ) {
-      return { name: String(homeDestination.navKey) };
-    }
-    return true;
-  });
-
-  // Install scope guard
-  const removeScopeGuard = navigationRuntime.installScopeGuard();
-
-  // Deterministic cleanup exposed via non-enumerable symbol property
-  const cleanupFunctions: Array<() => void> = [
-    removeRouterErrorHandler,
-    removeAuthGuard,
-    removeScopeGuard,
-    removeAuthTransitionGuard,
-  ];
-
-  Object.defineProperty(router, ADMIN_DISPOSE_KEY, {
-    value: () => {
-      for (const fn of cleanupFunctions) fn();
+      app.use(router);
+      app.provide(ADMIN_DISPOSE_KEY, () => {
+        for (const fn of cleanupFunctions) fn();
+      });
     },
-    writable: false,
-    enumerable: false,
-    configurable: false,
-  });
-
-  return router;
+  };
 }

@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/admin/frontend/runtime-contract.md", "reason": "Auth store binding and plugin install ownership contract for createAdminRouterPlugin."}
+{"file": ".trellis/spec/demo/frontend/runtime-integration-contract.md", "reason": "Host assembly shape: plugin installed after app.use(pinia); demo smoke scenarios."}

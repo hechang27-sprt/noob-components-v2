@@ -29,6 +29,9 @@ export interface AdminAuthStoreConfig {
   restore: () => Promise<AdminAuthRestoreResult>;
 }
 
+/** The store instance shape returned by {@link useAdminAuthStore}. */
+export type AdminAuthStore = ReturnType<typeof useAdminAuthStore>;
+
 export const useAdminAuthStore = defineStore("admin-auth", () => {
   /** Reactive read-only auth status for components. */
   const status = ref<AdminAuthStatus>({ kind: "anonymous", reason: "unknown" });

@@ -14,7 +14,7 @@ export type {
 } from "./runtime-contract";
 
 export { useAdminAuthStore } from "./stores/auth";
-export type { AdminAuthStoreConfig } from "./stores/auth";
+export type { AdminAuthStore, AdminAuthStoreConfig } from "./stores/auth";
 
 export { useAdminShellPreferencesStore } from "./stores/shell-preferences";
 export { useAdminShellMenuStore } from "./stores/menu";

@@ -6,7 +6,7 @@ import {
   type AdminAuthRestoreResult,
   type AdminLoginValues,
 } from "@noob-naive-ui/admin";
-import { createAdminRouter } from "@noob-naive-ui/admin-vue-router";
+import { createAdminRouterPlugin } from "@noob-naive-ui/admin-vue-router";
 import type { MenuOption } from "naive-ui";
 import { createPinia } from "pinia";
 import { createApp, ref } from "vue";
@@ -104,9 +104,11 @@ i18n.global.locale.value = preferences.locale as "en" | "zh-CN";
 const menu = useAdminShellMenuStore(pinia);
 menu.configure(createDemoMenu());
 
-/** Creates the package-owned router after host-owned stores are configured. */
-const router = createAdminRouter({
-  pinia,
+/**
+ * Creates the package-owned admin router plugin. Its install binds the admin
+ * stores and registers the router, so it must run after `app.use(pinia)`.
+ */
+const adminRouter = createAdminRouterPlugin({
   history: createWebHistory(),
   registry: demoRouteRegistry,
   homeDestination: { navKey: "dashboard" },
@@ -116,7 +118,7 @@ const router = createAdminRouter({
 });
 
 /** Mounts the backend-free demonstration with the package-owned admin router. */
-const app = createApp(App).use(pinia).use(i18n).use(router);
+const app = createApp(App).use(pinia).use(i18n).use(adminRouter);
 
 /** Import a package's corresponding i18n plugin to override localization messages. */
 // import { adminI18nPlugin } from "@noob-naive-ui/admin";

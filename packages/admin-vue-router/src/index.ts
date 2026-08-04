@@ -16,7 +16,9 @@ export {
 } from "./navigation";
 
 export {
-  createAdminRouter,
+  ADMIN_DISPOSE_KEY,
+  createAdminRouterPlugin,
   type AdminRouteOverride,
+  type AdminRouterPlugin,
   type CreateAdminRouterOptions,
 } from "./create-admin-router";

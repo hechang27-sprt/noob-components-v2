@@ -19,8 +19,7 @@ preferences.initialize({ defaults: { availableLocales, ... } });
 const menu = useAdminShellMenuStore(pinia);
 menu.configure(createDemoMenu());
 
-const router = createAdminRouter({
-  pinia,
+const adminRouter = createAdminRouterPlugin({
   history: createWebHistory(),
   registry: demoRouteRegistry,
   homeDestination: { navKey: "dashboard" },
@@ -33,9 +32,14 @@ const router = createAdminRouter({
   // additionalRoutes: [ ... ],
   // scrollBehavior: (to, from, savedPosition) => ...,
 });
+
+const app = createApp(App).use(pinia).use(i18n).use(adminRouter);
 ```
 
-The host configures stores first, then passes them (plus the registry, history, and presentation callbacks) into `createAdminRouter`. The factory returns the fully configured `Router`.
+The host configures stores first, then installs Pinia on the app before the
+returned plugin. The plugin's `install` resolves the app Pinia via
+`getActivePinia()`, binds the admin stores, registers the router and its
+guards, and exposes the fully configured `Router` as `adminRouter.router`.
 
 Registry route paths are relative children (`""`, `"reports"`, `"detail/:reportId"`). The factory wraps them beneath the generated shell route and keeps the login route as a public sibling at host-chosen path.
 
@@ -44,11 +48,11 @@ Registry route paths are relative children (`""`, `"reports"`, `"detail/:reportI
 - Import public package APIs and `@noob-naive-ui/admin/style.css`; never reach into package source.
 - Package auth state is non-persistent Pinia state. Demo callbacks validate fake credentials and return presentation identity; they never set auth status.
 - `App.tsx` owns shared providers plus the outer `RouterView`. It has no knowledge of login, shell, or auth status.
-- `@noob-naive-ui/admin-vue-router.createAdminRouter()` generates internal login and shell route records with package-owned names (`_noobAdminLogin`, `_noobAdminShell`). The shell route stamps `requiresAuth: true` in its metadata. The login route has no `requiresAuth`. The host may override path, inner presentation component, and non-reserved metadata for each.
-- `@noob-naive-ui/admin-vue-router.createAdminRouter()` owns the auth guard (`beforeEach`): anonymous protected routes redirect to login with `?redirectUrl=<fullPath>`; authenticated `/login` redirects to `homeDestination`. The host does not write router guards.
-- `@noob-naive-ui/admin-vue-router.createAdminRouter()` owns `resolvePostLoginDestination()`: redirect restoration accepts only a root-relative URL resolving to a matched protected registry route. Login, external, malformed, and public targets fall back to `homeDestination`.
-- `@noob-naive-ui/admin-vue-router.createAdminRouter()` owns auth-transition routing: it subscribes to the auth store and orchestrates scope entry after login (with redirect URL resolution) and logout routing. Rejected scope entry resets pending state and does not suppress a later eligible attempt.
-- `@noob-naive-ui/admin-vue-router.createAdminRouter()` owns the history-scope guard: it parses `_noobAdminShell`, bypasses non-registry routes, repairs stale/missing protected scope to one stable home descriptor per scope, and stamps explicit post-login entries through the navigation runtime.
+- `@noob-naive-ui/admin-vue-router.createAdminRouterPlugin()` generates internal login and shell route records with package-owned names (`_noobAdminLogin`, `_noobAdminShell`). The shell route stamps `requiresAuth: true` in its metadata. The login route has no `requiresAuth`. The host may override path, inner presentation component, and non-reserved metadata for each.
+- `@noob-naive-ui/admin-vue-router.createAdminRouterPlugin()` owns the auth guard (`beforeEach`): anonymous protected routes redirect to login with `?redirectUrl=<fullPath>`; authenticated `/login` redirects to `homeDestination`. The host does not write router guards.
+- `@noob-naive-ui/admin-vue-router.createAdminRouterPlugin()` owns `resolvePostLoginDestination()`: redirect restoration accepts only a root-relative URL resolving to a matched protected registry route. Login, external, malformed, and public targets fall back to `homeDestination`.
+- `@noob-naive-ui/admin-vue-router.createAdminRouterPlugin()` owns auth-transition routing: it subscribes to the auth store and orchestrates scope entry after login (with redirect URL resolution) and logout routing. Rejected scope entry resets pending state and does not suppress a later eligible attempt.
+- `@noob-naive-ui/admin-vue-router.createAdminRouterPlugin()` owns the history-scope guard: it parses `_noobAdminShell`, bypasses non-registry routes, repairs stale/missing protected scope to one stable home descriptor per scope, and stamps explicit post-login entries through the navigation runtime.
 - The host owns: Pinia instance, history mode (and base), route registry (definitions and codecs), tab presentation (`describeDestination`), page ID creation (`createPageId`), navigation scope ID rotation (`getNavigationScopeId`), home destination, menu hierarchy, preference configuration, optional shell/login overrides, additional public routes, and scroll behavior.
 - Menu is configured separately via `useAdminShellMenuStore().configure(createDemoMenu())`. The factory does not read menu state for route generation.
 - Initialize `useAdminShellPreferencesStore` once; theme/font presentation consumes that same store.
@@ -90,10 +94,10 @@ router.beforeEach((to) => {
 });
 authStatus.value = { kind: "authenticated" };
 
-// Correct: factory owns routes, guards, redirect validation, scope repair.
-// Host owns Pinia, history, registry, presentation, and scope identity.
-const router = createAdminRouter({
-  pinia,
+// Correct: plugin owns routes, guards, redirect validation, scope repair.
+// Host owns Pinia, history, registry, presentation, and scope identity, and
+// installs Pinia before the plugin so its install resolves the app Pinia.
+const adminRouter = createAdminRouterPlugin({
   history: createWebHistory(),
   registry: demoRouteRegistry,
   homeDestination: { navKey: "dashboard" },
@@ -101,4 +105,5 @@ const router = createAdminRouter({
   createPageId: () => crypto.randomUUID(),
   getNavigationScopeId: () => navigationScopeId.value,
 });
+const app = createApp(App).use(pinia).use(adminRouter);
 ```
