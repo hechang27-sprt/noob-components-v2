@@ -7,10 +7,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AdminLoginPage } from "../src/components/admin-login-page";
 import {
+  adminI18n,
   adminI18nOverridesKey,
   adminI18nPlugin,
-  selectAdminLoginPageOverrides,
-  selectAdminShellOverrides,
   type AdminI18nSnapshot,
 } from "../src/i18n/plugin";
 import type { AdminLocaleOverrides } from "../src/i18n/admin-locale";
@@ -117,10 +116,14 @@ describe("admin i18n plugin", () => {
       },
     };
 
-    expect(selectAdminShellOverrides(overrides)).toEqual({
-      en: { account: { signOut: "Log out" } },
-    });
-    expect(selectAdminLoginPageOverrides(overrides)).toEqual({
+    expect(adminI18n.selectComponentOverrides(overrides, "AdminShell")).toEqual(
+      {
+        en: { account: { signOut: "Log out" } },
+      },
+    );
+    expect(
+      adminI18n.selectComponentOverrides(overrides, "AdminLoginPage"),
+    ).toEqual({
       "zh-CN": { form: { signIn: "登录" } },
     });
   });

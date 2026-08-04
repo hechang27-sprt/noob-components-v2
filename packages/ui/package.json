@@ -24,6 +24,9 @@
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
+  "dependencies": {
+    "@noob-naive-ui/i18n": "workspace:*"
+  },
   "peerDependencies": {
     "naive-ui": "catalog:",
     "vue": "catalog:",

@@ -1,42 +1,50 @@
 // @vitest-environment happy-dom
 
-import { createApp, defineComponent, type App, type InjectionKey } from "vue";
+import { createApp, defineComponent, type App } from "vue";
 import { createI18n } from "vue-i18n";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { useComponentI18n } from "../src/use-component-i18n";
+import {
+  createLibraryI18nPlugin,
+  useComponentI18n,
+  type LibraryI18nOverrides,
+} from "../src/index";
 
 /**
- * Minimal plugin-style override snapshot shaped like a library plugin's
- * app-scoped tree: a `messages` field the selector slices from.
+ * Minimal component-first locale schema for the harness library, shaped
+ * like a package's `Locale` factory type parameter.
  */
-interface TestSnapshot {
-  messages: {
-    en?: { greeting?: string; farewell?: string };
-    "zh-CN"?: { greeting?: string; farewell?: string };
-  };
+interface TestComponentMessages {
+  greeting: string;
+  farewell: string;
 }
 
+interface TestLocale {
+  Greeter: TestComponentMessages;
+}
+
+type TestLocaleName = "en" | "zh-CN";
+
+type TestOverrides = LibraryI18nOverrides<TestLocaleName, TestLocale>;
+
+/** The harness library's plugin descriptor built by the shared factory. */
+const testPlugin = createLibraryI18nPlugin<TestLocaleName, TestLocale>({
+  libraryId: "test-library",
+});
+
 /** Packaged defaults a library component ships with. */
-const packagedDefaults: Readonly<Record<string, unknown>> = {
+const packagedDefaults: Readonly<Record<TestLocaleName, unknown>> = {
   en: { greeting: "Hello", farewell: "Bye" },
   "zh-CN": { greeting: "你好", farewell: "再见" },
 };
-
-/** The injection key the harness provides under. */
-const testOverridesKey: InjectionKey<TestSnapshot> = Symbol("test-overrides");
-
-/** Frozen empty snapshot for the absent-plugin path. */
-const emptySnapshot: TestSnapshot = Object.freeze({ messages: {} });
 
 /** Renders the composable's outputs into data attributes for assertions. */
 const Probe = defineComponent({
   setup() {
     const { composer, t, locale } = useComponentI18n({
       messages: packagedDefaults,
-      overridesKey: testOverridesKey,
-      emptySnapshot,
-      selectOverrides: (messages) => messages,
+      plugin: testPlugin,
+      componentId: "Greeter",
     });
     return () => (
       <div
@@ -59,14 +67,14 @@ afterEach(() => {
 });
 
 /**
- * Mounts the probe under a host-owned global Composer, optionally providing
- * an override snapshot.
+ * Mounts the probe under a host-owned global Composer, optionally installing
+ * the factory-built library plugin with override messages.
  *
- * @param options - Host locale and optional plugin-style override tree.
+ * @param options - Host locale and optional plugin override tree.
  * @returns The mounted container and the host global Composer.
  */
 function mountProbe(
-  options: { locale?: string; overrides?: TestSnapshot } = {},
+  options: { locale?: string; overrides?: TestOverrides } = {},
 ) {
   const target = document.createElement("div");
   document.body.append(target);
@@ -79,7 +87,7 @@ function mountProbe(
   const app = createApp(Probe);
   app.use(i18n);
   if (options.overrides) {
-    app.provide(testOverridesKey, options.overrides);
+    app.use(testPlugin.plugin, { messages: options.overrides });
   }
   app.mount(target);
   mountedApps.push(app);
@@ -87,7 +95,7 @@ function mountProbe(
 }
 
 describe("useComponentI18n", () => {
-  it("renders packaged defaults when no plugin installed the overrides key", () => {
+  it("renders packaged defaults when the plugin is not installed", () => {
     const { container } = mountProbe();
     const el = container.firstElementChild as HTMLElement;
     expect(el.dataset.greeting).toBe("Hello");
@@ -97,10 +105,8 @@ describe("useComponentI18n", () => {
   it("merges the override slice after defaults: overrides win at the leaf, siblings survive", () => {
     const { container } = mountProbe({
       overrides: {
-        messages: {
-          en: { greeting: "Hello overridden" },
-          "zh-CN": { greeting: "你好覆盖" },
-        },
+        en: { Greeter: { greeting: "Hello overridden" } },
+        "zh-CN": { Greeter: { greeting: "你好覆盖" } },
       },
     });
     const el = container.firstElementChild as HTMLElement;
@@ -117,10 +123,8 @@ describe("useComponentI18n", () => {
   it("exposes a locale ref that follows the root locale", async () => {
     const { container, i18n } = mountProbe({
       overrides: {
-        messages: {
-          en: { greeting: "Hello overridden" },
-          "zh-CN": { greeting: "你好覆盖" },
-        },
+        en: { Greeter: { greeting: "Hello overridden" } },
+        "zh-CN": { Greeter: { greeting: "你好覆盖" } },
       },
     });
     const el = container.firstElementChild as HTMLElement;

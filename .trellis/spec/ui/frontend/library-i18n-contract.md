@@ -9,22 +9,21 @@ The host owns one global Composition API Vue I18n instance, including active loc
 ## 2. Signatures
 
 ```ts
-interface PackageI18nPluginOptions {
-  messages?: Partial<Record<string, PackagePartialLocale>>
-}
-
-app.use(packageI18nPlugin, {
-  messages: packageOverrides,
+interface LibraryI18nSnapshot / LibraryI18nPluginOptions are derived by the
+factory; the library only supplies its schema.
+const libraryI18n = createLibraryI18nPlugin<LocaleName, Locale>({
+ libraryId: "noob-naive-ui:admin", // stable per-library identifier
 })
+
+app.use(libraryI18n.plugin, { messages: packageOverrides })
 
 // Shared composable (packages/i18n): fresh local Composer inheriting the
 // host's root locale and fallback, merged packaged defaults then the
 // component's override slice, fallbackRoot already corrected.
 const { composer, t, locale } = useComponentI18n({
-  messages: componentMessages,            // locale-first packaged defaults
-  overridesKey: packageI18nOverridesKey,  // InjectionKey of the plugin snapshot
-  emptySnapshot: DEFAULT_SNAPSHOT,        // frozen empty snapshot
-  selectOverrides: selectComponentOverrides,
+ messages: componentMessages, // locale-first packaged defaults
+ plugin: libraryI18n, // factory descriptor: key + empty snapshot
+ componentId: "ComponentName", // resource file stem, selects the slice
 })
 
 // One-way store → global Composer synchronization, shell-owned.
@@ -49,7 +48,7 @@ const i18n = createI18n({
 
 - The host must install one `createI18n({ legacy: false })` instance before package components mount. The host owns both active and fallback locale. Package plugins never create a Composer, configure fallback, or register global messages.
 - The preference store is the one-way active-locale authority: hydrated preference -> global Composer -> inheriting local Composers. `AdminShell` owns the ongoing store → Composer synchronization via an immediate watcher; the host seeds the Composer with the hydrated preference at startup so pre-auth screens render the restored locale before `AdminShell` mounts. Neither Composer belongs in serializable Pinia state.
-- Shared i18n logic lives in the internal `@noob-naive-ui/i18n` package (`packages/i18n`): the `I18nText` primitives (`I18nText`, `i18nTextSchema`, `resolveI18nText`) and the composables `useComponentI18n` and `useGlobalI18nSync`. Package plugins keep their typed snapshot, injection key, and component selectors in the consuming package; `useComponentI18n` consumes them generically via `{ messages, overridesKey, emptySnapshot, selectOverrides }`.
+- Shared i18n logic lives in the internal `@noob-naive-ui/i18n` package (`packages/i18n`): the `I18nText` primitives (`I18nText`, `i18nTextSchema`, `resolveI18nText`), the composables `useComponentI18n` and `useGlobalI18nSync`, and the plugin factory `createLibraryI18nPlugin<LocaleName, Locale>({ libraryId })`. The factory is the single implementation of the plugin transport (defensive-copy install + provide), the typed injection key, the frozen empty snapshot, and the generic `selectComponentOverrides(messages, componentId)` slice selector; consuming packages instantiate it with their locale schema and re-export the aliases they keep public (`adminI18nPlugin`, `adminI18nOverridesKey`, `DEFAULT_SNAPSHOT`). `useComponentI18n` consumes the descriptor via `{ messages, plugin, componentId }` — no per-package override-key, empty-snapshot, or selector customization.
 - Displayable tab titles use the shared `I18nText` discriminated union (`{ kind: "string"; value: string }` or `{ kind: "i18n"; key: string; named?: Record<string, string | number | boolean> }`). `i18n`-kind labels resolve against the host global Composer at render time, so open AND history-restored tabs follow locale switches. The navigation adapter persists the label as its I18nText representation via `i18nTextSchema`; `named` values persist with history state and must stay JSON-serializable primitives.
 - Descriptors handed to the navigation adapter must be plain data. `structuredClone` throws `DOMException: Proxy object could not be cloned` on reactive objects, and tab records live in a reactive map — snapshot them to plain copies (`{ ...nav }`, plain label with copied `named`) before requesting navigation.
 - Every translating component obtains its registry from `useComponentI18n`: a fresh local Composer, packaged defaults merged first, then only its own override slice. `fallbackRoot` remains false so missing package keys never resolve from host-global messages.

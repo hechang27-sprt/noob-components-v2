@@ -23,6 +23,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "tsafe": "^1.8.12",
     "vue": "catalog:",
     "vue-i18n": "catalog:",
     "zod": "catalog:"

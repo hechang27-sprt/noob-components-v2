@@ -39,11 +39,7 @@ import {
   type I18nText,
 } from "@noob-naive-ui/i18n";
 import adminShellMessages from "../locales/AdminShell.json";
-import {
-  DEFAULT_SNAPSHOT,
-  adminI18nOverridesKey,
-  selectAdminShellOverrides,
-} from "../i18n/plugin";
+import { adminI18n } from "../i18n/plugin";
 import type { AdminLocaleOption } from "../runtime-contract";
 import { useAdminAuthStore } from "../stores/auth";
 import { useAdminShellPreferencesStore } from "../stores/shell-preferences";
@@ -223,9 +219,8 @@ export const AdminShell = defineComponent(
     // slice second, so overrides win at the leaf.
     const { t } = useComponentI18n({
       messages: adminShellMessages,
-      overridesKey: adminI18nOverridesKey,
-      emptySnapshot: DEFAULT_SNAPSHOT,
-      selectOverrides: selectAdminShellOverrides,
+      plugin: adminI18n,
+      componentId: "AdminShell",
     });
 
     /**

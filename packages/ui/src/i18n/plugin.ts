@@ -1,4 +1,9 @@
-import type { App, InjectionKey } from "vue";
+import {
+  createLibraryI18nPlugin,
+  type LibraryI18nOverrides,
+  type LibraryI18nPluginOptions,
+  type LibraryI18nSnapshot,
+} from "@noob-naive-ui/i18n";
 
 /** Supported packaged locale identifiers for ui package components. */
 export type NoobUiLocaleName = "en" | "zh-CN";
@@ -14,38 +19,16 @@ export type NoobUiLocaleName = "en" | "zh-CN";
 export type NoobUiComponentId = never;
 
 /**
- * Locale-keyed, component-addressable partial override tree accepted by the
- * ui package plugin. With no components registered yet, hosts can only supply
- * empty per-locale slices; the transport ships ahead of the first component.
+ * The ui package's i18n plugin descriptor, produced by the shared factory.
+ * The factory owns the plugin transport, the injection key, the empty
+ * snapshot, and the generic component slice selector; this module only pins
+ * the ui locale schema (empty component set today).
  */
-export type NoobUiLocaleOverrides = Partial<
-  Record<NoobUiLocaleName, Partial<Record<NoobUiComponentId, never>>>
->;
-
-/**
- * Plugin options. Only message overrides are configurable; the host global
- * Composer remains the sole locale and fallback-locale authority.
- */
-export interface NoobUiI18nPluginOptions {
-  /** Per-locale, per-component message overrides captured as a startup snapshot. */
-  messages?: NoobUiLocaleOverrides;
-}
-
-/**
- * Immutable, application-scoped startup snapshot provided by the plugin.
- * Carries only message overrides; locale and fallback authority stay with the
- * host global Composer.
- */
-export type NoobUiI18nSnapshot = {
-  messages: NoobUiLocaleOverrides;
-};
-
-export const noobUiI18nOverridesKey: InjectionKey<NoobUiI18nSnapshot> = Symbol(
-  "noob-naive-ui:ui-i18n-overrides",
-);
-
-export const DEFAULT_SNAPSHOT: Readonly<NoobUiI18nSnapshot> = Object.freeze({
-  messages: {},
+export const noobUiI18n = createLibraryI18nPlugin<
+  NoobUiLocaleName,
+  Record<never, never>
+>({
+  libraryId: "noob-naive-ui:ui",
 });
 
 /**
@@ -59,11 +42,26 @@ export const DEFAULT_SNAPSHOT: Readonly<NoobUiI18nSnapshot> = Object.freeze({
  * @param options - Message override configuration; locale and fallback locale
  * are owned by the host global Composer and are not accepted here.
  */
-export function noobUiI18nPlugin(
-  app: App,
-  options: NoobUiI18nPluginOptions = {},
-): void {
-  const messages =
-    options.messages === undefined ? {} : structuredClone(options.messages);
-  app.provide(noobUiI18nOverridesKey, { messages });
-}
+export const noobUiI18nPlugin = noobUiI18n.plugin;
+
+/** The ui package's immutable, application-scoped override snapshot. */
+export type NoobUiI18nSnapshot = LibraryI18nSnapshot<
+  NoobUiLocaleName,
+  Record<never, never>
+>;
+
+/** Plugin options; only message overrides are configurable. */
+export type NoobUiI18nPluginOptions = LibraryI18nPluginOptions<
+  NoobUiLocaleName,
+  Record<never, never>
+>;
+
+/**
+ * Locale-keyed, component-addressable partial override tree accepted by the
+ * ui package plugin. With no components registered yet, hosts can only supply
+ * empty per-locale slices; the transport ships ahead of the first component.
+ */
+export type NoobUiLocaleOverrides = LibraryI18nOverrides<
+  NoobUiLocaleName,
+  Record<never, never>
+>;

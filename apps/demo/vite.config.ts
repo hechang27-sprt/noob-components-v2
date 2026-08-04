@@ -39,6 +39,10 @@ export default defineConfig({
         ),
       },
       {
+        find: /^@noob-naive-ui\/i18n$/,
+        replacement: resolve(__dirname, "../../packages/i18n/src/index.ts"),
+      },
+      {
         find: "@noob-naive-ui/admin/style.css",
         replacement: resolve(__dirname, "../../packages/admin/src/style.css"),
       },

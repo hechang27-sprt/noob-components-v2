@@ -1,3 +1,4 @@
+import type { LibraryI18nOverrides } from "@noob-naive-ui/i18n";
 import type { LocaleFileMap } from "../locales/locale-types.generated";
 
 /**
@@ -34,12 +35,10 @@ export interface AdminLocale {
 /**
  * Locale-keyed, component-addressable partial override tree accepted by the
  * admin package plugin. Every level is optional so hosts override only the
- * message leaves they own.
+ * message leaves they own. Derived from the shared override type so the
+ * partial-tree machinery lives in exactly one place.
  */
-export type AdminLocaleOverrides = Partial<
-  Record<AdminLocaleName, DeepPartial<AdminLocale>>
+export type AdminLocaleOverrides = LibraryI18nOverrides<
+  AdminLocaleName,
+  AdminLocale
 >;
-
-type DeepPartial<T> = {
-  [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K];
-};

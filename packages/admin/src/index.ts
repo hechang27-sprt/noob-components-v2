@@ -21,11 +21,7 @@ export { useAdminShellMenuStore } from "./stores/menu";
 
 export { useAdminShellNavigationStore } from "./stores/navigation";
 
-export {
-  adminI18nPlugin,
-  selectAdminLoginPageOverrides,
-  selectAdminShellOverrides,
-} from "./i18n/plugin";
+export { adminI18nPlugin } from "./i18n/plugin";
 export type {
   AdminComponentId,
   AdminLocale,

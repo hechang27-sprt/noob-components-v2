@@ -1,27 +1,23 @@
-import { inject, type InjectionKey, type Ref } from "vue";
+import { inject, type Ref } from "vue";
 import { useI18n, type Composer } from "vue-i18n";
+import type { LibraryI18nPlugin } from "./library-i18n-plugin";
 
 /**
  * Options for {@link useComponentI18n}.
  *
- * @typeParam M - The override tree's message shape (locale-keyed partials).
- * @typeParam S - The plugin's app-scoped override snapshot type.
- * @typeParam Slice - The component's override slice extracted from the
- * snapshot's messages (locale-keyed partial message tree).
+ * @typeParam LocaleName - Supported packaged locale identifiers.
+ * @typeParam Locale - The library's component-first full message schema.
  */
 export interface UseComponentI18nOptions<
-  M extends Record<string, any>,
-  S extends { messages: M },
-  Slice extends Record<string, any>,
+  LocaleName extends string,
+  Locale extends object,
 > {
   /** Packaged defaults, locale-first resource object (e.g. `{ en, "zh-CN" }`). */
-  messages: Readonly<Record<string, any>>;
-  /** Injection key of the app-scoped override snapshot tree. */
-  overridesKey: InjectionKey<S>;
-  /** Frozen empty snapshot used when no plugin installed the key. */
-  emptySnapshot: S;
-  /** Extracts this component's override slice from the snapshot's messages. */
-  selectOverrides: (messages: M) => Slice;
+  messages: Readonly<Record<LocaleName, unknown>>;
+  /** The library's i18n plugin descriptor produced by the shared factory. */
+  plugin: LibraryI18nPlugin<LocaleName, Locale>;
+  /** The component's resource file stem, selecting its override slice. */
+  componentId: keyof Locale & string;
 }
 
 /** Result of {@link useComponentI18n}. */
@@ -47,22 +43,24 @@ export interface UseComponentI18nReturn {
  *   inherited fallback locale (host-owned) is kept while root-message
  *   fallback is disabled so missing package keys never resolve from
  *   host-global message registries.
- * - Absent plugin installation, `inject` yields `emptySnapshot`, so the
- *   packaged defaults always render.
+ * - Absent plugin installation, `inject` yields the plugin's frozen empty
+ *   snapshot, so the packaged defaults always render.
  *
- * @param options - Messages, override key, empty snapshot, and selector.
+ * @param options - Packaged defaults, the library plugin descriptor, and
+ * the component's resource file stem.
  * @returns The Composer, its bound translator, and its active locale ref.
  */
 export function useComponentI18n<
-  M extends Record<string, any>,
-  S extends { messages: M },
-  Slice extends Record<string, any>,
->(options: UseComponentI18nOptions<M, S, Slice>): UseComponentI18nReturn {
-  const { messages, overridesKey, emptySnapshot, selectOverrides } = options;
+  LocaleName extends string,
+  Locale extends object,
+>(
+  options: UseComponentI18nOptions<LocaleName, Locale>,
+): UseComponentI18nReturn {
+  const { messages, plugin, componentId } = options;
 
   // The plugin's immutable override tree; absent plugin installation yields
   // the frozen empty snapshot, so packaged defaults always render.
-  const snapshot = inject(overridesKey, emptySnapshot);
+  const snapshot = inject(plugin.overridesKey, plugin.emptySnapshot);
 
   // Fresh local registry inheriting root locale and fallback locale; the
   // root's fallbackRoot flag is corrected below after creation.
@@ -95,7 +93,7 @@ export function useComponentI18n<
   }
 
   for (const [overrideLocale, componentMessages] of Object.entries(
-    selectOverrides(snapshot.messages),
+    plugin.selectComponentOverrides(snapshot.messages, componentId),
   )) {
     // The type keeps locale keys optional, so guard the definedness that
     // iteration guarantees at runtime; no locale cast.

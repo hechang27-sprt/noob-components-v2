@@ -12,11 +12,7 @@ import { useComponentI18n } from "@noob-naive-ui/i18n";
 import { defineComponent, ref, useId } from "vue";
 
 import adminLoginPageMessages from "../locales/AdminLoginPage.json";
-import {
-  DEFAULT_SNAPSHOT,
-  adminI18nOverridesKey,
-  selectAdminLoginPageOverrides,
-} from "../i18n/plugin";
+import { adminI18n } from "../i18n/plugin";
 import type { AdminAuthStatus, AdminLoginValues } from "../runtime-contract";
 import { useAdminAuthStore } from "../stores/auth";
 
@@ -57,9 +53,8 @@ export const AdminLoginPage = defineComponent(
     // override slice second, so overrides win at the leaf.
     const { t } = useComponentI18n({
       messages: adminLoginPageMessages,
-      overridesKey: adminI18nOverridesKey,
-      emptySnapshot: DEFAULT_SNAPSHOT,
-      selectOverrides: selectAdminLoginPageOverrides,
+      plugin: adminI18n,
+      componentId: "AdminLoginPage",
     });
 
     function clearFeedback(): void {

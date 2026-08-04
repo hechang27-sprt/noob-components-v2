@@ -30,6 +30,10 @@ export default defineConfig({
         replacement: resolve(__dirname, "../admin/src/index.ts"),
       },
       {
+        find: /^@noob-naive-ui\/i18n$/,
+        replacement: resolve(__dirname, "../i18n/src/index.ts"),
+      },
+      {
         find: "@noob-naive-ui/ui/style.css",
         replacement: resolve(__dirname, "../ui/src/style.css"),
       },
