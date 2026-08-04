@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 19
+- **Total Sessions**: 20
 - **Last Active**: 2026-08-04
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~725 | Active |
+| `journal-1.md` | ~772 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 20 | 2026-08-04 | Dev watchChange regeneration for locale type generator | `ee4e9fe7` | `-` |
 | 19 | 2026-08-04 | Generic JSON-to-TS locale type generator (tooling) wired into admin | `4c434104` | `-` |
 | 18 | 2026-08-04 | Extract shared i18n composables into @noob-naive-ui/i18n | `b69530c9` | `-` |
 | 17 | 2026-08-03 | Library i18n scaffolding with I18nText tab labels | `412714b6` | `-` |

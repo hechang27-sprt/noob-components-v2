@@ -723,3 +723,50 @@ Task-dir consolidation note: task.py create registered the task under 08-04-json
 ### Next Steps
 
 - None - task complete
+
+
+## Session 20: Dev watchChange regeneration for locale type generator
+
+**Date**: 2026-08-04
+**Task**: Dev watchChange regeneration for locale type generator
+**Package**: admin
+
+### Summary
+
+Session summary was not supplied.
+
+### Main Changes
+
+Follow-up to 08-04-json-locale-types-plugin (direct change, no task): added dev-time regeneration to the JSON→TS locale type generator.
+
+tooling/vite/json-locale-types.ts:
+- Extracted regenerateLocaleTypes(dir, outFile, options): scans, generates, writes only when the content differs, returns whether it changed; throws on scan/parse errors naming the file.
+- Plugin now has a watchChange hook (thin glue): regenerates when a *.json under dir changes during dev servers (create/update/delete), guarded by isJsonUnderDir (excludes the .ts output file), logging a warning instead of failing the dev server on mid-save parse errors. buildStart keeps the hard-fail empty-dir/parse semantics.
+- Runtime HMR was already unaffected (the generated module is type-only, erased); the hook closes the type-freshness gap: editing a locale JSON in a dev server now refreshes the committed generated file so tsserver/watch-mode tests stay current.
+
+Tests: 6 new in packages/admin/tests/json-locale-types.test.ts (first-run write, no-op when identical — value-only JSON edits correctly do not rewrite, shape edits do, deletion drops the type, parse-error naming, collision, mkdir -p for nested outFile). 66 admin tests green; tsc -b, oxlint, format:check, admin build green.
+
+Verified end to end with a scratch vite dev server: buildStart wrote the module; editing the fixture JSON produced `extra: boolean` in the output within ~2s (watchChange fired).
+
+Docs: library-i18n-contract.md now states regeneration on build AND dev watchChange; archived design.md API section updated.
+
+Note: demo dev server does not register the plugin (its config only loads the shared vue-i18n preset) — demo-dev type freshness still requires an admin build; registering the generator in the demo config remains an option the user has not selected.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ee4e9fe7` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
