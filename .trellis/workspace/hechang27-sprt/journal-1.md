@@ -670,3 +670,56 @@ trellis-check agent reviewed all files against the task specs; fixed one defect:
 ### Next Steps
 
 - None - task complete
+
+
+## Session 19: Generic JSON-to-TS locale type generator (tooling) wired into admin
+
+**Date**: 2026-08-04
+**Task**: Generic JSON-to-TS locale type generator (tooling) wired into admin
+**Package**: admin
+
+### Summary
+
+Session summary was not supplied.
+
+### Main Changes
+
+Built a generic JSON→TS locale type generator in tooling and replaced the admin package's manual message-shape interfaces with derived types.
+
+tooling/vite/json-locale-types.ts (new shared module, same convention as the vue-i18n preset; zero runtime deps):
+- generateJsonLocaleTypes(files, { typeName?, mapName?, sourceDir? }): pure generator emitting one widened interface per JSON file (string/number/boolean/null, indented inline object types, quoted non-identifier keys like "zh-CN", arrays X[] / sorted (A|B)[] / never[]) plus a file-stem → type map (default LocaleFileMap). Deterministic: sorted scan + sorted element types, stable header (no timestamps). Type-name collisions throw naming both stems.
+- scanJsonLocaleFiles(dir): recursive sorted *.json scan (exported for tests/drift guard); JSON.parse failures rethrow naming the file and path.
+- createJsonLocaleTypesPlugin({ dir, outFile, typeName?, mapName? }): vite plugin (enforce: pre) regenerating outFile on buildStart before the module graph / unplugin-dts runs; empty dir and parse errors fail the build loudly.
+
+Admin wiring:
+- packages/admin/vite.config.ts registers the plugin first (dir=src/locales, outFile=src/locales/locale-types.generated.ts).
+- packages/admin/src/locales/locale-types.generated.ts: committed generated module (in .prettierignore; build regenerates it).
+- packages/admin/src/i18n/admin-locale.ts: AdminShellLocale = LocaleFileMap["AdminShell"]["en"], AdminLoginPageLocale likewise; AdminLocaleName/AdminComponentId/AdminLocale/AdminLocaleOverrides/DeepPartial retained as contract glue. No manual message-shape interfaces remain.
+- Published d.ts self-contained: dist/locales/locale-types.generated.d.ts emitted by unplugin-dts; admin-locale.d.ts references the sibling d.ts; no JSON imports in dist declarations.
+
+Tests: 9 new in packages/admin/tests/json-locale-types.test.ts (primitives, quoted keys, nested indentation, arrays, PascalCase incl. digit-start, collisions, map default/custom, output stability, drift guard comparing the committed file to a fresh generation from the live resources).
+
+Design decision (user-directed): physical committed generated file over a vite virtual module — virtual modules cannot satisfy standalone tsc (TS2307 outside vite) or the published d.ts (dangling virtual: imports for consumers), and a type-only module has no runtime payload to serve.
+
+Gates green: tsc -b --noEmit, oxlint, format:check, 60 admin + 69 router + 15 i18n tests, all 5 package builds, dist audit. trellis-check agent reviewed all files; fixed one defect: JSON parse errors now name the offending file (were raw SyntaxErrors with no path).
+
+Task-dir consolidation note: task.py create registered the task under 08-04-json-locale-types-plugin while the plan artifacts were written under 08-05; merged into 08-04 (kept task.json registry linkage) and removed the 08-05 dir before archiving.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4c434104` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
