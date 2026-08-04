@@ -19,7 +19,8 @@
   "pr_url": null,
   "subtasks": [],
   "children": [
-    "08-04-shared-i18n-composables"
+    "08-04-shared-i18n-composables",
+    "08-04-json-locale-types-plugin"
   ],
   "parent": null,
   "relatedFiles": [],

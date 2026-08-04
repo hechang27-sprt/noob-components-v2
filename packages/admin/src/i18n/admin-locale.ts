@@ -1,10 +1,16 @@
+import type { LocaleFileMap } from "../locales/locale-types.generated";
+
 /**
  * Public locale typing for the admin package.
  *
- * Explicit self-contained interfaces mirror the locale-first JSON resources in
- * `src/locales/<ComponentName>.json`. They are intentionally not derived from
- * `typeof` the JSON imports: the dist-only declaration build does not emit
- * imported JSON resources, so exported types must stand alone.
+ * Message-shape types are generated from the locale-first JSON resources in
+ * `src/locales/<ComponentName>.json` by the shared
+ * `tooling/vite/json-locale-types` plugin (`src/locales/
+ * locale-types.generated.ts`), so the packaged messages and the public
+ * override contract cannot drift. The generated module lives under `src/`,
+ * so the declaration build emits a sibling `dist/locales/
+ * locale-types.generated.d.ts` and exported types stay resolvable for
+ * consumers (no JSON references in the published declarations).
  */
 
 /** Supported packaged locale identifiers for admin components. */
@@ -13,42 +19,11 @@ export type AdminLocaleName = "en" | "zh-CN";
 /** Stable component identifiers addressable by admin package overrides. */
 export type AdminComponentId = "AdminShell" | "AdminLoginPage";
 
-/** The complete AdminShell message schema. */
-export interface AdminShellLocale {
-  account: { signOut: string };
-  fontSize: { small: string; medium: string; large: string };
-  aria: {
-    fontSize: string;
-    language: string;
-    account: string;
-    themeLight: string;
-    themeDark: string;
-    sidebarExpand: string;
-    sidebarCollapse: string;
-  };
-  tabs: { openPages: string };
-  errors: { unableToNavigate: string; unableToCloseTab: string };
-  signedIn: string;
-}
+/** The complete AdminShell message schema (en subtree of the resource). */
+export type AdminShellLocale = LocaleFileMap["AdminShell"]["en"];
 
-/** The complete AdminLoginPage message schema. */
-export interface AdminLoginPageLocale {
-  loading: { title: string; description: string };
-  alreadySignedIn: { title: string; signedInAs: string; generic: string };
-  status: {
-    expired: string;
-    forbidden: string;
-    signedOut: string;
-    unknown: string;
-  };
-  form: {
-    signIn: string;
-    username: string;
-    password: string;
-    rememberMe: string;
-    signingIn: string;
-  };
-}
+/** The complete AdminLoginPage message schema (en subtree of the resource). */
+export type AdminLoginPageLocale = LocaleFileMap["AdminLoginPage"]["en"];
 
 /** The complete admin package message schema keyed by component. */
 export interface AdminLocale {

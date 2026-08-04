@@ -6,8 +6,16 @@ import vueJsx from "@vitejs/plugin-vue-jsx";
 import { defineConfig } from "vitest/config";
 import dts from "unplugin-dts/vite";
 
+import { createJsonLocaleTypesPlugin } from "../../tooling/vite/json-locale-types";
+
 export default defineConfig({
   plugins: [
+    // Generates src/locales/locale-types.generated.ts from the locale JSON
+    // resources before the module graph (and the declaration emitter) runs.
+    createJsonLocaleTypesPlugin({
+      dir: resolve(__dirname, "src/locales"),
+      outFile: resolve(__dirname, "src/locales/locale-types.generated.ts"),
+    }),
     tailwindcss(),
     vueJsx(),
     vueI18n({
