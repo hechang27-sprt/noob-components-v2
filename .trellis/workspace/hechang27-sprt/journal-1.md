@@ -812,3 +812,35 @@ Docs: library-i18n-contract.md and the archived task design.md now describe the 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 22: Fold per-package i18n plugin logic into shared factory
+
+**Date**: 2026-08-04
+**Task**: Fold per-package i18n plugin logic into shared factory
+
+### Summary
+
+Added createLibraryI18nPlugin to @noob-naive-ui/i18n: factory owns plugin transport, injection key, frozen empty snapshot, and generic selectComponentOverrides. admin/ui plugin.ts became thin instantiations; useComponentI18n now takes { messages, plugin, componentId }; AdminLocaleOverrides derived from shared type. Added source aliases for i18n in admin, admin-vue-router, demo vite configs. Gates: tsc, lint, format, 20 i18n + 66 admin + 69 router tests, all builds, demo smoke.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ece31612` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
