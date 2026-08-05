@@ -43,3 +43,7 @@ _Avoid_: User session, account record
 **Anonymous cause**:
 The explanation for an anonymous Authentication state: no authentication was established, the user requested sign-out, or the host evicted the user for a classified reason.
 _Avoid_: Logout reason, auth error
+
+**Vue functional component**:
+A plain rendering function that takes props (and optionally a `SetupContext`) and returns a `VNode`/JSX directly. It is not declared with `defineComponent`. When I mention a Vue "functional", "stateless", or "pseudo" component, I mean this form — a function returning JSX immediately, not a `defineComponent` setup function that returns a render closure.
+_Avoid_: `defineComponent` (including the functional overload whose first argument returns `() => JSX`)
