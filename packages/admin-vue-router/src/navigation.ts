@@ -304,13 +304,44 @@ export function createAdminShellVueRouterRuntime<
     await router.replace(toScopedLocation(descriptor));
   }
 
+  /**
+   * Resolves whether one committed descriptor represents the same page as the
+   * current route, so a heal only rewrites matching history entries.
+   *
+   * @param descriptor - The committed page instance whose location is compared.
+   * @returns Whether the descriptor's canonical URL equals the current route's.
+   */
+  function isCurrentPage(descriptor: AdminShellTabDescriptor): boolean {
+    const target = router.resolve(toScopedLocation(descriptor));
+    return target.fullPath === router.currentRoute.value.fullPath;
+  }
+
   const navigation: AdminShellNavigation = {
     /** Returns the descriptor reconstructed from current router authority. */
     get active() {
       return currentDescriptor();
     },
-    /** Executes open, activate, and close requests through one router effect. */
+    /**
+     * Executes open, activate, close, and heal requests through one router effect.
+     *
+     * A heal restamps the current history entry in place with an exact
+     * committed descriptor when that descriptor represents the same page;
+     * otherwise it no-ops so payload-bearing destinations are never silently
+     * redirected.
+     */
     async handleNavigation(request) {
+      if (request.kind === "heal") {
+        const current = currentDescriptor();
+        if (
+          !current ||
+          current.id === request.destination.id ||
+          !isCurrentPage(request.destination)
+        ) {
+          return { active: current };
+        }
+        await navigateToDescriptor(request.destination, true);
+        return { active: currentDescriptor() };
+      }
       const descriptor = descriptorForRequest(request);
       if (
         request.kind === "close" &&

@@ -38,6 +38,7 @@ import {
   useGlobalI18nSync,
   type I18nText,
 } from "@noob-naive-ui/i18n";
+import { isEqual } from "es-toolkit";
 import adminShellMessages from "../locales/AdminShell.json";
 import { adminI18n } from "../i18n/plugin";
 import type { AdminLocaleOption } from "../runtime-contract";
@@ -165,6 +166,22 @@ export type AdminShellNavigationRequest =
       closing: AdminShellTabDescriptor;
       /** Supplies the shell-selected fallback page instance to activate, or null when no fallback remains. */
       destination: AdminShellTabDescriptor | null;
+    }
+  | {
+      /**
+       * Selects in-place restamping of the current browser-history entry with
+       * one exact committed page instance.
+       *
+       * The shell requests this when history traversal revives a page
+       * instance that was closed while a committed tab for the same
+       * destination already exists, so the stale entry adopts the committed
+       * identity instead of surfacing a duplicate tab.
+       */
+      kind: "heal";
+      /** Supplies the exact committed page instance that becomes the canonical identity for the current history entry. */
+      destination: AdminShellTabDescriptor;
+      /** Supplies the host-authoritative active page before healing, or null when none exists. */
+      current: AdminShellTabDescriptor | null;
     };
 
 /** Reports the host-confirmed active page after one navigation request. */
@@ -176,7 +193,7 @@ export type AdminShellNavigationResult = {
 export type AdminShellNavigation = {
   /** Reports the host-authoritative active page instance. */
   active: AdminShellTabDescriptor | null;
-  /** Handles one resolved open, activate, or close request. */
+  /** Handles one resolved open, activate, close, or heal request. */
   handleNavigation: (
     request: AdminShellNavigationRequest,
   ) => Promise<AdminShellNavigationResult>;
@@ -202,6 +219,14 @@ function snapshotTab(tab: AdminShellTab): AdminShellTabDescriptor {
     label: raw.label,
     closable: raw.closable,
   });
+}
+
+/** Resolves whether two destinations identify the same page content. */
+function sameDestination(
+  a: AdminShellDestination,
+  b: AdminShellDestination,
+): boolean {
+  return a.navKey === b.navKey && isEqual(a.payload, b.payload);
 }
 
 export const AdminShell = defineComponent(
@@ -236,6 +261,8 @@ export const AdminShell = defineComponent(
     const tabs = reactive(new Map<string, AdminShellTab>());
     /** Owns the sole user-visible page-instance ordering. */
     const visibleTabs = ref<string[]>([]);
+    /** Remembers every page-instance id the shell has ever recorded. */
+    const knownPageIds = new Set<string>();
 
     /** Holds sanitized navigation feedback for the current boundary. */
     const tabError = ref<string>();
@@ -254,6 +281,7 @@ export const AdminShell = defineComponent(
     function clearTabs(): void {
       tabs.clear();
       visibleTabs.value.length = 0;
+      knownPageIds.clear();
       pendingOpen.value = undefined;
       tabError.value = undefined;
     }
@@ -282,6 +310,7 @@ export const AdminShell = defineComponent(
         closePending: false,
       });
       visibleTabs.value.push(tab.id);
+      knownPageIds.add(tab.id);
     }
 
     /** Returns all committed public descriptors in visible order. */
@@ -290,6 +319,89 @@ export const AdminShell = defineComponent(
         const tab = tabs.get(id);
         return tab ? [snapshotTab(tab)] : [];
       });
+    }
+
+    /** Holds revived page-instance ids that already have a heal in flight. */
+    const healingRevives = new Set<string>();
+
+    /**
+     * Resolves the newest committed page instance for one destination.
+     *
+     * Both menu-driven navigation and history recovery treat one exact
+     * destination — the same navKey and an equal payload record — as the same
+     * logical page, so this single policy drives `requestDestination`'s
+     * activate-vs-open decision and `recordOrHealActive`'s revive healing
+     * alike. A different payload is a different page instance, never a match.
+     *
+     * @param destination - The destination matched against committed page instances.
+     * @returns The newest visible committed tab for the destination, or undefined.
+     */
+    function newestCommittedFor(
+      destination: AdminShellDestination,
+    ): AdminShellTab | undefined {
+      for (let index = visibleTabs.value.length - 1; index >= 0; index--) {
+        const tab = tabs.get(visibleTabs.value[index]);
+        if (tab && sameDestination(tab.nav, destination)) return tab;
+      }
+      return undefined;
+    }
+
+    /**
+     * Records a host-confirmed active page, healing the current history entry
+     * when the page is a redundant revive of a committed tab.
+     *
+     * Browser Back can land on a history entry whose stamped page instance
+     * was closed while a newer instance of the same destination is committed;
+     * recording the revived id would surface a duplicate tab. The shell owns
+     * membership, so it decides to heal and the host adapter rewrites the
+     * stale entry in place through a `heal` request. Only page ids the shell
+     * has recorded before can be revives — a never-recorded id is a fresh
+     * host-confirmed page instance and is always recorded. Revives without a
+     * committed destination match (same navKey and payload) are recorded as
+     * new page instances (history restore).
+     *
+     * @param navigation - The navigation adapter owning the confirmed active state.
+     * @returns Nothing after recording immediately or scheduling the heal.
+     */
+    function recordOrHealActive(navigation: AdminShellNavigation): void {
+      const active = navigation.active;
+      if (
+        !active ||
+        tabs.has(active.id) ||
+        healingRevives.has(active.id) ||
+        // A never-recorded id is a fresh host-confirmed page instance, which
+        // the shell always records; only ids seen before can be redundant
+        // revives of a closed tab.
+        !knownPageIds.has(active.id)
+      ) {
+        recordCurrentTab(active);
+        return;
+      }
+      const match = newestCommittedFor(active.nav);
+      if (!match) {
+        recordCurrentTab(active);
+        return;
+      }
+      healingRevives.add(active.id);
+      void navigation
+        .handleNavigation({
+          kind: "heal",
+          destination: snapshotTab(match),
+          current: active,
+        })
+        .then(({ active: healed }) => {
+          // A successful heal re-fires this watch with the committed id,
+          // which records as an update; only a no-op heal (location mismatch)
+          // leaves the revived page active, recorded here as its own tab.
+          if (healed && !tabs.has(healed.id)) recordCurrentTab(healed);
+        })
+        .catch((error) => {
+          console.error("healRevivedTab failed:", error);
+          recordCurrentTab(active);
+        })
+        .finally(() => {
+          healingRevives.delete(active.id);
+        });
     }
 
     /** Returns whether Naive UI may activate a known idle page instance. */
@@ -341,9 +453,7 @@ export const AdminShell = defineComponent(
       const navigation = nav.navigation;
       if (!navigation || pendingOpen.value) return;
       const opened = openedDescriptors();
-      const newestMatch = [...opened]
-        .reverse()
-        .find((tab) => tab.nav.navKey === destination.navKey);
+      const newestMatch = newestCommittedFor(destination);
       const decision =
         resolveTabNavigation?.(opened, destination) ??
         (newestMatch
@@ -513,7 +623,7 @@ export const AdminShell = defineComponent(
           navigation !== previousNavigation
         )
           clearTabs();
-        if (hasNavigation) recordCurrentTab(navigation?.active ?? null);
+        if (hasNavigation && navigation) recordOrHealActive(navigation);
       },
       { immediate: true, flush: "sync" },
     );

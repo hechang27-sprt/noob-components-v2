@@ -877,3 +877,43 @@ Converted admin-vue-router's createAdminRouter factory into createAdminRouterPlu
 ### Next Steps
 
 - None - task complete
+
+
+
+## Session 24: Fix duplicate tabs on browser Back after close+reopen
+
+**Date**: 2026-08-04
+**Task**: Fix duplicate tabs on browser Back after close+reopen
+**Branch**: `dev`
+
+### Summary
+
+Fixed duplicate AdminShell tabs on browser Back after close+reopen via a new heal request variant.
+
+### Main Changes
+
+### Summary
+Fixed duplicate AdminShell tabs on browser Back after close+reopen (reported as an i18n-integration regression). Root cause: closing a tab leaves its stamped history entry; re-opening the same destination gets a new page-instance id; Back restores the old id, which the shell recorded as a new tab. Verified the locale switch is not the trigger (reproduces identically without it); shell/adapter history logic is byte-identical pre/post i18n.
+
+Fix: new `heal` variant on `AdminShellNavigationRequest`. The shell requests it from the navigation watch when a history revive presents an id that was recorded before (knownPageIds) but is not committed and whose navKey matches a committed tab (newest visible match, same policy as requestDestination). The adapter restamps the current history entry in place (router.replace) only when the committed descriptor resolves to the same fullPath; otherwise no-op, preserving revive behavior for payload-bearing pages. Also added missing @noob-naive-ui/i18n source path to apps/demo/tsconfig.json (pre-existing demo typecheck gap).
+
+Gates: 20 i18n + 4 prototype + 68 admin + 72 admin-vue-router tests pass; workspace typecheck + lint + all builds pass; browser-verified close+reopen+locale+Back no longer duplicates (single Settings tab after heal, forward traversal stable).
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `08d5e9c3` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
