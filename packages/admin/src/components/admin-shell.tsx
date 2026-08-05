@@ -677,7 +677,6 @@ export const AdminShell = defineComponent(
               attr-type="button"
               quaternary
               circle
-              size="large"
               data-admin-control="sidebar"
               aria-label={
                 preferences.sidebarCollapsed
@@ -700,7 +699,6 @@ export const AdminShell = defineComponent(
               attr-type="button"
               quaternary
               circle
-              size="large"
               data-admin-control="theme-mode"
               data-admin-theme-action={
                 preferences.themeMode === "dark" ? "exit-dark" : "enter-dark"
@@ -723,7 +721,6 @@ export const AdminShell = defineComponent(
                 attr-type="button"
                 quaternary
                 circle
-                size="large"
                 data-admin-control="font-size"
                 aria-label={t("aria.fontSize", { label: fontSizeLabel })}>
                 <NIcon size={18}>
@@ -742,7 +739,6 @@ export const AdminShell = defineComponent(
                 attr-type="button"
                 quaternary
                 circle
-                size="large"
                 data-admin-control="locale"
                 disabled={localeOptions.length === 0}
                 aria-label={t("aria.language", { label: localeLabel })}>
@@ -760,7 +756,6 @@ export const AdminShell = defineComponent(
               <NButton
                 attr-type="button"
                 quaternary
-                size="large"
                 class="gap-1.5"
                 data-admin-control="account"
                 disabled={pending}
@@ -805,7 +800,6 @@ export const AdminShell = defineComponent(
                 aria-label={t("tabs.openPages")}>
                 <NTabs
                   type="card"
-                  size="small"
                   value={activeId}
                   tabsPadding={8}
                   data-admin-tabs

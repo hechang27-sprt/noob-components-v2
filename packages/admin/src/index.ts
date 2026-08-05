@@ -32,7 +32,10 @@ export type {
 } from "./i18n/admin-locale";
 export type { AdminI18nPluginOptions, AdminI18nSnapshot } from "./i18n/plugin";
 
-export { resolveAdminNaiveUiLocale } from "./runtime/naive-ui-config";
+export {
+  resolveAdminNaiveBaseFontSize,
+  resolveAdminNaiveUiLocale,
+} from "./runtime/naive-ui-config";
 export type { AdminNaiveUiConfig } from "./runtime/naive-ui-config";
 
 export {

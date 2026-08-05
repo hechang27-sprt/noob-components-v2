@@ -14,13 +14,21 @@ The storage key is internal: `@noob-naive-ui/admin:shell-preferences`. Persist o
 
 Runtime-only presentation state, never persisted:
 
-- `naiveUiConfig` computed — `{ theme, themeOverrides, locale, size }` props for the host `n-config-provider`, derived from `themeMode` (incl. system dark via the `systemUsesDark` signal), `fontSize` (px overrides + naive-ui size tier), and `locale` (naive-ui locale via `resolveAdminNaiveUiLocale`, falling back through the host-owned `fallbackLocale` supplied to `initialize`). Hosts bind it directly: `<n-config-provider v-bind="preferences.naiveUiConfig">`. Mapping functions live in `src/runtime/naive-ui-config.ts`; the store imports them rather than owning naive-ui knowledge.
+- `naiveUiConfig` computed — `{ theme, themeOverrides, locale, componentOptions }` props for the host `n-config-provider`, derived from `themeMode` (incl. system dark via the `systemUsesDark` signal), `fontSize` (px overrides + naive-ui per-component size tier), and `locale` (naive-ui locale via `resolveAdminNaiveUiLocale`, falling back through the host-owned `fallbackLocale` supplied to `initialize`). The font-size preference maps to `componentOptions` (`COMPONENT_SIZE_OPTIONS`) because naive-ui has no single global size prop. Hosts bind it directly: `<n-config-provider v-bind="preferences.naiveUiConfig">`. Mapping functions live in `src/runtime/naive-ui-config.ts`; the store imports them rather than owning naive-ui knowledge.
 - `setSystemUsesDark(value)` action — the browser color-scheme signal the host feeds from its `matchMedia` listener; used only by the system-mode theme derivation.
 - `fallbackLocale` — host-owned naive-ui fallback authority passed to `initialize({ fallbackLocale })`, default `en`.
 
 Boundary tests must cover the naive-ui config derivation: theme per mode incl. system + `setSystemUsesDark`, size mapping, locale mapping with unsupported-locale fallback, and non-persistence of these runtime-only fields.
 
 `cloneShellPreferences` and the computed `preferences` snapshot clone locale options. The store also exposes the raw `availableLocales` ref, so consumers must not mutate that array directly; use `setAvailableLocales` to retain locale realignment and persistence behavior.
+
+## Shell chrome follows the size tier
+
+`AdminShell`'s header nav buttons and tab strip must not hardcode a `size` prop; they resolve their size from the host's `componentOptions` tier (naive-ui merges `props.size ?? componentOptions.Button.size ?? 'medium'`). Removing the hardcoded sizes lets the font-size preference resize the top bar. `Menu` is not a key in naive-ui's `GlobalComponentConfig`, so the sidebar menu cannot be resized per-component; its text still follows `themeOverrides.common.fontSize`.
+
+## Base font for plain HTML content
+
+naive-ui sets `body { font-size: 14px }` statically and does not drive it from `themeOverrides`, so plain (non-naive-ui) HTML content does not scale with the preference by itself. Hosts should apply `resolveAdminNaiveBaseFontSize(fontSize)` (13/14/16px, exported from the package) to their root element (e.g. `document.documentElement.style.fontSize`) so `rem`-based content scales. Keep the 13/14/16px mapping in the admin package (`FONT_SIZE_OVERRIDES`); do not duplicate it in hosts.
 
 ## Pinia store pattern
 

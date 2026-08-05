@@ -18,6 +18,7 @@ import {
   type AdminShellPreferencesStoreOptions,
 } from "../runtime/shell-preferences";
 import {
+  COMPONENT_SIZE_OPTIONS,
   FONT_SIZE_OVERRIDES,
   resolveAdminNaiveUiLocale,
   resolveAdminNaiveUiTheme,
@@ -163,7 +164,7 @@ export const useAdminShellPreferencesStore = defineStore(
       theme: resolveAdminNaiveUiTheme(themeMode.value, systemUsesDark.value),
       themeOverrides: FONT_SIZE_OVERRIDES[fontSize.value],
       locale: resolveAdminNaiveUiLocale(locale.value, fallbackLocale),
-      size: fontSize.value,
+      componentOptions: COMPONENT_SIZE_OPTIONS[fontSize.value],
     }));
 
     return {

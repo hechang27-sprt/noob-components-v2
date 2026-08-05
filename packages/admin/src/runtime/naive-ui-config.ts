@@ -2,6 +2,7 @@ import {
   darkTheme,
   enUS,
   zhCN,
+  type GlobalComponentConfig,
   type GlobalTheme,
   type GlobalThemeOverrides,
   type NLocale,
@@ -24,8 +25,13 @@ export type AdminNaiveUiConfig = {
   themeOverrides: GlobalThemeOverrides;
   /** Naive UI locale object, or null to keep the naive-ui default (enUS). */
   locale: NLocale | null;
-  /** Naive UI component-size tier derived from the font-size preference. */
-  size: "small" | "medium" | "large";
+  /**
+   * Per-component size tier applied through `n-config-provider`'s
+   * `componentOptions`, derived from the font-size preference. naive-ui has
+   * no single global size knob, so each supported component's `size` is set
+   * to the matching tier.
+   */
+  componentOptions: GlobalComponentConfig;
 };
 
 /** Maps each supported admin locale name to its naive-ui locale object. */
@@ -61,6 +67,83 @@ export const FONT_SIZE_OVERRIDES: Record<AdminFontSize, GlobalThemeOverrides> =
     medium: { common: { fontSize: "14px" } },
     large: { common: { fontSize: "16px" } },
   };
+
+/**
+ * Builds the `componentOptions` value applying one naive-ui size tier to every
+ * component that accepts a `size` option.
+ *
+ * @param tier - The naive-ui component-size tier to apply (one of the font-size
+ * preference values).
+ * @returns A `GlobalComponentConfig` whose supported components all use the
+ * given tier.
+ */
+function buildComponentSizeOptions(
+  tier: AdminFontSize,
+): GlobalComponentConfig {
+  return {
+    AutoComplete: { size: tier },
+    Button: { size: tier },
+    Card: { size: tier },
+    Cascader: { size: tier },
+    Checkbox: { size: tier },
+    ColorPicker: { size: tier },
+    DataTable: { size: tier },
+    DatePicker: { size: tier },
+    Descriptions: { size: tier },
+    Dropdown: { size: tier },
+    DynamicTags: { size: tier },
+    Form: { size: tier },
+    Input: { size: tier },
+    InputNumber: { size: tier },
+    InputOtp: { size: tier },
+    Mention: { size: tier },
+    Pagination: { size: tier },
+    Popselect: { size: tier },
+    Radio: { size: tier },
+    Rate: { size: tier },
+    Result: { size: tier },
+    Select: { size: tier },
+    Skeleton: { size: tier },
+    Space: { size: tier },
+    Switch: { size: tier },
+    Table: { size: tier },
+    Tabs: { size: tier },
+    Tag: { size: tier },
+    TimePicker: { size: tier },
+    Transfer: { size: tier },
+    TreeSelect: { size: tier },
+  };
+}
+
+/**
+ * Naive-ui per-component size options matching each public font-size
+ * preference, for `n-config-provider`'s `componentOptions` prop.
+ */
+export const COMPONENT_SIZE_OPTIONS: Record<
+  AdminFontSize,
+  GlobalComponentConfig
+> = {
+  small: buildComponentSizeOptions("small"),
+  medium: buildComponentSizeOptions("medium"),
+  large: buildComponentSizeOptions("large"),
+};
+
+/**
+ * Resolves the CSS base font size for a font-size preference.
+ *
+ * naive-ui sets `body { font-size: 14px }` statically (it is not driven by
+ * `themeOverrides`), so naive-ui cannot scale plain HTML content itself. Hosts
+ * apply this value to their root element (e.g. `document.documentElement`) so
+ * `rem`-based content scales with the preference. It mirrors the naive-ui
+ * component font from `FONT_SIZE_OVERRIDES` so the 13/14/16px mapping lives in
+ * one place.
+ *
+ * @param size - The active font-size preference tier.
+ * @returns The matching CSS font-size, defaulting to 14px when absent.
+ */
+export function resolveAdminNaiveBaseFontSize(size: AdminFontSize): string {
+  return FONT_SIZE_OVERRIDES[size].common?.fontSize ?? "14px";
+}
 
 /**
  * Resolves the naive-ui theme object from the theme-mode preference and the

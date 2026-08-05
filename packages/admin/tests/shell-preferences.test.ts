@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 
-import { useAdminShellPreferencesStore } from "../src";
+import {
+  resolveAdminNaiveBaseFontSize,
+  useAdminShellPreferencesStore,
+} from "../src";
 
 const STORAGE_KEY = "@noob-naive-ui/admin:shell-preferences";
 const DEFAULT_PREFERENCES = {
@@ -144,6 +147,56 @@ describe("useAdminShellPreferencesStore", () => {
 
     expect(store.preferences).toEqual(DEFAULT_PREFERENCES);
     expect(storage.getItem(STORAGE_KEY)).toBeNull();
+  });
+
+  it("derives naiveUiConfig runtime-only props from preferences", () => {
+    const store = useAdminShellPreferencesStore();
+    store.initialize({
+      storage: null,
+      defaults: {
+        availableLocales: [
+          { key: "en", label: "English" },
+          { key: "zh-CN", label: "简体中文" },
+        ],
+        themeMode: "light",
+        fontSize: "small",
+        locale: "en",
+      },
+    });
+
+    const config = store.naiveUiConfig;
+
+    // Light mode resolves to the light theme (null), and the font-size
+    // preference maps to the per-component size tier, not a global size prop.
+    expect(config.theme).toBeNull();
+    expect(config.themeOverrides).toEqual({ common: { fontSize: "13px" } });
+    expect(config.componentOptions.Button?.size).toBe("small");
+    expect(config.componentOptions.Input?.size).toBe("small");
+    expect(config.componentOptions.Tabs?.size).toBe("small");
+    expect("size" in config).toBe(false);
+
+    // Changing the font-size preference re-sizes every component together.
+    store.setFontSize("large");
+    expect(store.naiveUiConfig.themeOverrides).toEqual({
+      common: { fontSize: "16px" },
+    });
+    expect(store.naiveUiConfig.componentOptions.Button?.size).toBe("large");
+
+    // System mode follows the runtime-only dark signal.
+    store.setThemeMode("system");
+    expect(store.naiveUiConfig.theme).toBeNull();
+    store.setSystemUsesDark(true);
+    expect(store.naiveUiConfig.theme).not.toBeNull();
+
+    // An unsupported locale resolves through the host fallback (en).
+    store.setLocale("fr");
+    expect(store.naiveUiConfig.locale).not.toBeNull();
+  });
+
+  it("maps each font-size preference to its CSS base font size", () => {
+    expect(resolveAdminNaiveBaseFontSize("small")).toBe("13px");
+    expect(resolveAdminNaiveBaseFontSize("medium")).toBe("14px");
+    expect(resolveAdminNaiveBaseFontSize("large")).toBe("16px");
   });
 
   it("treats storage adapter failures as no persistence", () => {

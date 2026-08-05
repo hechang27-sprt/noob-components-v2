@@ -1,6 +1,9 @@
-import { useAdminShellPreferencesStore } from "@noob-naive-ui/admin";
+import {
+  resolveAdminNaiveBaseFontSize,
+  useAdminShellPreferencesStore,
+} from "@noob-naive-ui/admin";
 import { NConfigProvider } from "naive-ui";
-import { defineComponent, onBeforeUnmount } from "vue";
+import { defineComponent, onBeforeUnmount, watch } from "vue";
 import { RouterView } from "vue-router";
 
 /**
@@ -11,6 +14,10 @@ import { RouterView } from "vue-router";
  * `naiveUiConfig` store computed, so the host only binds preferences. The
  * browser color-scheme signal is runtime-only state the host feeds into the
  * store; it is never serialized.
+ *
+ * naive-ui sets `body { font-size: 14px }` statically and cannot scale plain
+ * HTML, so the host additionally applies the preference base font to the root
+ * element; `rem`-based content then scales with the font-size preference.
  */
 export default defineComponent(
   /**
@@ -39,9 +46,30 @@ export default defineComponent(
       systemThemeQuery.removeEventListener("change", updateSystemTheme);
     }
 
+    /**
+     * Applies the preference base font to the root element so `rem`-based
+     * content scales with the font-size preference.
+     *
+     * @param size - The current font-size preference tier.
+     * @returns Nothing after setting the root font-size.
+     */
+    function applyBaseFontSize(size: typeof preferences.fontSize): void {
+      document.documentElement.style.fontSize =
+        resolveAdminNaiveBaseFontSize(size);
+    }
+
     preferences.setSystemUsesDark(systemThemeQuery.matches);
     systemThemeQuery.addEventListener("change", updateSystemTheme);
-    onBeforeUnmount(stopSystemThemeListener);
+    /** Applies the base font immediately and on every font-size preference change. */
+    const stopBaseFontSizeWatcher = watch(
+      () => preferences.fontSize,
+      applyBaseFontSize,
+      { immediate: true },
+    );
+    onBeforeUnmount(() => {
+      stopSystemThemeListener();
+      stopBaseFontSizeWatcher();
+    });
 
     return () => (
       <NConfigProvider {...preferences.naiveUiConfig}>
