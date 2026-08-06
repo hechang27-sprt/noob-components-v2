@@ -13,7 +13,8 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createI18n } from "vue-i18n";
 
-import { AdminShell, useAdminShell } from "../src/components/admin-shell";
+import { AdminShell } from "../src/components/admin-shell";
+import { useAdminShell } from "../src/components/use-admin-shell";
 import type {
   AdminShellDestination,
   AdminShellNavigation,
@@ -404,7 +405,9 @@ describe("AdminShell", () => {
     await settle();
     expect(
       container.querySelector("[data-shell-context-keys]")?.textContent,
-    ).toBe("navigate");
+    ).toBe(
+      "activateTab,canActivateTab,closeTab,navigate,tabError,tabs,visibleTabs",
+    );
     container
       .querySelector<HTMLButtonElement>("[data-shell-navigate]")!
       .click();
@@ -445,24 +448,17 @@ describe("AdminShell", () => {
     });
     await settle();
     expect(first.querySelector("[data-shell-context-keys]")?.textContent).toBe(
-      "navigate",
+      "activateTab,canActivateTab,closeTab,navigate,tabError,tabs,visibleTabs",
     );
-    expect(second.querySelector("[data-shell-context-keys]")?.textContent).toBe(
-      "navigate",
+    expect(
+      second.querySelector("[data-shell-context-keys]")?.textContent,
+    ).toBe(
+      "activateTab,canActivateTab,closeTab,navigate,tabError,tabs,visibleTabs",
     );
     second.querySelector<HTMLButtonElement>("[data-shell-navigate]")!.click();
     await settle();
     expect(firstNavigation.handleNavigation).not.toHaveBeenCalled();
     expect(secondNavigation.handleNavigation).toHaveBeenCalledOnce();
-  });
-
-  it("throws when descendant context is requested outside AdminShell", () => {
-    const target = document.createElement("div");
-    document.body.append(target);
-    const app = createApp(ShellContextConsumer);
-    expect(() => app.mount(target)).toThrow(
-      "useAdminShell() requires an ancestor AdminShell.",
-    );
   });
 
   it("commits a menu open candidate only after host confirmation", async () => {
@@ -880,6 +876,18 @@ describe("AdminShell", () => {
       '[data-admin-tab-key^="detail-"]',
     );
     expect(detailTabs.length).toBe(2);
+  });
+
+  it("throws when descendant context is requested outside AdminShell", () => {
+    // Deliberately last: this mounts an app whose setup throws, which leaves
+    // Vue's render-scoped instance global stale for any subsequent functional
+    // component render in this suite. Running it last isolates that pollution.
+    const target = document.createElement("div");
+    document.body.append(target);
+    const app = createApp(ShellContextConsumer);
+    expect(() => app.mount(target)).toThrow(
+      "useAdminShell() requires an ancestor AdminShell.",
+    );
   });
 });
 

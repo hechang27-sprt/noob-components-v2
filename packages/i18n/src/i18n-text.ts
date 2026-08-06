@@ -29,7 +29,9 @@ export type I18nText = z.infer<typeof i18nTextSchema>;
  * Resolves one I18nText value against a translator.
  *
  * @param text - The displayable text value to resolve.
- * @param translate - Translates one message key with optional named values.
+ * @param translate - vue-i18n's `t` passed directly (e.g.
+ * `resolveI18nText(label, composer.t)`); named values are forwarded as-is,
+ * and a missing `named` argument is fine.
  * @returns The resolved display string.
  */
 export function resolveI18nText(

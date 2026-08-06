@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 25
+- **Total Sessions**: 29
 - **Last Active**: 2026-08-06
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~951 | Active |
+| `journal-1.md` | ~1088 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,7 +29,11 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
-| 25 | 2026-08-06 | Fix font-size preference resizing (componentOptions + shell chrome + base font) | `2f8ca5f3` | `-` |
+| 29 | 2026-08-06 | Fix font-size preference resizing (componentOptions + shell chrome + base font) | `2f8ca5f3` | `-` |
+| 28 | 2026-08-05 | Flip i18n fallbackRoot to true; single-composer tabbar; controller-return composable | `d7d32848` | `dev` |
+| 27 | 2026-08-05 | Convert AdminShell slot renderers to functional components per style guide | `25f6824e` | `dev` |
+| 26 | 2026-08-05 | AdminShell controller rework + i18n API rename per design review | `90601c3a` | `dev` |
+| 25 | 2026-08-05 | Verify and fix fallow findings; refactor AdminShell | `a5d380e8` | `dev` |
 | 23 | 2026-08-04 | Refactor createAdminRouter into a Vue plugin (createAdminRouterPlugin) | xlupzpvn | `-` |
 | 24 | 2026-08-04 | Fix duplicate tabs on browser Back after close+reopen | `08d5e9c3` | `dev` |
 | 22 | 2026-08-04 | Fold per-package i18n plugin logic into shared factory | `ece31612` | `-` |

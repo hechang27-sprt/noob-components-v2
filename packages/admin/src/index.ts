@@ -45,7 +45,6 @@ export {
 
 export {
   AdminShell,
-  type AdminShellContext,
   type AdminShellDestination,
   type AdminShellNavigate,
   type AdminShellNavigation,
@@ -56,5 +55,8 @@ export {
   type AdminShellTabDescriptor,
   type AdminShellTabNavigationDecision,
   type AdminShellTabNavigationResolver,
-  useAdminShell,
 } from "./components/admin-shell";
+export {
+  type AdminShellContext,
+  useAdminShell,
+} from "./components/use-admin-shell";

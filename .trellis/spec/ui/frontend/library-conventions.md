@@ -38,3 +38,14 @@ pnpm --filter @noob-naive-ui/ui build
 ```
 
 Inspect the built root entry when changing exports or externals: `dist/index.js` should retain peer imports and `dist/index.d.ts` should expose only the deliberate API.
+
+## Static dead-code analysis (`fallow`)
+
+`fallow`'s dead-code/unused-export analysis is heuristic and frequently false-positive for this codebase. Before deleting anything it flags, verify against the package's public surface and the spec contract:
+
+- A symbol re-exported from the package barrel (`src/index.ts`) is public API even if no consumer inside the repo uses it. `fallow` reports these as unused exports / unused store members — do not remove. Example: `DEFAULT_SNAPSHOT` in `packages/admin/src/i18n/plugin.ts` and `replacePreferences`/`reset` in `useAdminShellPreferencesStore`.
+- A file imported only from a Vite config is reported as an unused file (Vite configs are not entry points). Example: `tooling/vite/vue-i18n.ts` (imported by `apps/demo/vite.config.ts`).
+- Framework CSS imports (`tailwindcss/theme.css`, `tailwindcss/utilities.css`) and root-declared devDeps consumed in package Vite configs are reported as unresolved/unlisted. Leave them.
+- Generated files (e.g. `packages/*/src/locales/locale-types.generated.ts`) legitimately repeat shapes; regenerate, never hand-edit.
+
+When a run reports findings, triage each as fix vs. false-positive in the task notes before changing code.

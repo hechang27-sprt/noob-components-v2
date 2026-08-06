@@ -8,7 +8,7 @@ import {
   NResult,
   NSpin,
 } from "naive-ui";
-import { useComponentI18n } from "@noob-naive-ui/i18n";
+import { createComponentI18n } from "@noob-naive-ui/i18n";
 import { defineComponent, ref, useId } from "vue";
 
 import adminLoginPageMessages from "../locales/AdminLoginPage.json";
@@ -51,7 +51,7 @@ export const AdminLoginPage = defineComponent(
 
     // Fresh local registry: packaged defaults first, the AdminLoginPage
     // override slice second, so overrides win at the leaf.
-    const { t } = useComponentI18n({
+    const { t } = createComponentI18n({
       messages: adminLoginPageMessages,
       plugin: adminI18n,
       componentId: "AdminLoginPage",

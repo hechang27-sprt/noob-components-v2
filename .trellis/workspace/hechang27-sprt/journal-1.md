@@ -919,7 +919,144 @@ Gates: 20 i18n + 4 prototype + 68 admin + 72 admin-vue-router tests pass; worksp
 - None - task complete
 
 
-## Session 25: Fix font-size preference resizing (componentOptions + shell chrome + base font)
+## Session 25: Verify and fix fallow findings; refactor AdminShell
+
+**Date**: 2026-08-05
+**Task**: Verify and fix fallow findings; refactor AdminShell
+**Package**: admin
+**Branch**: `dev`
+
+### Summary
+
+Triaged fallow dead-code/health report on dev branch: removed tsafe from packages/admin deps; kept DEFAULT_SNAPSHOT, replacePreferences, reset as documented public API (false positives). Refactored AdminShell (871->351 LOC) by extracting tab-navigation state machine into useAdminShellTabs composable + pure presentational AdminShellNavbarControls/AdminShellTabbar. Behavior-neutral; admin-shell + shell-preferences tests pass (27/27); typecheck clean; fallow genuine findings resolved. Added fallow false-positive guidance to library-conventions spec.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a5d380e8` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 26: AdminShell controller rework + i18n API rename per design review
+
+**Date**: 2026-08-05
+**Task**: AdminShell controller rework + i18n API rename per design review
+**Package**: admin
+**Branch**: `dev`
+
+### Summary
+
+Addressed user design review of the AdminShell refactor: (1) renamed useComponentI18n -> createComponentI18n (returns Composer only, provides via module-private key) and added getComponentI18n(); fixed resolveI18nText translate-param doc to say pass vue-i18n t directly. (2) Widened useAdminShell to the full tabs controller (navigate + tabs/visibleTabs/tabError/canActivateTab/activateTab/closeTab) via a new use-admin-shell.ts module that also breaks the admin-shell<->tabbar import cycle. (3) Reworked AdminShellTabbar / AdminShellNavLeft / AdminShellNavRight into self-sufficient real components that read stores + getComponentI18n + useAdminShell directly (no callback props); host tab labels resolve via global Composer (resolveI18nText(label, globalT)). AdminShell 871 -> ~237 LOC. tsafe removed from packages/admin (only genuine fallow dead-dep); DEFAULT_SNAPSHOT/replacePreferences/reset kept as documented public API. Typecheck clean across 6 packages + demo; tests 14 (i18n) + 27 (admin) pass; fallow shows no new genuine findings.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `90601c3a` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 27: Convert AdminShell slot renderers to functional components per style guide
+
+**Date**: 2026-08-05
+**Task**: Convert AdminShell slot renderers to functional components per style guide
+**Package**: admin
+**Branch**: `dev`
+
+### Summary
+
+User review: object-style setup() in the sub-components violates .trellis/spec/admin/frontend/tsx-components-and-tests.md. Converted AdminShellTabbar / AdminShellNavLeft / AdminShellNavRight to plain Vue functional components returning VNode directly (no defineComponent), mounted as descendants in ProLayout slots so getComponentI18n/useAdminShell/useI18n/stores resolve against AdminShell. Evaluated user's food-for-thought (plain useI18n() in children) empirically: a functional child's useI18n() does not inherit the parent's locally-merged package messages, so getComponentI18n() stays necessary. Found and documented a Vue test-pollution quirk: a setup-throwing mount leaves the render instance global stale for later functional-component renders; moved the throws test last in the AdminShell describe (i18n suite already does this). Admin-shell + shell-preferences 27/27, i18n 14/14, typecheck clean, fallow health down to 7.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `25f6824e` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 28: Flip i18n fallbackRoot to true; single-composer tabbar; controller-return composable
+
+**Date**: 2026-08-05
+**Task**: Flip i18n fallbackRoot to true; single-composer tabbar; controller-return composable
+**Package**: admin
+**Branch**: `dev`
+
+### Summary
+
+User review: the tabbar's dual-composer pattern (getComponentI18n + useI18n({useScope:'global'})) looked wrong. Explained host vs package message scopes and that fallbackRoot:false blocks host-global keys from resolving through the package local Composer. User: 'the local i18n scope should inherit host's global i18n messages shouldn't it?' — empirically probed: with fallbackRoot:true a single local Composer resolves BOTH package keys and host-global keys. User approved the flip. Changes: (1) createComponentI18n fallbackRoot false->true (options + post-creation correction) + doc; (2) tabbar now single getComponentI18n().t for aria text AND host tab labels via resolveI18nText(label, t); (3) useAdminShellTabs now builds+provides+returns AdminShellContext directly, AdminShell consumes shellContext.navigate with no round-trip, unused imports removed; (4) library-i18n-contract spec updated in 3 spots; (5) tests assert fallbackRoot true + prove host-key resolution via a host registry seeded at createI18n time (mergeLocaleMessage-after-mount does not re-render, so seed before mount). Verification: typecheck clean across i18n/admin/ui/prototype-i18n-verification/admin-vue-router/demo; tests i18n 23, admin 70 (incl. host tab-label resolution + locale-switch reactivity), admin-vue-router 75.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d7d32848` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+
+## Session 29: Fix font-size preference resizing (componentOptions + shell chrome + base font)
 
 **Date**: 2026-08-06
 **Task**: Fix font-size preference resizing (componentOptions + shell chrome + base font)
