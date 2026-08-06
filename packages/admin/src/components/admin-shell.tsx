@@ -226,6 +226,7 @@ export const AdminShell = defineComponent(
         <div class="h-dvh" style={{ height: "100dvh" }}>
           <ProLayout
             {...preferences.proLayoutConfig}
+            tabbarClass="border-b-transparent!" // remove the default ProLayout tabbar bottom border
             onUpdateCollapsed={(value) =>
               preferences.setSidebarCollapsed(value)
             }
