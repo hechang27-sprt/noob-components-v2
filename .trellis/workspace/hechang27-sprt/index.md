@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 24
-- **Last Active**: 2026-08-04
+- **Total Sessions**: 25
+- **Last Active**: 2026-08-06
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~919 | Active |
+| `journal-1.md` | ~951 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 25 | 2026-08-06 | Fix font-size preference resizing (componentOptions + shell chrome + base font) | `2f8ca5f3` | `-` |
 | 23 | 2026-08-04 | Refactor createAdminRouter into a Vue plugin (createAdminRouterPlugin) | xlupzpvn | `-` |
 | 24 | 2026-08-04 | Fix duplicate tabs on browser Back after close+reopen | `08d5e9c3` | `dev` |
 | 22 | 2026-08-04 | Fold per-package i18n plugin logic into shared factory | `ece31612` | `-` |

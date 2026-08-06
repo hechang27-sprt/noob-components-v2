@@ -917,3 +917,35 @@ Gates: 20 i18n + 4 prototype + 68 admin + 72 admin-vue-router tests pass; worksp
 ### Next Steps
 
 - None - task complete
+
+
+## Session 25: Fix font-size preference resizing (componentOptions + shell chrome + base font)
+
+**Date**: 2026-08-06
+**Task**: Fix font-size preference resizing (componentOptions + shell chrome + base font)
+
+### Summary
+
+Investigated why the font-size preference only resized the menu text: ProLayout does NOT block naive-ui componentOptions (verified in browser). Root causes: (1) AdminShell header nav buttons and tab strip hardcoded size props, so componentOptions could not resize them; (2) naive-ui sets body font-size statically (14px), so themeOverrides never reaches plain HTML. Fixed: mapped naiveUiConfig size tier to NConfigProvider componentOptions; removed hardcoded chrome sizes; exported resolveAdminNaiveBaseFontSize (13/14/16px); demo App applies it to the root so rem-based content scales. Verified in browser (top bar + content resize with the preference).
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2f8ca5f3` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
