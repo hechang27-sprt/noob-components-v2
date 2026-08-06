@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import type { MenuOption } from "naive-ui";
-import { createPinia, setActivePinia } from "pinia";
+import { createPinia, setActivePinia, type Pinia } from "pinia";
 import {
   createApp,
   defineComponent,
@@ -100,11 +100,13 @@ function mountShell(
     }) => VNodeChild;
     sidebarContent?: string;
     tabbarContent?: string;
+    /** Shares an existing Pinia instance instead of creating a fresh one. */
+    pinia?: Pinia;
   } = {},
 ): HTMLElement {
   const target = document.createElement("div");
   document.body.append(target);
-  const pinia = createPinia();
+  const pinia = options.pinia ?? createPinia();
   setActivePinia(pinia);
   if (options.menuOptions) {
     useAdminShellMenuStore().configure(options.menuOptions);
@@ -115,7 +117,13 @@ function mountShell(
   // Configure auth store for authenticated context
   useAdminAuthStore().configure({
     login: vi.fn(() => Promise.resolve({})),
-    restore: () => Promise.resolve({ kind: "anonymous" }),
+    // Restore settles authenticated so the mounted shell's session is
+    // consistent; an anonymous restore would clear the tab registry.
+    restore: () =>
+      Promise.resolve({
+        kind: "authenticated",
+        identity: { userLabel: "Ada" },
+      }),
     logout: vi.fn(),
   });
   // Set status to authenticated since shell now always renders layout
@@ -880,6 +888,99 @@ describe("AdminShell", () => {
       '[data-admin-tab-key^="detail-"]',
     );
     expect(detailTabs.length).toBe(2);
+  });
+
+  it("keeps the open-tab registry when the shell remounts over the same navigation", async () => {
+    const home = {
+      id: "home",
+      nav: { navKey: "home" },
+      label: { kind: "string", value: "Home" } as const,
+    };
+    const reports = {
+      id: "reports",
+      nav: { navKey: "reports" },
+      label: { kind: "string", value: "Reports" } as const,
+    };
+    const navigation = reactive<AdminShellNavigation>({
+      active: home,
+      handleNavigation: vi.fn(async (request) => {
+        const active = request.kind === "open" ? null : request.destination;
+        navigation.active = active;
+        return { active };
+      }),
+    });
+    const pinia = createPinia();
+    setActivePinia(pinia);
+
+    const first = mountShell({
+      pinia,
+      navigation,
+      content: "first",
+      menuOptions: [{ key: "home", label: "Home" }],
+    });
+    await settle();
+    navigation.active = reports;
+    await settle();
+    expect(first.querySelectorAll("[data-admin-tab-key]")).toHaveLength(2);
+
+    // HMR reload analog: unmount the shell, then mount a fresh one over the
+    // same Pinia and navigation adapter. The tab registry lives in the store
+    // so the remount must restore both tabs instead of collapsing to active.
+    for (const app of mountedApps.splice(0)) {
+      app.unmount();
+    }
+    first.remove();
+    const second = mountShell({
+      pinia,
+      navigation,
+      content: "second",
+      menuOptions: [{ key: "home", label: "Home" }],
+    });
+    await settle();
+    const tabKeys = [...second.querySelectorAll("[data-admin-tab-key]")].map(
+      (el) => el.getAttribute("data-admin-tab-key"),
+    );
+    expect(tabKeys).toEqual(["home", "reports"]);
+  });
+
+  it("drops the open-tab registry when the session ends", async () => {
+    const home = {
+      id: "home",
+      nav: { navKey: "home" },
+      label: { kind: "string", value: "Home" } as const,
+    };
+    const reports = {
+      id: "reports",
+      nav: { navKey: "reports" },
+      label: { kind: "string", value: "Reports" } as const,
+    };
+    const navigation = reactive<AdminShellNavigation>({
+      active: home,
+      handleNavigation: vi.fn(async (request) => {
+        const active = request.kind === "open" ? null : request.destination;
+        navigation.active = active;
+        return { active };
+      }),
+    });
+    const container = mountShell({
+      navigation,
+      content: "content",
+      menuOptions: [{ key: "home", label: "Home" }],
+    });
+    await settle();
+    navigation.active = reports;
+    await settle();
+    expect(container.querySelectorAll("[data-admin-tab-key]")).toHaveLength(2);
+
+    // Logout (or cross-tab invalidation) transitions the auth status to
+    // anonymous, which resets the shared tab registry.
+    const auth = useAdminAuthStore();
+    (auth as unknown as Record<string, unknown>).status = {
+      kind: "anonymous",
+      reason: "signed-out",
+    };
+    await settle();
+    expect(container.querySelectorAll("[data-admin-tab-key]")).toHaveLength(0);
   });
 
   it("throws when descendant context is requested outside AdminShell", () => {

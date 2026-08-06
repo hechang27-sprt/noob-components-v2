@@ -2,7 +2,7 @@
   "en": {
     "nav": {
       "dashboard": "Dashboard",
-      "internationalization": "Internationalization",
+      "internationalization": "i18n",
       "reports": "Reports",
       "settings": "Settings",
       "demo": "Demo",
@@ -10,7 +10,7 @@
     },
     "tabs": {
       "dashboard": "Dashboard",
-      "internationalization": "Internationalization",
+      "internationalization": "i18n",
       "reports": "Reports",
       "settings": "Settings",
       "detail": "Report {id}"

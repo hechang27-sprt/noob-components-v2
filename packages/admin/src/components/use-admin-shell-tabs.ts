@@ -1,20 +1,12 @@
-import {
-  onBeforeUnmount,
-  provide,
-  reactive,
-  ref,
-  shallowRef,
-  toRaw,
-  watch,
-} from "vue";
+import { onBeforeUnmount, provide, ref, toRaw, toRef, watch } from "vue";
 
 import { isEqual } from "es-toolkit";
 
+import { useAdminShellTabsStore } from "../stores/tabs";
 import type {
   AdminShellDestination,
   AdminShellNavigation,
   AdminShellTab,
-  AdminShellTabCandidate,
   AdminShellTabDescriptor,
   AdminShellTabNavigationResolver,
 } from "./admin-shell";
@@ -68,8 +60,11 @@ export interface UseAdminShellTabsOptions {
  * the uncommitted open candidate, and history-recovery healing. The host
  * navigation adapter is read reactively via `getNavigation` on each action
  * and on navigation-boundary changes, so the shell stays a single
- * orchestrator while this composable isolates the tab logic. It builds the
- * full {@link AdminShellContext} controller and provides it to descendants.
+ * orchestrator while this composable isolates the tab logic. The registry
+ * itself lives in {@link useAdminShellTabsStore} so it survives HMR
+ * remounts of AdminShell; this composable builds the per-instance
+ * {@link AdminShellContext} controller over it and provides it to
+ * descendants.
  *
  * @param options - Navigation adapter reader and bound translator.
  * @returns The AdminShellContext controller (tab state and actions),
@@ -79,34 +74,27 @@ export function useAdminShellTabs(
   options: UseAdminShellTabsOptions,
 ): AdminShellContext {
   const { getNavigation, t } = options;
+  const store = useAdminShellTabsStore();
 
-  /** Stores committed page instances by immutable ID. */
-  const tabs = reactive(new Map<string, AdminShellTab>());
-  /** Owns the sole user-visible page-instance ordering. */
-  const visibleTabs = ref<string[]>([]);
-  /** Remembers every page-instance id the shell has ever recorded. */
-  const knownPageIds = new Set<string>();
+  /**
+   * Stable reactive handles into the shared registry. Pinia unwraps
+   * setup-store refs, so `visibleTabs` is the reactive array itself; the
+   * context still exposes the ref via `toRef` for descendant readers.
+   */
+  const tabs = store.tabs;
+  const visibleTabs = store.visibleTabs;
+  const knownPageIds = store.knownPageIds;
+  const healingRevives = store.healingRevives;
 
   /** Holds sanitized navigation feedback for the current boundary. */
   const tabError = ref<string>();
-  /** Identifies the only uncommitted open candidate still allowed to complete. */
-  const pendingOpen = shallowRef<AdminShellTabCandidate>();
 
   /** Synchronizes retained tab indexes with visible order. */
   function reindexTabs(): void {
-    visibleTabs.value.forEach((id, index) => {
+    visibleTabs.forEach((id, index) => {
       const tab = tabs.get(id);
       if (tab) tab.index = index;
     });
-  }
-
-  /** Clears ephemeral membership and invalidates an uncommitted candidate. */
-  function clearTabs(): void {
-    tabs.clear();
-    visibleTabs.value.length = 0;
-    knownPageIds.clear();
-    pendingOpen.value = undefined;
-    tabError.value = undefined;
   }
 
   /**
@@ -128,24 +116,21 @@ export function useAdminShellTabs(
     }
     tabs.set(tab.id, {
       ...tab,
-      index: visibleTabs.value.length,
+      index: visibleTabs.length,
       activationPending: false,
       closePending: false,
     });
-    visibleTabs.value.push(tab.id);
+    visibleTabs.push(tab.id);
     knownPageIds.add(tab.id);
   }
 
   /** Returns all committed public descriptors in visible order. */
   function openedDescriptors(): AdminShellTabDescriptor[] {
-    return visibleTabs.value.flatMap((id) => {
+    return visibleTabs.flatMap((id) => {
       const tab = tabs.get(id);
       return tab ? [snapshotTab(tab)] : [];
     });
   }
-
-  /** Holds revived page-instance ids that already have a heal in flight. */
-  const healingRevives = new Set<string>();
 
   /**
    * Resolves the newest committed page instance for one destination.
@@ -162,8 +147,8 @@ export function useAdminShellTabs(
   function newestCommittedFor(
     destination: AdminShellDestination,
   ): AdminShellTab | undefined {
-    for (let index = visibleTabs.value.length - 1; index >= 0; index--) {
-      const tab = tabs.get(visibleTabs.value[index]);
+    for (let index = visibleTabs.length - 1; index >= 0; index--) {
+      const tab = tabs.get(visibleTabs[index]);
       if (tab && sameDestination(tab.nav, destination)) return tab;
     }
     return undefined;
@@ -274,7 +259,7 @@ export function useAdminShellTabs(
     resolveTabNavigation?: AdminShellTabNavigationResolver,
   ): Promise<void> {
     const navigation = getNavigation();
-    if (!navigation || pendingOpen.value) return;
+    if (!navigation || store.pendingOpen) return;
     const opened = openedDescriptors();
     const newestMatch = newestCommittedFor(destination);
     const decision =
@@ -287,7 +272,7 @@ export function useAdminShellTabs(
       return;
     }
     const candidate = { id: crypto.randomUUID(), nav: destination };
-    pendingOpen.value = candidate;
+    store.pendingOpen = candidate;
     tabError.value = undefined;
     try {
       const result = await navigation.handleNavigation({
@@ -298,16 +283,16 @@ export function useAdminShellTabs(
       });
       if (
         getNavigation() === navigation &&
-        pendingOpen.value === candidate &&
+        store.pendingOpen === candidate &&
         result.active?.id === candidate.id
       )
         recordCurrentTab(result.active);
     } catch (error) {
       console.error("requestDestination failed:", error);
-      if (getNavigation() === navigation && pendingOpen.value === candidate)
+      if (getNavigation() === navigation && store.pendingOpen === candidate)
         tabError.value = t("errors.unableToNavigate");
     } finally {
-      if (pendingOpen.value === candidate) pendingOpen.value = undefined;
+      if (store.pendingOpen === candidate) store.pendingOpen = undefined;
     }
   }
 
@@ -317,8 +302,7 @@ export function useAdminShellTabs(
   ): AdminShellTabDescriptor | null {
     if (getNavigation()?.active?.id !== tab.id)
       return getNavigation()?.active ?? null;
-    const id =
-      visibleTabs.value[tab.index + 1] ?? visibleTabs.value[tab.index - 1];
+    const id = visibleTabs[tab.index + 1] ?? visibleTabs[tab.index - 1];
     const destination = id ? tabs.get(id) : undefined;
     return destination ? snapshotTab(destination) : null;
   }
@@ -344,8 +328,8 @@ export function useAdminShellTabs(
         tab.id !== active?.id // the host no longer reports that tab as active
       ) {
         tabs.delete(id);
-        const index = visibleTabs.value.indexOf(id);
-        if (index !== -1) visibleTabs.value.splice(index, 1);
+        const index = visibleTabs.indexOf(id);
+        if (index !== -1) visibleTabs.splice(index, 1);
         reindexTabs();
       }
     } catch (error) {
@@ -375,30 +359,38 @@ export function useAdminShellTabs(
       const { navigation: previousNavigation } = previous ?? {};
 
       const hasNavigation = Boolean(navigation);
-      const previousHasNavigation = Boolean(previousNavigation);
+      // The registry is shared across HMR remounts, so only a real adapter
+      // identity change (or a disappearing adapter) clears it — a fresh
+      // setup after a remount must keep the open tabs it already holds
+      // instead of wiping them to just the active page.
       if (
         !hasNavigation ||
-        !previousHasNavigation ||
-        navigation !== previousNavigation
-      )
-        clearTabs();
+        (previousNavigation && navigation !== previousNavigation)
+      ) {
+        store.clearTabs();
+        tabError.value = undefined;
+      }
       if (hasNavigation && navigation) recordOrHealActive(navigation);
     },
     { immediate: true, flush: "sync" },
   );
 
   /**
-   * Invalidates pending actions and drops all ephemeral tabs on component unmount.
+   * Invalidates in-flight shell requests on unmount without dropping the
+   * shared tab registry, which must survive HMR remounts.
    *
-   * @returns Nothing after delegating cleanup to clearTabs.
+   * @returns Nothing after clearing the pending open candidate and heal bookkeeping.
    */
-  onBeforeUnmount(clearTabs);
+  onBeforeUnmount(() => {
+    store.pendingOpen = undefined;
+    store.healingRevives.clear();
+  });
 
   /** Retains one stable descendant controller for this mounted shell instance. */
   const context: AdminShellContext = {
     navigate: requestDestination,
     tabs,
-    visibleTabs,
+    visibleTabs: toRef(store, "visibleTabs"),
     tabError,
     canActivateTab,
     activateTab,
