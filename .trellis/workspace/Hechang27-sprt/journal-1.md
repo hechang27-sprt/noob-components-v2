@@ -37,3 +37,35 @@ Investigated how naive-ui-pro ProLayout size is configured: componentOptions (NC
 ### Next Steps
 
 - None - task complete
+
+
+## Session 2: Tabbar bottom border removal + tab strip bottom-alignment
+
+**Date**: 2026-08-06
+**Task**: Tabbar bottom border removal + tab strip bottom-alignment
+
+### Summary
+
+Follow-up micro-fix: ProLayout tabbar bottom border removed via ProLayout tabbarClass='border-b-transparent!' in components/admin-shell.tsx. Diagnosed why the earlier attempt (class in stores/shell-preferences.ts) generated nothing: the admin Tailwind stylesheet uses source(none) + @source './components', so class strings outside components/ are never compiled; and once generated, the bare variant would lose to pro-naive-ui's unlayered cssr border (Tailwind utilities are in @layer utilities), so the !important variant is required. User verified both border rules coexist in compiled CSS with the important one winning. Also bottom-aligned the card tab strip (wrapper w-full h-full + NTabs h-full justify-end). Browser-verified: no overflow, tab flush to bottom, clean visual; only the intentional naive-ui card-strip divider remains. Admin typecheck + 72/72 tests pass.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0596ba17816e` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
