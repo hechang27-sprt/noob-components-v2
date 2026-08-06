@@ -34,8 +34,12 @@ export const AdminShellTabbar = defineComponent(
       const tabError = shell.tabError.value;
 
       return (
-        <div class="min-w-0" role="tablist" aria-label={t("tabs.openPages")}>
+        <div
+          class="w-full h-full"
+          role="tablist"
+          aria-label={t("tabs.openPages")}>
           <NTabs
+            class="h-full justify-end"
             type="card"
             value={activeId}
             tabsPadding={8}

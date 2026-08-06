@@ -1,6 +1,6 @@
 import { NMenu } from "naive-ui";
-import { ProLayout } from "pro-naive-ui";
-import { defineComponent } from "vue";
+import { ProLayout, useLayoutMenu } from "pro-naive-ui";
+import { defineComponent, watch } from "vue";
 
 import {
   createComponentI18n,
@@ -170,23 +170,53 @@ export const AdminShell = defineComponent(
       t,
     });
 
+    /**
+     * Computes the naive-ui menu props for the active layout mode.
+     *
+     * Mode stays vertical until a layout-mode preference exists; the future
+     * switcher binds it here and renders `horizontalMenuProps` in a nav slot
+     * instead — the `activeKey` watcher below already serves every menu
+     * instance, so no per-menu navigation wiring is needed.
+     */
+    const { activeKey, layout } = useLayoutMenu({
+      menus: () => menu.options,
+      mode: () => "vertical" as const,
+    });
+
+    /**
+     * Follows the navigation store's active page into the menu so tab
+     * activation, history traversal, and programmatic navigation all keep the
+     * highlighted menu key in sync.
+     */
+    watch(
+      () => nav.navigation?.active?.nav.navKey ?? null,
+      (key) => {
+        if (activeKey.value !== key) activeKey.value = key;
+      },
+      { immediate: true },
+    );
+
+    /**
+     * Turns menu selections into navigation. `useLayoutMenu`'s own
+     * `onUpdateValue` already writes `activeKey` (and its expanded-keys
+     * watcher follows), so this watcher is the single menu → navigation seam;
+     * the active-key guard stops programmatic navigation from re-navigating
+     * through this watcher.
+     */
+    watch(activeKey, (key) => {
+      if (key == null) return;
+      if (key === nav.navigation?.active?.nav.navKey) return;
+      void shellContext.navigate({ navKey: String(key) });
+    });
+
     return () => {
-      const activeMenuKey = nav.navigation?.active?.nav.navKey;
       const menuOptions = menu.options;
 
       const layoutSlots = {
         "nav-left": () => <AdminShellNavLeft />,
         "nav-right": () => <AdminShellNavRight />,
         sidebar: menuOptions?.length
-          ? () => (
-              <NMenu
-                options={menuOptions}
-                value={activeMenuKey}
-                onUpdateValue={(key: string | number) =>
-                  void shellContext.navigate({ navKey: String(key) })
-                }
-              />
-            )
+          ? () => <NMenu {...layout.value.verticalMenuProps} />
           : undefined,
         tabbar: nav.navigation ? () => <AdminShellTabbar /> : undefined,
         default: () => slots.default?.({ navigate: shellContext.navigate }),
@@ -195,7 +225,8 @@ export const AdminShell = defineComponent(
       return (
         <div class="h-dvh" style={{ height: "100dvh" }}>
           <ProLayout
-            collapsed={preferences.sidebarCollapsed}
+            {...preferences.proLayoutConfig}
+            tabbarClass="border-b-transparent!" // remove the default ProLayout tabbar bottom border
             onUpdateCollapsed={(value) =>
               preferences.setSidebarCollapsed(value)
             }
