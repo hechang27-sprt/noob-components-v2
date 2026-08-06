@@ -1118,3 +1118,35 @@ Merged the review-20260805 workspace into default via jj new (two parents): comb
 ### Next Steps
 
 - None - task complete
+
+
+## Session 31: Workspace locale JSON HMR boundaries + AdminShell tab-state survival
+
+**Date**: 2026-08-06
+**Task**: Workspace locale JSON HMR boundaries + AdminShell tab-state survival
+
+### Summary
+
+Preset-injected locale accept boundary (no app-side patch); AdminShell slot components converted to defineComponent for leaf-level HMR; open-tab registry moved to Pinia store so HMR remounts preserve tabs; verified in browser (demo.json, tabbar class edit, AdminShell.json) + 149 tests + builds.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `zqzpnwxu` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
