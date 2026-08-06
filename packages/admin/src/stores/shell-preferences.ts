@@ -24,6 +24,10 @@ import {
   resolveAdminNaiveUiTheme,
   type AdminNaiveUiConfig,
 } from "../runtime/naive-ui-config";
+import {
+  resolveAdminProLayoutTabbarHeight,
+  type AdminProLayoutConfig,
+} from "../runtime/pro-layout-config";
 
 export const useAdminShellPreferencesStore = defineStore(
   "admin-shell-preferences",
@@ -167,6 +171,16 @@ export const useAdminShellPreferencesStore = defineStore(
       componentOptions: COMPONENT_SIZE_OPTIONS[fontSize.value],
     }));
 
+    /**
+     * ProLayout props derived from preferences; never serialized. The tabbar
+     * container height follows the font-size tier so the shell's NTabs never
+     * overflow it; the sidebar collapse state maps to ProLayout's `collapsed`.
+     */
+    const proLayoutConfig = computed<AdminProLayoutConfig>(() => ({
+      tabbarHeight: resolveAdminProLayoutTabbarHeight(fontSize.value),
+      collapsed: sidebarCollapsed.value,
+    }));
+
     return {
       themeMode,
       fontSize,
@@ -176,6 +190,7 @@ export const useAdminShellPreferencesStore = defineStore(
       isHydrated,
       preferences,
       naiveUiConfig,
+      proLayoutConfig,
       initialize,
       setSystemUsesDark,
       replacePreferences,
