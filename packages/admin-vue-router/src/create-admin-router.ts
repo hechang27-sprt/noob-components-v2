@@ -200,9 +200,8 @@ function createShellRouteComponent(innerComponent: Component): Component {
  * component setup, or `app.runWithContext(() => inject(ADMIN_DISPOSE_KEY))`
  * at app scope.
  */
-export const ADMIN_DISPOSE_KEY: InjectionKey<() => void> = Symbol(
-  "adminRouterDispose",
-);
+export const ADMIN_DISPOSE_KEY: InjectionKey<() => void> =
+  Symbol("adminRouterDispose");
 
 /** The Vue plugin returned by `createAdminRouterPlugin`, installed after Pinia. */
 export interface AdminRouterPlugin {
@@ -416,9 +415,9 @@ function installAuthTransitionGuard(
  * @throws When additional routes collide with generated admin records or
  *   login/shell paths are identical.
  */
-export function createAdminRouterPlugin<TDefinitions extends AdminRouteDefinitions>(
-  options: CreateAdminRouterOptions<TDefinitions>,
-): AdminRouterPlugin {
+export function createAdminRouterPlugin<
+  TDefinitions extends AdminRouteDefinitions,
+>(options: CreateAdminRouterOptions<TDefinitions>): AdminRouterPlugin {
   const {
     history,
     registry,

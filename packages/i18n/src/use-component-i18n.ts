@@ -52,9 +52,7 @@ const componentI18nKey: InjectionKey<Composer> = Symbol("ComponentI18n");
 export function createComponentI18n<
   LocaleName extends string,
   Locale extends object,
->(
-  options: CreateComponentI18nOptions<LocaleName, Locale>,
-): Composer {
+>(options: CreateComponentI18nOptions<LocaleName, Locale>): Composer {
   const { messages, plugin, componentId } = options;
 
   // The plugin's immutable override tree; absent plugin installation yields

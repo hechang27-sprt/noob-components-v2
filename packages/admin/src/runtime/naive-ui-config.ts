@@ -77,9 +77,7 @@ export const FONT_SIZE_OVERRIDES: Record<AdminFontSize, GlobalThemeOverrides> =
  * @returns A `GlobalComponentConfig` whose supported components all use the
  * given tier.
  */
-function buildComponentSizeOptions(
-  tier: AdminFontSize,
-): GlobalComponentConfig {
+function buildComponentSizeOptions(tier: AdminFontSize): GlobalComponentConfig {
   return {
     AutoComplete: { size: tier },
     Button: { size: tier },

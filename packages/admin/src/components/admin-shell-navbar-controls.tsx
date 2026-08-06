@@ -108,9 +108,8 @@ export function AdminShellNavRight(): VNode {
     fontSizeOptions.find(({ key }) => key === preferences.fontSize)?.label ??
     preferences.fontSize;
   const localeLabel =
-    preferences.availableLocales.find(
-      ({ key }) => key === preferences.locale,
-    )?.label ?? preferences.locale;
+    preferences.availableLocales.find(({ key }) => key === preferences.locale)
+      ?.label ?? preferences.locale;
   const themeIcon =
     preferences.themeMode === "dark" ? SunnyOutline : MoonOutline;
 

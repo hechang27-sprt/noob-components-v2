@@ -450,9 +450,7 @@ describe("AdminShell", () => {
     expect(first.querySelector("[data-shell-context-keys]")?.textContent).toBe(
       "activateTab,canActivateTab,closeTab,navigate,tabError,tabs,visibleTabs",
     );
-    expect(
-      second.querySelector("[data-shell-context-keys]")?.textContent,
-    ).toBe(
+    expect(second.querySelector("[data-shell-context-keys]")?.textContent).toBe(
       "activateTab,canActivateTab,closeTab,navigate,tabError,tabs,visibleTabs",
     );
     second.querySelector<HTMLButtonElement>("[data-shell-navigate]")!.click();
@@ -759,7 +757,9 @@ describe("AdminShell", () => {
     // Close the first settings instance; the committed one remains.
     getTabClose(container, "settings-1")!.click();
     await settle();
-    expect(container.querySelector('[data-admin-tab-key="settings-1"]')).toBeNull();
+    expect(
+      container.querySelector('[data-admin-tab-key="settings-1"]'),
+    ).toBeNull();
     expect(
       container.querySelector('[data-admin-tab-key="settings-2"]'),
     ).not.toBeNull();
@@ -773,7 +773,9 @@ describe("AdminShell", () => {
       destination: expect.objectContaining({ id: "settings-2" }),
       current: closed,
     });
-    expect(container.querySelector('[data-admin-tab-key="settings-1"]')).toBeNull();
+    expect(
+      container.querySelector('[data-admin-tab-key="settings-1"]'),
+    ).toBeNull();
     const settingsTabs = container.querySelectorAll(
       '[data-admin-tab-key^="settings-"]',
     );
@@ -801,8 +803,7 @@ describe("AdminShell", () => {
       handleNavigation: vi.fn(async (request) => {
         // The adapter contract: close navigates the router to the fallback,
         // so the confirmed active state moves with the entry.
-        const active =
-          request.kind === "close" ? request.destination : null;
+        const active = request.kind === "close" ? request.destination : null;
         navigation.active = active;
         return { active };
       }),
@@ -813,7 +814,9 @@ describe("AdminShell", () => {
     await settle();
     getTabClose(container, "settings-1")!.click();
     await settle();
-    expect(container.querySelector('[data-admin-tab-key="settings-1"]')).toBeNull();
+    expect(
+      container.querySelector('[data-admin-tab-key="settings-1"]'),
+    ).toBeNull();
 
     // Back revives the only settings instance — recorded as its own tab
     // (history restore), never healed without a committed match.
@@ -849,8 +852,7 @@ describe("AdminShell", () => {
     const navigation = reactive<AdminShellNavigation>({
       active: home,
       handleNavigation: vi.fn(async (request) => {
-        const active =
-          request.kind === "close" ? request.destination : null;
+        const active = request.kind === "close" ? request.destination : null;
         navigation.active = active;
         return { active };
       }),
@@ -863,7 +865,9 @@ describe("AdminShell", () => {
     await settle();
     getTabClose(container, "detail-1")!.click();
     await settle();
-    expect(container.querySelector('[data-admin-tab-key="detail-1"]')).toBeNull();
+    expect(
+      container.querySelector('[data-admin-tab-key="detail-1"]'),
+    ).toBeNull();
 
     // The revived r-1 entry is a different page than the committed r-2
     // instance, so it is recorded as its own tab instead of being healed.
