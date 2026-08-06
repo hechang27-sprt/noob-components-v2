@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 29
+- **Total Sessions**: 30
 - **Last Active**: 2026-08-06
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1088 | Active |
+| `journal-1.md` | ~1120 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 30 | 2026-08-06 | Merge default with review-20260805 (AdminShell fallow refactor + font-size preference fix) | `1d981c99` | `-` |
 | 29 | 2026-08-06 | Fix font-size preference resizing (componentOptions + shell chrome + base font) | `2f8ca5f3` | `-` |
 | 28 | 2026-08-05 | Flip i18n fallbackRoot to true; single-composer tabbar; controller-return composable | `d7d32848` | `dev` |
 | 27 | 2026-08-05 | Convert AdminShell slot renderers to functional components per style guide | `25f6824e` | `dev` |

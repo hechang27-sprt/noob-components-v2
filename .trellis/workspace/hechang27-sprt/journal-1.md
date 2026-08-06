@@ -1086,3 +1086,35 @@ Investigated why the font-size preference only resized the menu text: ProLayout 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 30: Merge default with review-20260805 (AdminShell fallow refactor + font-size preference fix)
+
+**Date**: 2026-08-06
+**Task**: Merge default with review-20260805 (AdminShell fallow refactor + font-size preference fix)
+
+### Summary
+
+Merged the review-20260805 workspace into default via jj new (two parents): combined the font-size preference fix (default) with the AdminShell fallow refactor (review). Resolved admin-shell.tsx conflicts to the refactored delegation (AdminShellNavLeft/Right, AdminShellTabbar, use-admin-shell), then re-applied the chrome size-removals to the extracted admin-shell-navbar-controls.tsx (5x size=large) and admin-shell-tabbar.tsx (size=small) so the preference still resizes the top bar. Reconciled the concurrent journal: review sessions 25-28 (earlier commit) keep numbers, this session's font-size entry renumbered 25->29; index Total Sessions 29. Prompted the review-window agent via herdr for its committed state before merging and notified it after. Verified: admin typecheck, 72/72 admin tests, demo typecheck, and browser (top bar + content resize with preference at large).
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1d981c99` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
