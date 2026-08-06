@@ -1212,3 +1212,34 @@ Follow-up micro-fix: ProLayout tabbar bottom border removed via ProLayout tabbar
 ### Next Steps
 
 - None - task complete
+
+## Session 34: Merge fix-tabbar-css into main; resolve tabbar conflict
+
+**Date**: 2026-08-06
+**Task**: Merge fix-tabbar-css into main; resolve tabbar conflict
+
+### Summary
+
+Resolved the admin-shell-tabbar.tsx 2-sided conflict (defineComponent structure + fix-tabbar-css CSS); validated merged tree (admin typecheck + 74 tests, demo typecheck + build, root tsc, fmt, lint, browser HMR regressions); archived merge task; notified the fix-tabbar-css agent to sync.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `rnmouzwt` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

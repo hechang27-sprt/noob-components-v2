@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 33
+- **Total Sessions**: 34
 - **Last Active**: 2026-08-06
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1214 | Active |
+| `journal-1.md` | ~1245 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 34 | 2026-08-06 | Merge fix-tabbar-css into main; resolve tabbar conflict | rnmouzwt | `-` |
 | 33 | 2026-08-06 | Tabbar bottom border removal + tab strip bottom-alignment | `0596ba17816e` | `-` |
 | 32 | 2026-08-06 | ProLayout preference config: tabbar overflow fix + useLayoutMenu migration | `128768fee877` | `-` |
 | 31 | 2026-08-06 | Workspace locale JSON HMR boundaries + AdminShell tab-state survival | zqzpnwxu | `-` |
