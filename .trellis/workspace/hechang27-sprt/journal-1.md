@@ -1243,3 +1243,33 @@ Resolved the admin-shell-tabbar.tsx 2-sided conflict (defineComponent structure 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 35: Archive completed tasks: library-i18n-integration, fallow-refactor-admin-shell
+
+**Date**: 2026-08-07
+**Task**: Archive completed tasks: library-i18n-integration, fallow-refactor-admin-shell
+
+### Summary
+
+Session summary was not supplied.
+
+### Main Changes
+
+- Archived 07-31-library-i18n-integration (3/3 done)
+- Archived 08-05-fallow-refactor-admin-shell (done)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ptzssynousyy` | (see git log) |
+| `xmmytukwowys` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Continue 07-15-demo-app

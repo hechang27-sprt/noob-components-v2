@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 34
-- **Last Active**: 2026-08-06
+- **Total Sessions**: 35
+- **Last Active**: 2026-08-07
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1245 | Active |
+| `journal-1.md` | ~1275 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 35 | 2026-08-07 | Archive completed tasks: library-i18n-integration, fallow-refactor-admin-shell | ptzssynousyy, xmmytukwowys | `-` |
 | 34 | 2026-08-06 | Merge fix-tabbar-css into main; resolve tabbar conflict | rnmouzwt | `-` |
 | 33 | 2026-08-06 | Tabbar bottom border removal + tab strip bottom-alignment | `0596ba17816e` | `-` |
 | 32 | 2026-08-06 | ProLayout preference config: tabbar overflow fix + useLayoutMenu migration | `128768fee877` | `-` |
