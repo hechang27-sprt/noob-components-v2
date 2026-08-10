@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 35
-- **Last Active**: 2026-08-07
+- **Total Sessions**: 36
+- **Last Active**: 2026-08-10
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1275 | Active |
+| `journal-1.md` | ~1313 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 36 | 2026-08-10 | Theme UI text/layout via naive-ui design tokens | `8c4770ae` | `-` |
 | 35 | 2026-08-07 | Archive completed tasks: library-i18n-integration, fallow-refactor-admin-shell | ptzssynousyy, xmmytukwowys | `-` |
 | 34 | 2026-08-06 | Merge fix-tabbar-css into main; resolve tabbar conflict | rnmouzwt | `-` |
 | 33 | 2026-08-06 | Tabbar bottom border removal + tab strip bottom-alignment | `0596ba17816e` | `-` |

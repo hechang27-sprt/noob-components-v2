@@ -1273,3 +1273,41 @@ Session summary was not supplied.
 ### Next Steps
 
 - Continue 07-15-demo-app
+
+
+## Session 36: Theme UI text/layout via naive-ui design tokens
+
+**Date**: 2026-08-10
+**Task**: Theme UI text/layout via naive-ui design tokens
+**Package**: admin
+
+### Summary
+
+Session summary was not supplied.
+
+### Main Changes
+
+- Convert demo pages and admin components to Typography (NH1/NP/NText) and NFlex/NLayout/NGrid over raw html+tailwind so text and layout stay theme-able
+- Mount NGlobalStyle in demo host so the themed body background covers the whole page (dark mode no longer only paints the card)
+- Wrap admin-login-page in a full-page NFlex instead of <main>; size the anonymous-status text via NElement tag=p consuming the inherited --font-size-tiny token
+- Add FONT_SIZE_OVERRIDES tiers (common font sizes, Typography p/header, Flex gapMedium) driven through naiveUiConfig themeOverrides + componentOptions; drop pro-layout-config
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8c4770ae` | (see git log) |
+
+### Testing
+
+- [OK] Admin typecheck pass; login page tests 4/4; prototype tests 4/4; lint pass
+- [OK] Browser: full-page dark mode on login+shell; demo pages render NFlex+NH1/NP; status text renders 13px token-driven (medium tier)
+- [OK] 2 pre-existing admin-suite failures (shell-preferences themeOverrides shape, navbar delay hover) from earlier uncommitted work, unrelated
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Decide whether to codify a small-text convention (NElement tag=p + --font-size-tiny) or expose a themed caption token
