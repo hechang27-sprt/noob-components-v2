@@ -1311,3 +1311,38 @@ Session summary was not supplied.
 ### Next Steps
 
 - Decide whether to codify a small-text convention (NElement tag=p + --font-size-tiny) or expose a themed caption token
+
+
+## Session 37: Spec: mandate naive-ui design-token theming for ui components
+
+**Date**: 2026-08-10
+**Task**: Spec: mandate naive-ui design-token theming for ui components
+**Package**: admin
+
+### Summary
+
+Session summary was not supplied.
+
+### Main Changes
+
+- Add 'Design tokens and theming' section to admin/frontend/tsx-components-and-tests.md: Typography for text, NFlex/NLayout/NGrid for layout, no hardcoded colors/sizes, NElement + --font-size-tiny for smaller-than-base text, NGlobalStyle for full-page backgrounds, rem-based Tailwind allowed
+- Login anonymous-status now uses text-(length:--font-size-tiny): Tailwind's bare text-(--var) resolves to color (color: var(--var)), not font-size, so the shorter form silently left the size inherited
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c75d68cd` | (see git log) |
+
+### Testing
+
+- [OK] Admin typecheck pass; login tests 4/4; lint pass
+- [OK] Browser: login status renders 13px (medium tier) via NElement exposing --font-size-tiny; generated rule confirmed font-size: var(--font-size-tiny)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Consider exposing a themed caption token in FONT_SIZE_OVERRIDES if smaller-than-tiny text is needed
