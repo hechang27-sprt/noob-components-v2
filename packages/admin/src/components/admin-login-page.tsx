@@ -215,7 +215,7 @@ export const AdminLoginPage = defineComponent(
                     <span role="status">
                       <NElement
                         tag="p"
-                        class={"text-(length:--font-size-tiny)"}>
+                        class="text-(length:--font-size-tiny)">
                         {anonymousStatusMessage}
                       </NElement>
                     </span>

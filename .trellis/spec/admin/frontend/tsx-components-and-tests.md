@@ -22,7 +22,67 @@ const DetailPage = defineComponent(
 );
 ```
 
-For components with reactive state or lifecycle work, use a block-bodied first argument and return the TSX render closure. Stateless components may return the render closure directly. Import Naive UI controls directly and use Tailwind utilities for local layout. Package Tailwind scanning is configured in `packages/admin/src/style.css`, which is imported by the public barrel.
+For components with reactive state or lifecycle work, use a block-bodied first argument and return the TSX render closure. Stateless components may return the render closure directly. Import Naive UI controls directly; for layout and text prefer Naive UI primitives that consume design tokens over raw HTML + Tailwind — see [Design tokens and theming](#design-tokens-and-theming). Package Tailwind scanning is configured in `packages/admin/src/style.css`, which is imported by the public barrel.
+
+## Design tokens and theming
+
+New UI components (pages, widgets, shells) MUST be compatible with Naive UI's design tokens and theming so they remain theme-able across dark mode, the font-size preference, and `FONT_SIZE_OVERRIDES`. Do not hardcode colors, font sizes, or spacing that a theme override should control.
+
+### Hardcoded style is forbidden
+
+Avoid raw color classes, hex literals, and fixed font-size utilities in component markup:
+
+```tsx
+// ❌ hardcoded color + size bypass the theme
+<span class="text-sm! text-gray-600">status</span>
+
+// ❌ raw text element bypasses Typography tokens
+<h1 class="text-xl font-semibold">Title</h1>
+```
+
+Instead consume Naive UI primitives that derive from the theme:
+
+```tsx
+// ✅ Typography drives pFontSize / headerFontSizeN from FONT_SIZE_OVERRIDES
+<NP>status</NP>
+<NH1>Title</NH1>
+```
+
+### Text: use Typography, not raw HTML
+
+Render content-ful text with Naive UI Typography components (`NH1`–`NH6`, `NP`, `NText`) rather than `<p>`/`<h1>`/`<span>`. They emit the same DOM tags (`NP` → `<p>`, `NH1` → `<h1>`) so selector-based tests still pass, and they inherit the themed `--n-font-size` / `--n-margin` / `--n-text-color`.
+
+Text containers that only stack Typography should be a plain `<div>` (or `NElement`), not an `NFlex`: Typography already supplies its own vertical margins, and `NFlex`'s component-size `gap` then double-spaces the text.
+
+### Layout: prefer NFlex/NLayout/NGrid
+
+Prefer `NFlex`/`NLayout`/`NGrid` over raw `<main>`/`<div>` + Tailwind for layout so gaps, background, and alignment stay token-driven. Do not pass `size` to `NFlex` unless a specific gap is intended — the default `size="medium"` resolves the `Flex.gapMedium` token, themed per font-size tier in `FONT_SIZE_OVERRIDES`.
+
+### Smaller-than-base text via NElement + a common token
+
+Naive UI Typography has no "caption" tier smaller than `pFontSize` — `NText`/`NP` expose no size prop, and `fontSizeTiny` is only consumed by tiny *components*, not text. To size text below base, render it through `NElement` and reference the inherited kebab-cased common token:
+
+```tsx
+<span role="status">
+  <NElement tag="p" class="text-(length:--font-size-tiny)">
+    {anonymousStatusMessage}
+  </NElement>
+</span>
+```
+
+`NElement` emits every `common` theme var as an inherited custom property on its own element (e.g. `fontSizeTiny` → `--font-size-tiny`, no `n-` prefix), honoring `FONT_SIZE_OVERRIDES`. Reference it with a Tailwind v4 CSS-var utility, not an inline `style`.
+
+> **Warning**: Tailwind's bare `text-(--var)` shorthand is the **color** namespace — it compiles to `color: var(--var)`, not `font-size`. For text sizing you MUST disambiguate with `text-(length:--var)` (→ `font-size: var(--var)`). The bare form silently sizes nothing (computed font-size stays at the inherited value).
+
+Keep the `role="status"`/`role="alert"` wrapper outside `NElement`, which hardcodes `role="none"` on its root. Inject `NElement` locally at the consuming text — do not wrap the whole app in one, because Naive UI only exposes these vars where `NElement` mounts (the config-provider root and `NGlobalStyle` set only the base `fontSize`).
+
+### Full-page backgrounds require NGlobalStyle
+
+Naive UI paints the page `body` background only through `NGlobalStyle` inside `NConfigProvider`. `NFlex`/`NLayout` have no background of their own (NLayout uses its themed `--n-color` only when mounted). To make dark mode cover the entire page (e.g. a full-page login), mount `<NGlobalStyle />` in the host and use a full-viewport `NFlex` wrapper (`vertical justify="center" align="center" class="min-h-dvh"`).
+
+### Rem-based Tailwind utilities are allowed
+
+Tailwind sizing/padding utilities (`p-6`, `h-48`, `max-w-md`) are acceptable for local layout because the host sets `document.documentElement.style.fontSize` from the font-size preference, so `rem` values scale with it. Hardcoded `px` and color utilities are not.
 
 ## Naive UI control composition
 
