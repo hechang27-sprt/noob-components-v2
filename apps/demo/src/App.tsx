@@ -2,7 +2,7 @@ import {
   resolveAdminNaiveBaseFontSize,
   useAdminShellPreferencesStore,
 } from "@noob-naive-ui/admin";
-import { NConfigProvider } from "naive-ui";
+import { NConfigProvider, NGlobalStyle } from "naive-ui";
 import { defineComponent, onBeforeUnmount, watch } from "vue";
 import { RouterView } from "vue-router";
 
@@ -73,6 +73,7 @@ export default defineComponent(
 
     return () => (
       <NConfigProvider {...preferences.naiveUiConfig}>
+        <NGlobalStyle />
         <RouterView />
       </NConfigProvider>
     );

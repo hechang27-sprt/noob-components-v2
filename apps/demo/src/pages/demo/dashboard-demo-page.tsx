@@ -1,7 +1,14 @@
+import { NH1, NP } from "naive-ui";
 import { defineComponent } from "vue";
 import { useI18n } from "vue-i18n";
 
-/** Renders the non-closable dashboard home page. */
+/**
+ * Renders the non-closable dashboard home page.
+ *
+ * Text-only content container: Typography's own margins supply the vertical
+ * rhythm between the heading and paragraph, so a plain `<div>` (rather than an
+ * NFlex with a component-size gap) avoids double-spacing.
+ */
 export const DashboardDemoPage = defineComponent(
   /** @returns The dashboard page render function. */
   () => {
@@ -9,12 +16,10 @@ export const DashboardDemoPage = defineComponent(
     const { t } = useI18n({ useScope: "global" });
 
     return () => (
-      <main class="p-6">
-        <h1 class="m-0 text-2xl font-semibold">{t("pages.dashboard.title")}</h1>
-        <p class="mt-3 max-w-2xl text-base leading-6">
-          {t("pages.dashboard.description")}
-        </p>
-      </main>
+      <div class="p-6">
+        <NH1>{t("pages.dashboard.title")}</NH1>
+        <NP>{t("pages.dashboard.description")}</NP>
+      </div>
     );
   },
   { name: "DashboardDemoPage" },

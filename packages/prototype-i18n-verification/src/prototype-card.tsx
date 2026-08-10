@@ -1,3 +1,4 @@
+import { NH3, NP } from "naive-ui";
 import { objectEntries } from "tsafe/objectEntries";
 import { defineComponent, inject } from "vue";
 import { useI18n } from "vue-i18n";
@@ -65,12 +66,16 @@ const PrototypeCard = defineComponent(
     }
 
     return () => (
-      <section
+      <div
         data-prototype-i18n-card
         data-prototype-i18n-locale={currentLocale.value}>
-        <h3 data-prototype-i18n-title>{t("title")}</h3>
-        <p data-prototype-i18n-description>{t("description")}</p>
-      </section>
+        <div data-prototype-i18n-title>
+          <NH3>{t("title")}</NH3>
+        </div>
+        <div data-prototype-i18n-description>
+          <NP>{t("description")}</NP>
+        </div>
+      </div>
     );
   },
   { name: "PrototypeCard" },

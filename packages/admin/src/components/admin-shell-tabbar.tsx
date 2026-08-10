@@ -1,4 +1,4 @@
-import { NTab, NTabs } from "naive-ui";
+import { NP, NTab, NTabs } from "naive-ui";
 import { defineComponent } from "vue";
 
 import { getComponentI18n, resolveI18nText } from "@noob-naive-ui/i18n";
@@ -73,9 +73,9 @@ export const AdminShellTabbar = defineComponent(
             })}
           </NTabs>
           {tabError ? (
-            <p role="alert" data-admin-tab-error>
-              {tabError}
-            </p>
+            <div role="alert" data-admin-tab-error>
+              <NP>{tabError}</NP>
+            </div>
           ) : null}
         </div>
       );

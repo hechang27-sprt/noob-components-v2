@@ -1,9 +1,16 @@
 import { useAdminShell } from "@noob-naive-ui/admin";
-import { NButton } from "naive-ui";
+import { NButton, NH1, NP } from "naive-ui";
 import { defineComponent } from "vue";
 import { useI18n } from "vue-i18n";
 
-/** Renders the reports page with an application-owned detail navigation trigger. */
+/**
+ * Renders the reports page with an application-owned detail navigation trigger.
+ *
+ * Text-bearing content container: Typography's own margins supply the vertical
+ * rhythm between the heading, paragraph, and the action button, so a plain
+ * `<div>` (rather than an NFlex with a component-size gap) avoids
+ * double-spacing.
+ */
 export const ReportsDemoPage = defineComponent(
   /** @returns The reports page render function. */
   () => {
@@ -24,15 +31,13 @@ export const ReportsDemoPage = defineComponent(
     }
 
     return () => (
-      <main class="p-6">
-        <h1 class="m-0 text-2xl font-semibold">{t("pages.reports.title")}</h1>
-        <p class="mt-3 max-w-2xl text-base leading-6">
-          {t("pages.reports.description")}
-        </p>
+      <div class="p-6">
+        <NH1>{t("pages.reports.title")}</NH1>
+        <NP>{t("pages.reports.description")}</NP>
         <NButton type="primary" onClick={() => openDetail()}>
           {t("pages.reports.openDetail")}
         </NButton>
-      </main>
+      </div>
     );
   },
   { name: "ReportsDemoPage" },

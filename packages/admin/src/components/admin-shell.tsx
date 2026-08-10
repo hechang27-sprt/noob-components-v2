@@ -1,4 +1,4 @@
-import { NMenu } from "naive-ui";
+import { NLayout, NMenu } from "naive-ui";
 import { ProLayout, useLayoutMenu } from "pro-naive-ui";
 import { defineComponent, watch } from "vue";
 
@@ -223,10 +223,11 @@ export const AdminShell = defineComponent(
       };
 
       return (
-        <div class="h-dvh" style={{ height: "100dvh" }}>
+        <NLayout position="absolute" class="h-dvh">
           <ProLayout
             {...preferences.proLayoutConfig}
-            tabbarClass="border-b-transparent!" // remove the default ProLayout tabbar bottom border
+            navClass="h-auto! py-2 px-2 flex items-center"
+            tabbarClass="border-none! h-auto!" // remove the default ProLayout tabbar bottom border
             onUpdateCollapsed={(value) =>
               preferences.setSidebarCollapsed(value)
             }
@@ -234,7 +235,7 @@ export const AdminShell = defineComponent(
             showTabbar={Boolean(nav.navigation)}
             v-slots={layoutSlots}
           />
-        </div>
+        </NLayout>
       );
     };
   },

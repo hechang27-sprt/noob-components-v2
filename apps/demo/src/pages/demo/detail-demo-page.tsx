@@ -1,7 +1,14 @@
+import { NH1, NP } from "naive-ui";
 import { defineComponent } from "vue";
 import { useI18n } from "vue-i18n";
 
-/** Renders the non-menu detail route reached through an application-owned button. */
+/**
+ * Renders the non-menu detail route reached through an application-owned button.
+ *
+ * Text-only content container: Typography's own margins supply the vertical
+ * rhythm between the heading and paragraph, so a plain `<div>` (rather than an
+ * NFlex with a component-size gap) avoids double-spacing.
+ */
 export const DetailDemoPage = defineComponent(
   /**
    * Creates detail content from the explicit report route prop.
@@ -14,14 +21,10 @@ export const DetailDemoPage = defineComponent(
     const { t } = useI18n({ useScope: "global" });
 
     return () => (
-      <main class="p-6">
-        <h1 class="m-0 text-2xl font-semibold">
-          {t("pages.detail.title", { id: props.reportId })}
-        </h1>
-        <p class="mt-3 max-w-2xl text-base leading-6">
-          {t("pages.detail.description", { id: props.reportId })}
-        </p>
-      </main>
+      <div class="p-6">
+        <NH1>{t("pages.detail.title", { id: props.reportId })}</NH1>
+        <NP>{t("pages.detail.description", { id: props.reportId })}</NP>
+      </div>
     );
   },
   {

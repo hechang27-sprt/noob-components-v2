@@ -128,6 +128,10 @@ const app = createApp(App).use(pinia).use(i18n).use(adminRouter);
 //     "zh-CN": { AdminShell: { account: { signOut: "退出" } } },
 //   },
 // });
+
+const meta = document.createElement("meta");
+meta.name = "naive-ui-style";
+document.head.appendChild(meta);
 app.mount("#app");
 
 /** Creates one menu option with a reactive locale label while preserving host-owned nav-key identity. */

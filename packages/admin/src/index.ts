@@ -38,9 +38,6 @@ export {
 } from "./runtime/naive-ui-config";
 export type { AdminNaiveUiConfig } from "./runtime/naive-ui-config";
 
-export { resolveAdminProLayoutTabbarHeight } from "./runtime/pro-layout-config";
-export type { AdminProLayoutConfig } from "./runtime/pro-layout-config";
-
 export {
   AdminLoginPage,
   type AdminLoginPageProps,

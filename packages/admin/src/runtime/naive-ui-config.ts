@@ -63,9 +63,76 @@ export function resolveAdminNaiveUiLocale(
 /** Fixed font-size overrides matching each public font-size preference. */
 export const FONT_SIZE_OVERRIDES: Record<AdminFontSize, GlobalThemeOverrides> =
   {
-    small: { common: { fontSize: "13px" } },
-    medium: { common: { fontSize: "14px" } },
-    large: { common: { fontSize: "16px" } },
+    small: {
+      common: {
+        fontSize: "13px",
+        fontSizeMini: "12px",
+        fontSizeTiny: "12px",
+        fontSizeSmall: "13px",
+        fontSizeMedium: "13px",
+        fontSizeLarge: "14px",
+        fontSizeHuge: "15px",
+      },
+      Typography: {
+        pFontSize: "13px",
+        headerFontSize1: "28px",
+        headerFontSize2: "22px",
+        headerFontSize3: "18px",
+        headerFontSize4: "15px",
+        headerFontSize5: "13px",
+        headerFontSize6: "13px",
+      },
+      Flex: {
+        gapMedium: "4px 8px",
+      },
+    },
+    medium: {
+      // Naive UI Defaults
+      common: {
+        fontSize: "14px",
+        fontSizeMini: "12px",
+        fontSizeTiny: "13px",
+        fontSizeSmall: "14px",
+        fontSizeMedium: "14px",
+        fontSizeLarge: "15px",
+        fontSizeHuge: "16px",
+      },
+      Typography: {
+        pFontSize: "14px",
+        headerFontSize1: "32px",
+        headerFontSize2: "24px",
+        headerFontSize3: "20px",
+        headerFontSize4: "16px",
+        headerFontSize5: "14px",
+        headerFontSize6: "14px",
+      },
+      Flex: {
+        gapMedium: "8px 12px",
+      },
+    },
+    large: {
+      common: {
+        fontSize: "16px",
+        fontSizeMini: "13px",
+        fontSizeTiny: "14px",
+        fontSizeSmall: "15px",
+        fontSizeMedium: "16px",
+        fontSizeLarge: "18px",
+        fontSizeHuge: "20px",
+      },
+      Typography: {
+        pFontSize: "16px",
+        headerFontSize1: "38px",
+        headerFontSize2: "28px",
+        headerFontSize3: "24px",
+        headerFontSize4: "20px",
+        headerFontSize5: "16px",
+        headerFontSize6: "16px",
+      },
+      Flex: {
+        gapMedium: "12px 16px",
+      },
+    },
   };
 
 /**
@@ -103,6 +170,7 @@ function buildComponentSizeOptions(tier: AdminFontSize): GlobalComponentConfig {
     Select: { size: tier },
     Skeleton: { size: tier },
     Space: { size: tier },
+    // Flex: { size: tier },
     Switch: { size: tier },
     Table: { size: tier },
     Tabs: { size: tier },

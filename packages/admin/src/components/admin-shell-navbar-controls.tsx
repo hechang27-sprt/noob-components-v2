@@ -2,8 +2,9 @@ import {
   NAvatar,
   NButton,
   NDropdown,
+  NFlex,
   NIcon,
-  NThing,
+  NText,
   type DropdownOption,
 } from "naive-ui";
 import {
@@ -22,14 +23,9 @@ import { getComponentI18n } from "@noob-naive-ui/i18n";
 import { useAdminAuthStore } from "../stores/auth";
 import { useAdminShellPreferencesStore } from "../stores/shell-preferences";
 
+const DROPDOWN_DELAY = 25;
+
 /** Renders the Vicons glyph that distinguishes the account menu's logout action. */
-function renderLogoutIcon() {
-  return (
-    <NIcon size={16}>
-      <LogOutOutline />
-    </NIcon>
-  );
-}
 
 /**
  * Renders AdminShell's `nav-left` ProLayout slot.
@@ -52,7 +48,7 @@ export const AdminShellNavLeft = defineComponent(
     const { t } = getComponentI18n();
 
     return () => (
-      <div class="flex items-center h-full" data-admin-nav-left>
+      <NFlex align="center" class="h-full" data-admin-nav-left>
         <NButton
           attr-type="button"
           quaternary
@@ -67,11 +63,15 @@ export const AdminShellNavLeft = defineComponent(
           onClick={() =>
             preferences.setSidebarCollapsed(!preferences.sidebarCollapsed)
           }>
-          <NIcon size={18}>
-            <MenuOutline />
-          </NIcon>
+          {{
+            icon: () => (
+              <NIcon>
+                <MenuOutline />
+              </NIcon>
+            ),
+          }}
         </NButton>
-      </div>
+      </NFlex>
     );
   },
   { name: "AdminShellNavLeft" },
@@ -116,7 +116,15 @@ export const AdminShellNavRight = defineComponent(
 
       /** Presents the fixed account actions with a reactive locale label. */
       const accountOptions = [
-        { key: "logout", label: t("account.signOut"), icon: renderLogoutIcon },
+        {
+          key: "logout",
+          label: t("account.signOut"),
+          icon: () => (
+            <NIcon>
+              <LogOutOutline />
+            </NIcon>
+          ),
+        },
       ] satisfies DropdownOption[];
 
       const fontSizeLabel =
@@ -130,7 +138,11 @@ export const AdminShellNavRight = defineComponent(
         preferences.themeMode === "dark" ? SunnyOutline : MoonOutline;
 
       return (
-        <div class="flex items-center h-full gap-1" data-admin-controls>
+        <NFlex
+          align="center"
+          class="h-full overflow-hidden"
+          wrap={false}
+          data-admin-controls>
           <NButton
             attr-type="button"
             quaternary
@@ -149,11 +161,11 @@ export const AdminShellNavRight = defineComponent(
                 preferences.themeMode === "dark" ? "light" : "dark",
               )
             }>
-            <NIcon component={themeIcon} size={18} />
+            {{ icon: () => <NIcon component={themeIcon} /> }}
           </NButton>
           <NDropdown
             trigger="hover"
-            delay={0}
+            delay={DROPDOWN_DELAY}
             value={preferences.fontSize}
             options={fontSizeOptions}
             onSelect={(value: string | number) => {
@@ -171,14 +183,18 @@ export const AdminShellNavRight = defineComponent(
               circle
               data-admin-control="font-size"
               aria-label={t("aria.fontSize", { label: fontSizeLabel })}>
-              <NIcon size={18}>
-                <TextOutline />
-              </NIcon>
+              {{
+                icon: () => (
+                  <NIcon>
+                    <TextOutline />
+                  </NIcon>
+                ),
+              }}
             </NButton>
           </NDropdown>
           <NDropdown
             trigger="hover"
-            delay={0}
+            delay={DROPDOWN_DELAY}
             value={preferences.locale}
             options={preferences.availableLocales}
             disabled={preferences.availableLocales.length === 0}
@@ -194,14 +210,19 @@ export const AdminShellNavRight = defineComponent(
               data-admin-control="locale"
               disabled={preferences.availableLocales.length === 0}
               aria-label={t("aria.language", { label: localeLabel })}>
-              <NIcon size={18}>
-                <LanguageOutline />
-              </NIcon>
+              {{
+                icon: () => (
+                  <NIcon>
+                    <LanguageOutline />
+                  </NIcon>
+                ),
+              }}
             </NButton>
           </NDropdown>
           <NDropdown
+            class={"overflow-hidden"}
             trigger="hover"
-            delay={0}
+            delay={DROPDOWN_DELAY}
             disabled={pending}
             options={accountOptions}
             onSelect={async (value: string | number) => {
@@ -215,28 +236,22 @@ export const AdminShellNavRight = defineComponent(
             <NButton
               attr-type="button"
               quaternary
-              class="gap-1.5"
               data-admin-control="account"
               disabled={pending}
               loading={pending}
-              aria-label={t("aria.account", { user: userLabel })}>
-              <NThing>
-                {{
-                  avatar: () => (
-                    <NAvatar round bordered>
-                      <NIcon>
-                        <PersonCircleOutline />
-                      </NIcon>
-                    </NAvatar>
-                  ),
-                  header: () => (
-                    <div class="h-10 inline-flex items-center">{userLabel}</div>
-                  ),
-                }}
-              </NThing>
+              aria-label={t("aria.account", { user: userLabel })}
+              class="px-0! h-auto!">
+              <NFlex inline align="center" class="mx-1 my-1">
+                <NAvatar round bordered>
+                  <NIcon>
+                    <PersonCircleOutline />
+                  </NIcon>
+                </NAvatar>
+                <NText class="trim-text">{userLabel}</NText>
+              </NFlex>
             </NButton>
           </NDropdown>
-        </div>
+        </NFlex>
       );
     };
   },
