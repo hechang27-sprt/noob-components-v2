@@ -2,44 +2,22 @@
 
 Use this guide when a change crosses package, storage/runtime, or application/runtime boundaries.
 
-## Boundaries in this workspace
+> The **current** boundary ownership — who owns each contract (host→admin, storage→shell, admin→component, host→ui), the shell/router/host split, and the storage/state contract as it exists today — is documented in the code wiki at `openwiki/architecture/overview.md` and `openwiki/architecture/ownership-contract.md` plus the package pages. This guide sets only the rules to follow when changing across a boundary.
 
-| Boundary | Owner | Contract |
-| --- | --- | --- |
-| Host application → `@noob-naive-ui/admin` | Host application | Frontend-ready auth configuration, direct `MenuOption[]`, route registry, and router-neutral destinations |
-| Browser storage → Admin shell | Runtime parsing helper | `packages/admin/src/runtime/shell-preferences.ts` normalizes `unknown` with Zod before Pinia sees it |
-| Admin shell → component | Component props and stores | Public contracts under `packages/admin/src` |
-| Host application → `@noob-naive-ui/ui` | Host application | Narrow value-add library API such as `NoobNaiveThemeBridge` |
+## Rules when crossing a boundary
 
-## Shell/router/host contract
-
-The Admin shell is backend-free and router-neutral. The admin router runtime owns Vue Router and browser-history coordination. The host application owns authentication effects, backend integration, route definitions, menu policy, and business pages. See the [ownership decision](../../../docs/adr/0001-separate-shell-router-and-host-ownership.md).
-
-The host application creates the final `MenuOption[]`, including visibility and hierarchy. The Admin shell renders the tree unchanged; do not add route-key matching, `visibleRouteKeys`, a second backend-derived key, or a parallel menu-node contract.
-
-## Storage/state contract
-
-Persisted preferences are untrusted input. Keep their parsing and normalization in the one owning boundary module, `packages/admin/src/runtime/shell-preferences.ts`: `loadAdminShellPreferences` validates the persisted subset, merges defaults, then normalizes the complete runtime preferences before initializing `useAdminShellPreferencesStore`. Only the documented persistent subset—theme mode, font size, locale, and sidebar collapsed—crosses into storage; locale options remain runtime state.
-
-When changing this path, trace both directions:
+- The Admin shell is backend-free and router-neutral. The admin router runtime owns Vue Router and browser-history coordination. The host application owns authentication effects, backend integration, route definitions, menu policy, and business pages.
+- The host application creates the final `MenuOption[]`, including visibility and hierarchy. The Admin shell renders the tree unchanged; do not add route-key matching, `visibleRouteKeys`, a second backend-derived key, or a parallel menu-node contract.
+- Persisted preferences are untrusted input. Keep their parsing and normalization in the one owning boundary module, `packages/admin/src/runtime/shell-preferences.ts`. Only the documented persistent subset crosses into storage; locale options remain runtime state.
+- When changing the storage path, trace both directions:
 
 ```text
 Initialization defaults + storage -> Zod normalization -> Pinia store -> component state
 Store mutation -> detached subscription -> persisted preference subset
 ```
 
-`packages/admin/tests/shell-preferences.test.ts` covers valid hydration, malformed persistence, and storage failure. Extend those observable cases when the boundary changes.
-
-## Component/action contract
-
-`AdminLoginPage` owns form UX, accessible status feedback, and pending-state protection. Its injected `login` callback owns the actual authentication work. A rejection produces a generic UI error; raw transport details must not cross this boundary.
-
-When adding an async action, specify who owns:
-
-- input validation and normalization;
-- pending/retry/error UI;
-- business or transport execution;
-- the frontend-ready result consumed by the shared runtime.
+- `AdminLoginPage` owns form UX, accessible status feedback, and pending-state protection. Its injected `login` callback owns the actual authentication work. A rejection produces a generic UI error; raw transport details must not cross this boundary.
+- When adding an async action, specify who owns: input validation and normalization; pending/retry/error UI; business or transport execution; the frontend-ready result consumed by the shared runtime.
 
 ## Before commit
 

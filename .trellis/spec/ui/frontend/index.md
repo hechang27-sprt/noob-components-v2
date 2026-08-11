@@ -1,6 +1,6 @@
 # `@noob-naive-ui/ui` Frontend Guidelines
 
-`@noob-naive-ui/ui` is currently a narrow ESM library containing only a Naive UI theme bridge. It is not a component collection or a backend layer.
+`@noob-naive-ui/ui` is the workspace's home for reusable frontend components and library value-add. It currently ships no reusable component yet; adding one is expected, not forbidden. It is not a backend layer. Its current shape is documented in the code wiki at `openwiki/packages/ui.md`; this index sets the pre-development checklist and quality gate.
 
 ## Pre-Development Checklist
 
@@ -13,7 +13,7 @@ Before changing this package, read:
 
 | Guide                                                  | Use it for                                                                                    |
 | ------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| [Library Boundary and Build](./library-conventions.md) | Public exports, Naive peer integration, theme bridge changes, library build/type verification |
+| [Library Boundary and Build](./library-conventions.md) | Public exports, Naive peer integration, library build/type verification |
 | [Component-Library Vue I18n Contract](./library-i18n-contract.md) | Local Composers, package overrides, fallback isolation, JSON precompilation, declaration typing |
 
 ## Quality Check

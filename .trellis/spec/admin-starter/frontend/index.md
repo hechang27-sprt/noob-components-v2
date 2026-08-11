@@ -1,26 +1,19 @@
 # `admin-starter` Frontend Guidelines
 
-The starter is deliberately not scaffolded yet. Its only implementation is `apps/admin-starter/package.json`, whose `dev` script prints a stub message. Do not treat it as a Vue application or invent source-layout conventions before Tasks 8–9 are implemented.
+`apps/admin-starter` is the planned starter template. Its current scaffold state is documented in the code wiki at `openwiki/apps/admin-starter.md`; this spec sets only the rules to follow when implementing it.
 
 ## Pre-Development Checklist
 
-Before starting the starter implementation, read:
+Before implementing the starter, read:
 
-1. [Current State and Ownership](./current-state-and-ownership.md)
-2. Do not infer implementation conventions beyond the current stub.
+1. [Boundary Failures](./current-state-and-ownership.md)
+2. Do not infer implementation conventions beyond what the current state establishes.
 
-## Guides
+## Boundary Rules
 
-| Guide                                                           | Use it for                                                                        |
-| --------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| [Current State and Ownership](./current-state-and-ownership.md) | starter scaffolding, backend integration, routes, auth, and navigation derivation |
+Do not:
 
-## Quality Check
-
-Current verification proves only the stub:
-
-```sh
-pnpm --filter admin-starter dev
-```
-
-`build` and `typecheck` scripts do not exist yet. Root recursive commands use `--if-present`, so they cannot validate the unscaffolded starter.
+- put backend DTOs, session models, permission payloads, transport clients, or route registries into `@noob-naive-ui/admin`;
+- resurrect a packaged route/page catalog or root-monolith imports;
+- create Naive UI wrapper parity in either shared package;
+- claim a stub script proves a runnable application.

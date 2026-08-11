@@ -23,7 +23,6 @@ Read the cross-layer guide before changing any of these contracts:
 
 - `AdminAuthStatus`, `AdminAuthActions`, or `AdminMenuTree`;
 - shell-preferences schema, storage adapter, or persistent fields;
-- starter-owned auth, route, or navigation derivation;
-- the Naive theme bridge consumed by an application.
+- starter-owned auth, route, or navigation derivation.
 
 The current starter has not been scaffolded. Use its [current-state spec](../admin-starter/frontend/current-state-and-ownership.md) and do not infer application behavior from planned work.

@@ -6,29 +6,18 @@ Use this guide before extracting a shared helper, adding a public export, or dup
 
 This workspace intentionally has two narrow public packages, not a shared utility package. Search both `packages/ui/src` and `packages/admin/src` before adding a helper. Extract only after concrete reuse pressure exists.
 
+Do not duplicate a helper solely to avoid an import. Do not extract a utility from one callsite simply because it looks reusable.
+
+> The **current** source-of-truth patterns — which module owns each helper (shell-preferences parsing/persistence, public barrels) as they exist today — are documented in the code wiki at `openwiki/` (see `packages/admin/preferences.md` and the package overview pages). This guide sets only the rules to follow when reusing or extracting code.
+
+## Where a helper belongs
+
 Keep a helper with the package that owns its concept:
 
-- Naive theme bridge helpers belong in `packages/ui/src/theme/naive.ts`.
 - Frontend runtime contracts, shell preferences normalization, and Pinia shell state belong in `packages/admin/src/runtime*` and `packages/admin/src/stores`.
 - Route registries, backend derivation, and application state will belong in `apps/admin-starter` when it is scaffolded, never in the shared admin runtime.
 
 Do not duplicate a helper solely to avoid an import. Do not extract a utility from one callsite simply because it looks reusable.
-
-## Current source-of-truth patterns
-
-### Theme bridge
-
-`packages/ui/src/theme/naive.ts` owns `NoobNaiveThemeBridge` and conversion to `GlobalThemeOverrides`. Add a bridge field or mapping there rather than composing incompatible theme objects at each consumer.
-
-### Shell-preferences parsing and persistence
-
-`packages/admin/src/runtime/shell-preferences.ts` owns all Zod normalization, storage safety, cloning, and the persisted-field selection. Components and Pinia actions must call its typed functions rather than reparse storage or serialize their own preference shapes.
-
-`packages/admin/src/stores/shell-preferences.ts` owns reactive state and mutations. Keep state transitions explicit through its setters, `toggleSidebar`, `replacePreferences`, and `reset`; do not create a second preference store or add a global persistence plugin.
-
-### Public API
-
-`packages/ui/src/index.ts` and `packages/admin/src/index.ts` are deliberate public barrels. Export an API once from the owning package; do not create root-monolith imports, duplicate re-export paths, or broad Naive UI re-exports.
 
 ## Extraction threshold
 

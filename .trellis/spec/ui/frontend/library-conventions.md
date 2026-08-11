@@ -1,10 +1,10 @@
 # Library Boundary and Build
 
-## Current shape
+> The **current** `@noob-naive-ui/ui` shape — its exports, build/declaration pipeline, and public surface as it exists today — is documented in the code wiki at `openwiki/packages/ui.md`. This spec sets only the rules to follow when changing it.
 
-The package is a private ESM library with one root entrypoint and dist-only publication (`packages/ui/package.json`). `packages/ui/vite.config.ts` builds `src/index.ts` as ES output and externalizes `naive-ui` and `vue`; declarations come from `tsc` through the package `build:types` script.
+## Public surface
 
-Keep the public surface explicit. `packages/ui/src/index.ts` is the only barrel and exports the three theme-bridge symbols from `src/theme/naive.ts`. Do not add a broad namespace barrel or incidental internal exports.
+Keep the public surface explicit. `packages/ui/src/index.ts` is the only barrel. Do not add a broad namespace barrel or incidental internal exports.
 
 ## Naive UI boundary
 
@@ -15,12 +15,6 @@ Do not:
 - re-export Naive UI primitives or recreate wrapper parity;
 - import auth/session state, route manifests, business API clients, CRUD pages, or backend-shaped contracts into this package;
 - carry Element Plus props, slots, or CSS-variable conventions into a new public API.
-
-## Theme bridge pattern
-
-`packages/ui/src/theme/naive.ts` imports `GlobalThemeOverrides` as a type and exposes `NoobNaiveThemeBridge`. Keep public bridge fields typed against Naive UI contracts. `defineNoobNaiveThemeBridge` intentionally returns its supplied bridge; `toNoobNaiveThemeOverrides` currently emits only `common`. Do not infer that `layout` fields are automatically converted until implementation adds that behavior.
-
-Keep provider/theme integration in dedicated bridge modules. Add measurement, virtualization, or JSON-flattening guidance only when the owning component is implemented.
 
 ## Type and build rules
 

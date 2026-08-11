@@ -1,6 +1,6 @@
 # `@noob-naive-ui/admin` Frontend Guidelines
 
-`@noob-naive-ui/admin` is a frontend-only shell/runtime library. Its current source contains runtime contracts, a persisted shell-preferences Pinia store, and a TSX login page.
+`@noob-naive-ui/admin` is a frontend-only shell/runtime library. The current source layout and contract shape are documented in the code wiki at `openwiki/packages/admin/`; this index sets the pre-development checklist and quality gate.
 
 ## Pre-Development Checklist
 
