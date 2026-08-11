@@ -21,7 +21,7 @@ import { defineComponent } from "vue";
 import { getComponentI18n } from "@noob-naive-ui/i18n";
 
 import { useAdminAuthStore } from "../stores/auth";
-import { useAdminShellPreferencesStore } from "../stores/shell-preferences";
+import { useAdminProvider } from "../use-admin-provider";
 
 const DROPDOWN_DELAY = 25;
 
@@ -30,10 +30,10 @@ const DROPDOWN_DELAY = 25;
 /**
  * Renders AdminShell's `nav-left` ProLayout slot.
  *
- * Pure-presentational Vue component: reads the preference store and the
- * nearest component Composer directly and calls the store action on toggle.
- * Rendered as a descendant of AdminShell so those composition calls resolve
- * against its context; no props or callback data.
+ * Pure-presentational Vue component: reads `useAdminProvider` and the
+ * nearest component Composer directly and calls the provider action on
+ * toggle. Rendered as a descendant of AdminShell so those composition calls
+ * resolve against its context; no props or callback data.
  *
  * Declared with `defineComponent` (rather than a plain function component)
  * so plugin-vue-jsx hot-registers the module: an HMR edit re-executes and
@@ -44,7 +44,7 @@ const DROPDOWN_DELAY = 25;
  */
 export const AdminShellNavLeft = defineComponent(
   () => {
-    const preferences = useAdminShellPreferencesStore();
+    const provider = useAdminProvider();
     const { t } = getComponentI18n();
 
     return () => (
@@ -55,13 +55,13 @@ export const AdminShellNavLeft = defineComponent(
           circle
           data-admin-control="sidebar"
           aria-label={
-            preferences.sidebarCollapsed
+            provider.sidebarCollapsed.value
               ? t("aria.sidebarExpand")
               : t("aria.sidebarCollapse")
           }
-          aria-pressed={preferences.sidebarCollapsed}
+          aria-pressed={provider.sidebarCollapsed.value}
           onClick={() =>
-            preferences.setSidebarCollapsed(!preferences.sidebarCollapsed)
+            provider.setSidebarCollapsed(!provider.sidebarCollapsed.value)
           }>
           {{
             icon: () => (
@@ -80,10 +80,11 @@ export const AdminShellNavLeft = defineComponent(
 /**
  * Renders AdminShell's `nav-right` ProLayout slot.
  *
- * Pure-presentational Vue component: reads the preference and auth stores
- * plus the nearest component Composer directly and invokes store actions on
- * selection. Rendered as a descendant of AdminShell so those composition
- * calls resolve against its context; no props or callback data.
+ * Pure-presentational Vue component: reads `useAdminProvider` and the auth
+ * store plus the nearest component Composer directly and invokes the
+ * provider/store actions on selection. Rendered as a descendant of AdminShell
+ * so those composition calls resolve against its context; no props or
+ * callback data.
  *
  * Declared with `defineComponent` (rather than a plain function component)
  * so plugin-vue-jsx hot-registers the module: an HMR edit re-executes and
@@ -94,7 +95,7 @@ export const AdminShellNavLeft = defineComponent(
  */
 export const AdminShellNavRight = defineComponent(
   () => {
-    const preferences = useAdminShellPreferencesStore();
+    const provider = useAdminProvider();
     const auth = useAdminAuthStore();
     const { t } = getComponentI18n();
 
@@ -128,14 +129,14 @@ export const AdminShellNavRight = defineComponent(
       ] satisfies DropdownOption[];
 
       const fontSizeLabel =
-        fontSizeOptions.find(({ key }) => key === preferences.fontSize)
-          ?.label ?? preferences.fontSize;
+        fontSizeOptions.find(({ key }) => key === provider.fontSize.value)
+          ?.label ?? provider.fontSize.value;
       const localeLabel =
-        preferences.availableLocales.find(
-          ({ key }) => key === preferences.locale,
-        )?.label ?? preferences.locale;
+        provider.availableLocales.value.find(
+          ({ key }) => key === provider.locale.value,
+        )?.label ?? provider.locale.value;
       const themeIcon =
-        preferences.themeMode === "dark" ? SunnyOutline : MoonOutline;
+        provider.themeMode.value === "dark" ? SunnyOutline : MoonOutline;
 
       return (
         <NFlex
@@ -149,16 +150,16 @@ export const AdminShellNavRight = defineComponent(
             circle
             data-admin-control="theme-mode"
             data-admin-theme-action={
-              preferences.themeMode === "dark" ? "exit-dark" : "enter-dark"
+              provider.themeMode.value === "dark" ? "exit-dark" : "enter-dark"
             }
             aria-label={
-              preferences.themeMode === "dark"
+              provider.themeMode.value === "dark"
                 ? t("aria.themeLight")
                 : t("aria.themeDark")
             }
             onClick={() =>
-              preferences.setThemeMode(
-                preferences.themeMode === "dark" ? "light" : "dark",
+              provider.setThemeMode(
+                provider.themeMode.value === "dark" ? "light" : "dark",
               )
             }>
             {{ icon: () => <NIcon component={themeIcon} /> }}
@@ -166,7 +167,7 @@ export const AdminShellNavRight = defineComponent(
           <NDropdown
             trigger="hover"
             delay={DROPDOWN_DELAY}
-            value={preferences.fontSize}
+            value={provider.fontSize.value}
             options={fontSizeOptions}
             onSelect={(value: string | number) => {
               if (
@@ -174,7 +175,7 @@ export const AdminShellNavRight = defineComponent(
                 value === "medium" ||
                 value === "large"
               ) {
-                preferences.setFontSize(value);
+                provider.setFontSize(value);
               }
             }}>
             <NButton
@@ -195,12 +196,12 @@ export const AdminShellNavRight = defineComponent(
           <NDropdown
             trigger="hover"
             delay={DROPDOWN_DELAY}
-            value={preferences.locale}
-            options={preferences.availableLocales}
-            disabled={preferences.availableLocales.length === 0}
+            value={provider.locale.value}
+            options={provider.availableLocales.value}
+            disabled={provider.availableLocales.value.length === 0}
             onSelect={(value: string | number) => {
               if (typeof value === "string") {
-                preferences.setLocale(value);
+                provider.setLocale(value);
               }
             }}>
             <NButton
@@ -208,7 +209,7 @@ export const AdminShellNavRight = defineComponent(
               quaternary
               circle
               data-admin-control="locale"
-              disabled={preferences.availableLocales.length === 0}
+              disabled={provider.availableLocales.value.length === 0}
               aria-label={t("aria.language", { label: localeLabel })}>
               {{
                 icon: () => (

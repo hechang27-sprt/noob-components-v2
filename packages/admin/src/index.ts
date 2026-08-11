@@ -16,10 +16,9 @@ export type {
 export { useAdminAuthStore } from "./stores/auth";
 export type { AdminAuthStore, AdminAuthStoreConfig } from "./stores/auth";
 
-export { useAdminShellPreferencesStore } from "./stores/shell-preferences";
-export { useAdminShellMenuStore } from "./stores/menu";
-
 export { useAdminShellNavigationStore } from "./stores/navigation";
+
+export { useAdminProvider, type AdminProviderApi } from "./use-admin-provider";
 
 export { adminI18nPlugin } from "./i18n/plugin";
 export type {
@@ -42,6 +41,11 @@ export {
   AdminLoginPage,
   type AdminLoginPageProps,
 } from "./components/admin-login-page";
+
+export {
+  AdminProvider,
+  type AdminProviderProps,
+} from "./components/admin-provider";
 
 export {
   AdminShell,

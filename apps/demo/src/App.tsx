@@ -1,24 +1,59 @@
 import {
+  AdminProvider,
   resolveAdminNaiveBaseFontSize,
-  useAdminShellPreferencesStore,
+  useAdminProvider,
 } from "@noob-naive-ui/admin";
-import { NConfigProvider, NGlobalStyle } from "naive-ui";
+import type { MenuOption } from "naive-ui";
 import { defineComponent, onBeforeUnmount, watch } from "vue";
 import { RouterView } from "vue-router";
 
+import { i18n } from "./i18n";
+import demoMessages from "./locales/demo.json";
+import type { DemoNavKey } from "./routes";
+
 /**
- * Renders app-wide presentation providers around the host-owned outer route view.
+ * Renders the demo's root providers around the host-owned outer route view.
  *
- * All NConfigProvider props (theme incl. system dark mode, font-size
- * overrides, component size, naive-ui locale) derive from the package-owned
- * `naiveUiConfig` store computed, so the host only binds preferences. The
- * browser color-scheme signal is runtime-only state the host feeds into the
- * store; it is never serialized.
+ * `AdminProvider` owns the package shell wiring: it initializes the
+ * shell-preferences store, seeds the host global Composer with the demo
+ * locale messages, and configures the shell menu from the demo tree built by
+ * `createDemoMenu`. The browser color-scheme signal is runtime-only state the
+ * host feeds into the preferences store; it is never serialized.
  *
  * naive-ui sets `body { font-size: 14px }` statically and cannot scale plain
  * HTML, so the host additionally applies the preference base font to the root
  * element; `rem`-based content then scales with the font-size preference.
  */
+
+/** Creates one menu option with a reactive locale label while preserving host-owned nav-key identity. */
+function createMenuOption(
+  navKey: DemoNavKey,
+  labelKey: `nav.${string}`,
+): MenuOption {
+  return { key: navKey, label: () => i18n.global.t(labelKey) };
+}
+
+/** Supplies the demo menu tree without coupling its hierarchy to route generation. */
+function createDemoMenu(): MenuOption[] {
+  return [
+    createMenuOption("dashboard", "nav.dashboard"),
+    {
+      key: "demo",
+      label: () => i18n.global.t("nav.demo"),
+      children: [
+        createMenuOption("internationalization", "nav.internationalization"),
+      ],
+    },
+    {
+      key: "workspace",
+      label: () => i18n.global.t("nav.workspace"),
+      children: [
+        createMenuOption("reports", "nav.reports"),
+        createMenuOption("settings", "nav.settings"),
+      ],
+    },
+  ];
+}
 export default defineComponent(
   /**
    * Composes shared presentation state without owning auth, routes, or shell navigation.
@@ -26,8 +61,8 @@ export default defineComponent(
    * @returns A render function for the demo application root.
    */
   () => {
-    /** Reads the one public preferences store initialized by the application entry point. */
-    const preferences = useAdminShellPreferencesStore();
+    /** Reads the admin provider's public preference/theme state initialized by `AdminProvider`. */
+    const provider = useAdminProvider();
     /** Tracks the browser color scheme while system theme mode is selected. */
     const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
@@ -38,7 +73,7 @@ export default defineComponent(
      * @returns Nothing after updating the store signal.
      */
     function updateSystemTheme(event: MediaQueryListEvent): void {
-      preferences.setSystemUsesDark(event.matches);
+      provider.setSystemUsesDark(event.matches);
     }
 
     /** Releases the browser listener when the application root unmounts. */
@@ -53,17 +88,17 @@ export default defineComponent(
      * @param size - The current font-size preference tier.
      * @returns Nothing after setting the root font-size.
      */
-    function applyBaseFontSize(size: typeof preferences.fontSize): void {
+    function applyBaseFontSize(size: typeof provider.fontSize.value): void {
       document.documentElement.style.fontSize =
         resolveAdminNaiveBaseFontSize(size);
     }
 
-    preferences.setSystemUsesDark(systemThemeQuery.matches);
+    provider.setSystemUsesDark(systemThemeQuery.matches);
     systemThemeQuery.addEventListener("change", updateSystemTheme);
     /** Applies the base font immediately and on every font-size preference change. */
     const stopBaseFontSizeWatcher = watch(
-      () => preferences.fontSize,
-      applyBaseFontSize,
+      provider.fontSize,
+      (size) => applyBaseFontSize(size),
       { immediate: true },
     );
     onBeforeUnmount(() => {
@@ -72,10 +107,24 @@ export default defineComponent(
     });
 
     return () => (
-      <NConfigProvider {...preferences.naiveUiConfig}>
-        <NGlobalStyle />
+      <AdminProvider
+        messages={demoMessages}
+        menu={createDemoMenu()}
+        storeOptions={{
+          defaults: {
+            availableLocales: [
+              { key: "en", label: "English" },
+              { key: "zh-CN", label: "简体中文" },
+            ],
+          },
+          fallbackLocale: "en",
+        }}
+        overrides={{
+          en: { AdminShell: { account: { signOut: "Log out" } } },
+          "zh-CN": { AdminShell: { account: { signOut: "退出" } } },
+        }}>
         <RouterView />
-      </NConfigProvider>
+      </AdminProvider>
     );
   },
   { name: "DemoApp" },

@@ -284,32 +284,32 @@ describe("AdminShell", () => {
     expect(theme?.getAttribute("aria-label")).toBe("Switch to dark theme");
     theme?.click();
     await settle();
-    expect(preferences.themeMode).toBe("dark");
+    expect(preferences.preferences.themeMode).toBe("dark");
     expect(theme?.getAttribute("data-admin-theme-action")).toBe("exit-dark");
     expect(theme?.getAttribute("aria-label")).toBe("Switch to light theme");
     theme?.click();
     await settle();
-    expect(preferences.themeMode).toBe("light");
+    expect(preferences.preferences.themeMode).toBe("light");
     expect(theme?.getAttribute("data-admin-theme-action")).toBe("enter-dark");
 
     const fontSize = container.querySelector<HTMLElement>(
       '[data-admin-control="font-size"]',
     );
     await selectDropdownOption(fontSize!, "Large");
-    expect(preferences.fontSize).toBe("large");
+    expect(preferences.preferences.fontSize).toBe("large");
 
     const locale = container.querySelector<HTMLButtonElement>(
       '[data-admin-control="locale"]',
     );
     expect(locale?.disabled).toBe(true);
-    preferences.setAvailableLocales([
+    preferences.preferences.availableLocales = [
       { key: "en", label: "English" },
       { key: "fr", label: "Français" },
-    ]);
+    ];
     await settle();
     expect(locale?.disabled).toBe(false);
     await selectDropdownOption(locale!, "Français");
-    expect(preferences.locale).toBe("fr");
+    expect(preferences.preferences.locale).toBe("fr");
 
     const sidebarButton = container.querySelector<HTMLButtonElement>(
       '[data-admin-control="sidebar"]',
@@ -317,7 +317,7 @@ describe("AdminShell", () => {
     expect(sidebarButton?.classList).toContain("n-button");
     sidebarButton!.click();
     await settle();
-    expect(preferences.sidebarCollapsed).toBe(true);
+    expect(preferences.preferences.sidebarCollapsed).toBe(true);
     expect(sidebarButton?.getAttribute("aria-pressed")).toBe("true");
 
     // Verify logout calls the auth store's logout action
@@ -332,7 +332,7 @@ describe("AdminShell", () => {
     const preferences = useAdminShellPreferencesStore();
 
     expect(testI18n.global.locale.value).toBe("en");
-    preferences.setLocale("zh-CN");
+    preferences.preferences.locale = "zh-CN";
     await settle();
 
     // The AdminShell watcher mirrors the store locale into the host Composer.
@@ -373,7 +373,7 @@ describe("AdminShell", () => {
     expect(tab?.textContent).toContain("Home tab");
 
     // A locale switch re-renders the open tab through the global Composer.
-    useAdminShellPreferencesStore().setLocale("zh-CN");
+    useAdminShellPreferencesStore().preferences.locale = "zh-CN";
     await settle();
     expect(tab?.textContent).toContain("中文首页");
 

@@ -35,18 +35,20 @@ const descendantComposer = getComponentI18n()
 const globalComposer = useGlobalI18nSync(() => preferences.locale)
 ```
 
-A source-consuming host owns locale/fallback and seeds the Composer with the hydrated preference; AdminShell owns all later store → Composer synchronization:
+A source-consuming host owns locale/fallback; the `AdminProvider` component seeds the global
+Composer (active locale + messages) at setup and owns the pre-auth locale seed. AdminShell owns
+all later store → Composer synchronization:
 
 ```ts
-preferences.initialize({ defaults, fallbackLocale: hostFallbackLocale })
-const i18n = createI18n({
-  legacy: false,
-  locale: preferences.locale,
-  fallbackLocale: hostFallbackLocale,
-  messages: hostMessages,
-})
+app.use(createPinia()).use(i18n) // host global i18n, empty messages
+// App.tsx renders <AdminProvider messages={demoMessages} menu={...} preferences={{ fallbackLocale }}>
+//   setup: preferences.initialize(props.preferences)
+//          i18n.global.locale.value = preferences.locale   // pre-auth seed
+//          menu.configure(props.menu)
+//          watch(() => props.messages, seedGlobal, { immediate: true })  // HMR re-seed
+//   renders <NConfigProvider {...preferences.naiveUiConfig}> around the slot
 // No host watcher: AdminShell synchronizes preferences.locale → i18n.global
-// with an immediate watcher; the host seed covers the pre-auth login page.
+// with an immediate watcher after mount.
 ```
 
 ## 3. Contracts
@@ -62,7 +64,7 @@ const i18n = createI18n({
 - Locale resources live at `src/locales/<ComponentName>.json`. Each component file is a locale-first object whose top-level keys are all supported locale identifiers and whose values share that component's message schema. A standalone library build precompiles those resources; consumers of the built library do not include library source in host Vite configuration.
 - `createWorkspaceVueI18nPlugin()` is optional monorepo development tooling for applications that alias libraries to source. It applies the repository-wide locale transform and component-scoped locale-file HMR without naming individual libraries. The application dev server and production build must still work when the preset is omitted; omission only removes locale-file HMR and this shared development transform. Never hard-code `../../packages/<library>/src/locales/**` in a host.
 - Standalone library builds own production locale precompilation. Consumers of built package output configure no workspace locale preset; production correctness must never depend on `createWorkspaceVueI18nPlugin()`.
-- When installed, the shared workspace preset records static relative JSON imports before Intlify resolves them to virtual modules, then redirects locale-resource edits to the affected precompiled virtual modules. Vite's propagation reaches the importing Vue component (self-accepting) or, for plain-module importers, an accept boundary the preset injects itself: any module that imports a workspace locale resource and creates a Vue I18n composer at top level gets `import.meta.hot.accept(<json>, cb)` appended, re-applying the fresh resource to the captured composer (`.global ?? composer`), so application i18n aggregators need no app-side HMR code. Keep this generic to conventional workspace locale paths; do not add component-level HMR registries.
+- When installed, the shared workspace preset records static relative JSON imports before Intlify resolves them to virtual modules, then redirects locale-resource edits to the affected precompiled virtual modules. Vite's propagation reaches the importing Vue component (self-accepting via plugin-vue/plugin-vue-jsx), whose setup re-applies the fresh resource. Locale resources must therefore be imported and wired **inside a component** (e.g. a host `AdminProvider` that seeds the global Composer), not at app setup in a plain module; the preset injects no `import.meta.hot.accept` code and hosts need no app-side HMR code. Keep this generic to conventional workspace locale paths; do not add component-level HMR registries.
 - AdminShell's open-tab registry lives in a package-owned Pinia store (`useAdminShellTabsStore`), not composable setup scope, so Vue HMR reloads that remount AdminShell (locale-resource edits, shell-core edits) preserve the open tab list instead of collapsing it to the active page. The store holds only serializable tab state; controller functions stay in `useAdminShellTabs`. The registry clears when the auth store reports an anonymous status (logout or cross-tab invalidation), restoring session isolation. Shell slot components (`AdminShellTabbar`, navbar controls) are declared with `defineComponent` so plugin-vue-jsx hot-registers them and edits stop at the leaf instead of propagating to the shell.
 - Apps using `@tailwindcss/vite` must keep locale JSON out of Tailwind's source scan. Tailwind's automatic detection scans `.json` files under the Vite root, and its `hotUpdate` hook full-reloads the page when a scanned file changes — defeating locale-file HMR for app-owned locale resources. Prefer disabling automatic detection and scanning only candidate sources: `@import "tailwindcss/utilities.css" layer(utilities) source(none);` plus `@source "./**/*.{ts,tsx,js,html,css}";` (paths relative to the stylesheet). Note `@source` globs alone are additive to automatic detection; only `source(none)` disables it.
 - Keep `resolveJsonModule: true` for source checking. Public locale message types are generated from the resources by the shared `tooling/vite/json-locale-types` plugin: it scans a locale directory for `*.json` files and emits a committed TS module (one widened interface per file plus a file-stem → type map) under the package's `src/`. The library registers `createJsonLocaleTypesPlugin` (build-time `buildStart` generation); dev-facing apps register `createJsonLocaleTypesWatcherPlugin` pointed at the library's locale directory to regenerate on locale JSON changes during dev servers. The generated module is excluded from Prettier (the generator owns its formatting). Because it lives under `src/`, the dist-only `unplugin-dts` build emits a sibling `dist/locales/*.generated.d.ts` and exported types stay resolvable for consumers. Do not hand-declare message-shape interfaces (they drift); derive them from the generated map (e.g. `LocaleFileMap["AdminShell"]["en"]`). Never export `typeof <json import>`: the declaration build does not emit JSON modules, leaving a dangling declaration import.

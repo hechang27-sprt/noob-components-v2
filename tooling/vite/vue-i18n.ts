@@ -83,18 +83,6 @@ export function createWorkspaceVueI18nPlugin(): PluginOption {
 /** Finds static JSON import specifiers in source modules before transformation. */
 const JSON_IMPORT_PATTERN = /(?:from\s*|import\s*)["']([^"']+\.json)["']/g;
 
-/**
- * Matches top-level Vue I18n composer declarations, optionally exported.
- *
- * Anchored at the start of a line so only module-scope declarations qualify:
- * function-scoped declarations (e.g. inside a component setup) are indented
- * and must keep relying on the component's own self-accepting HMR. The
- * emitted accept callback references the captured identifier at module scope,
- * so matching anything else would be a runtime error on update.
- */
-const COMPOSER_DECL_PATTERN =
-  /^(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:createI18n|createComposer)\s*\(/gm;
-
 /** Prefix used by Intlify's generated precompiled locale module IDs. */
 const INTLIFY_LOCALE_VIRTUAL_PREFIX = "virtual:intlify-i18n-";
 
@@ -104,9 +92,13 @@ const INTLIFY_LOCALE_VIRTUAL_PREFIX = "virtual:intlify-i18n-";
  * The companion runs before the precompiler so it can record each real JSON
  * import before that import resolves to an Intlify virtual module. Locale
  * file edits are then redirected to the precompiled virtual module, whose
- * propagation reaches the importing Vue component or accept boundary. For
- * plain-module importers it also injects the accept boundary itself, so
- * workspace locale HMR never needs app-side `import.meta.hot.accept` code.
+ * propagation reaches the importing Vue component. Vue component importers
+ * (`.vue`/`.tsx`/`.jsx`) self-accept via plugin-vue/plugin-vue-jsx, so an
+ * edit re-executes the importing component and its setup re-applies the
+ * fresh resource — no injected `import.meta.hot.accept` boundary and no
+ * app-side HMR code. Locale resources must therefore be imported and wired
+ * inside a component (e.g. a host `LocaleProvider`), not at app setup in a
+ * plain module.
  *
  * @returns A serve-only Vite plugin that bridges locale edits to importers.
  */
@@ -119,85 +111,43 @@ function createWorkspaceLocaleHmrPlugin(): Plugin {
     apply: "serve",
     enforce: "pre",
     /**
-     * Records relative JSON imports from untransformed source modules and
-     * injects an HMR accept boundary for plain-module aggregators.
+     * Records relative JSON imports from untransformed source modules so
+     * {@link handleHotUpdate} can redirect a changed resource to its
+     * precompiled virtual module.
      *
-     * Vue component importers (`.vue`/`.tsx`/`.jsx`) self-accept through
-     * plugin-vue/plugin-vue-jsx, so locale edits re-execute them directly.
-     * Plain modules (e.g. an application `i18n.ts` aggregator) do not, and
-     * without an explicit boundary Vite falls back to a full page reload.
-     * The precompiler virtualizes each JSON import, but re-applying the
-     * fresh resource to the app-owned composer is app code, so the preset
-     * emits the boundary for every module that both imports a workspace
-     * locale resource and creates a Vue I18n composer at top level. The
-     * callback receives the re-imported precompiled virtual module and
-     * re-applies the resource to the captured composer (`createI18n`
-     * results expose the composer through `.global`; `createComposer`
-     * results are composers directly), updating rendered text in place.
-     * Production builds strip `import.meta.hot` blocks.
+     * The precompiler virtualizes each JSON import before it resolves to an
+     * Intlify virtual module, so this hook records the real file → importer
+     * map here, from the untransformed source. It injects no code: HMR is
+     * completed by the importer's own self-accept boundary (Vue components
+     * via plugin-vue/plugin-vue-jsx), so locale resources are expected to be
+     * imported and wired inside a component.
      *
      * @param code - Original source code entering the transform pipeline.
      * @param id - Module ID of the source being transformed.
-     * @returns The module with an injected accept block, or nothing when no
-     * injection applies (leaving source transformation to later plugins).
+     * @returns Nothing; this hook leaves source transformation to later
+     * plugins.
      */
     transform(code, id) {
-      const jsonSpecifiers = new Set<string>();
       for (const match of code.matchAll(JSON_IMPORT_PATTERN)) {
         const source = match[1];
         if (!source) continue;
         const localeFile = resolve(dirname(id), source);
         if (!isWorkspaceLocaleResource(localeFile)) continue;
 
-        const normalizedLocaleFile = normalizePath(localeFile);
         const importers = localeImporters.getOrInsertComputed(
-          normalizedLocaleFile,
+          normalizePath(localeFile),
           () => new Set(),
         );
         importers.add(normalizePath(id));
-        jsonSpecifiers.add(source);
       }
-
-      if (jsonSpecifiers.size === 0) return;
-
-      // A module that already declares its own hot-accept manages its HMR;
-      // injecting a second boundary would double-apply the same resource.
-      if (code.includes("import.meta.hot.accept")) return;
-      const composerNames = [...code.matchAll(COMPOSER_DECL_PATTERN)].map(
-        (match) => match[1],
-      );
-      if (composerNames.length === 0) return;
-
-      const applyPerLocale = composerNames
-        .map(
-          (name) =>
-            `(${name}.global ?? ${name}).setLocaleMessage(locale, messages);`,
-        )
-        .join("\n        ");
-      const acceptBlocks = [...jsonSpecifiers]
-        .map(
-          (specifier) => `
-if (import.meta.hot) {
-  import.meta.hot.accept(${JSON.stringify(specifier)}, (next) => {
-    const resource = next?.default ?? {};
-    for (const [locale, messages] of Object.entries(resource)) {
-        ${applyPerLocale}
-    }
-  });
-}`,
-        )
-        .join("\n");
-
-      return code + acceptBlocks;
     },
     /**
      * Redirects a changed locale resource to its precompiled virtual module.
      *
-     * Returning the Intlify virtual module lets Vite's propagation reach both
-     * kinds of importer boundary: Vue component importers self-accept, and
-     * non-component importers accept the virtual dependency through the
-     * boundary injected in `transform`. updateModules invalidates the
-     * returned module, so re-imports serve freshly precompiled messages.
+     * Returning the Intlify virtual module lets Vite's propagation reach the
+     * importing Vue component's self-accept boundary, whose setup re-applies
+     * the fresh resource. updateModules invalidates the returned module, so
+     * re-imports serve freshly precompiled messages.
      *
      * @param ctx - Vite hot-update context for the changed filesystem resource.
      * @returns Precompiled virtual module nodes for HMR, or nothing when not applicable.

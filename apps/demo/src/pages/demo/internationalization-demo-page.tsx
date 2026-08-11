@@ -1,4 +1,4 @@
-import { useAdminShellPreferencesStore } from "@noob-naive-ui/admin";
+import { useAdminProvider } from "@noob-naive-ui/admin";
 import { PrototypeCard } from "@noob-naive-ui/prototype-i18n-verification";
 import { NH1, NP } from "naive-ui";
 import { defineComponent } from "vue";
@@ -22,14 +22,14 @@ export const InternationalizationDemoPage = defineComponent(
    */
   () => {
     /** Reads the host preference locale for the verification harness. */
-    const preferences = useAdminShellPreferencesStore();
+    const provider = useAdminProvider();
     /** Reads the demo's single global Composer locale and text. */
     const { locale: globalLocale, t } = useI18n({ useScope: "global" });
 
     return () => (
       <div
         class="p-6"
-        data-demo-preference-locale={preferences.locale}
+        data-demo-preference-locale={provider.locale.value}
         data-demo-global-locale={globalLocale.value}>
         <NH1>{t("pages.internationalization.title")}</NH1>
         <NP>{t("pages.internationalization.description")}</NP>

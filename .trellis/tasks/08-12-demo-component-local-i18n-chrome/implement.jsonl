@@ -1,0 +1,8 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": "tooling/vite/vue-i18n.ts", "reason": "workspace locale HMR plugin under review"}
+{"file": "packages/i18n/src/library-i18n-plugin.ts", "reason": "plugin transport + frozen snapshot"}
+{"file": "packages/i18n/src/use-component-i18n.ts", "reason": "component-local composer + override merge"}
+{"file": ".trellis/spec/ui/frontend/library-i18n-contract.md", "reason": "i18n contract/spec"}
+{"file": "apps/demo/src/i18n.ts", "reason": "demo global composer aggregator"}
+{"file": "apps/demo/src/main.ts", "reason": "chrome consumers (menu/login)"}
+{"file": "apps/demo/src/routes.ts", "reason": "tab label I18nText consumers"}

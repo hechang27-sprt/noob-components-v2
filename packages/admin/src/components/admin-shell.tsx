@@ -9,8 +9,7 @@ import {
 } from "@noob-naive-ui/i18n";
 import adminShellMessages from "../locales/AdminShell.json";
 import { adminI18n } from "../i18n/plugin";
-import { useAdminShellPreferencesStore } from "../stores/shell-preferences";
-import { useAdminShellMenuStore } from "../stores/menu";
+import { useAdminProvider } from "../use-admin-provider";
 import { useAdminShellNavigationStore } from "../stores/navigation";
 import {
   AdminShellNavLeft,
@@ -140,10 +139,8 @@ export type AdminShellNavigation = {
 
 export const AdminShell = defineComponent(
   (_, { slots }) => {
-    /** Reads and mutates the one existing runtime preference store. */
-    const preferences = useAdminShellPreferencesStore();
-    /** Reads the host-configured menu options from the admin package runtime. */
-    const menu = useAdminShellMenuStore();
+    /** Reads and mutates the admin package's presentational state and menu via the single consumption surface. */
+    const provider = useAdminProvider();
     /** Reads the host-configured navigation adapter from the admin package runtime. */
     const nav = useAdminShellNavigationStore();
 
@@ -162,7 +159,7 @@ export const AdminShell = defineComponent(
      * inheriting local Composers follow automatically. The host seeds the
      * Composer at creation for the pre-auth login page.
      */
-    useGlobalI18nSync(() => preferences.locale);
+    useGlobalI18nSync(provider.locale);
 
     /** Owns the router-neutral page-instance tab state machine (provides the controller). */
     const shellContext = useAdminShellTabs({
@@ -179,7 +176,7 @@ export const AdminShell = defineComponent(
      * instance, so no per-menu navigation wiring is needed.
      */
     const { activeKey, layout } = useLayoutMenu({
-      menus: () => menu.options,
+      menus: () => provider.menu.value,
       mode: () => "vertical" as const,
     });
 
@@ -210,7 +207,7 @@ export const AdminShell = defineComponent(
     });
 
     return () => {
-      const menuOptions = menu.options;
+      const menuOptions = provider.menu.value;
 
       const layoutSlots = {
         "nav-left": () => <AdminShellNavLeft />,
@@ -225,12 +222,10 @@ export const AdminShell = defineComponent(
       return (
         <NLayout position="absolute" class="h-dvh">
           <ProLayout
-            {...preferences.proLayoutConfig}
+            {...provider.proLayoutConfig.value}
             navClass="h-auto! py-2 px-2 flex items-center"
             tabbarClass="border-none! h-auto!" // remove the default ProLayout tabbar bottom border
-            onUpdateCollapsed={(value) =>
-              preferences.setSidebarCollapsed(value)
-            }
+            onUpdateCollapsed={(value) => provider.setSidebarCollapsed(value)}
             showSidebar={Boolean(menuOptions?.length)}
             showTabbar={Boolean(nav.navigation)}
             v-slots={layoutSlots}

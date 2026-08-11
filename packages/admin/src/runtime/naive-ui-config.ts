@@ -219,11 +219,18 @@ export function resolveAdminNaiveBaseFontSize(size: AdminFontSize): string {
  * @param systemUsesDark - Whether the host browser reports dark mode.
  * @returns The theme object for dark mode, or null for light mode.
  */
-export function resolveAdminNaiveUiTheme(
+export function resolveDefaultNaiveUiTheme(
   themeMode: AdminThemeMode,
   systemUsesDark: boolean,
 ): GlobalTheme | null {
   if (themeMode === "dark") return darkTheme;
   if (themeMode === "system" && systemUsesDark) return darkTheme;
   return null;
+}
+
+export function resolveNaiveUiThemeOverride(
+  size: AdminFontSize,
+  _systemUsesDark: boolean,
+) {
+  return FONT_SIZE_OVERRIDES[size];
 }
