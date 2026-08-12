@@ -23,7 +23,7 @@ system boundaries (shell vs. router vs. host).
 | [Architecture](architecture/overview.md) | Workspace topology, dependency direction, build/declaration pipeline, glossary; [ownership contract](architecture/ownership-contract.md) for the settled shell/router/host split |
 | [Packages — i18n](packages/i18n.md) | `createLibraryI18nPlugin`, `createComponentI18n`/`getComponentI18n`, `useGlobalI18nSync`, `I18nText`/`i18nTextSchema` — the shared i18n foundation |
 | [Packages — ui](packages/ui.md) | Obsolete theme bridge, empty i18n plugin (`NoobUiComponentId = never`), Tailwind stylesheet contract |
-| [Packages — admin](packages/admin/overview.md) | Router-neutral shell ([shell.md](packages/admin/shell.md)), auth store ([auth.md](packages/admin/auth.md)), preferences ([preferences.md](packages/admin/preferences.md)), i18n plugin ([i18n.md](packages/admin/i18n.md)), runtime stores ([runtime-stores.md](packages/admin/runtime-stores.md)) |
+| [Packages — admin](packages/admin/overview.md) | Router-neutral shell ([shell.md](packages/admin/shell.md)), root provider ([provider.md](packages/admin/provider.md)), auth store ([auth.md](packages/admin/auth.md)), preferences ([preferences.md](packages/admin/preferences.md)), i18n plugin ([i18n.md](packages/admin/i18n.md)), runtime stores ([runtime-stores.md](packages/admin/runtime-stores.md)) |
 | [Packages — admin-vue-router](packages/admin-vue-router/overview.md) | Router plugin ([plugin.md](packages/admin-vue-router/plugin.md)), navigation runtime/scope guard ([navigation-runtime.md](packages/admin-vue-router/navigation-runtime.md)), route registry/codecs ([route-registry.md](packages/admin-vue-router/route-registry.md)) |
 | [Packages — prototype-i18n-verification](packages/prototype-i18n-verification.md) | Standalone i18n plugin + `PrototypeCard` (hand-rolled equivalent, `fallbackRoot = false`) |
 | [Apps — demo host](apps/demo.md) | End-to-end assembly in `apps/demo/src/main.ts`; [admin-starter](apps/admin-starter.md) is a stub |
@@ -46,7 +46,10 @@ key, healing stale entries, and repairing history across **navigation scopes**
 ([navigation-runtime.md](packages/admin-vue-router/navigation-runtime.md)).
 `createAdminRouterPlugin` owns the generated login/shell routes, auth and scope
 guards, auth-transition routing, and deterministic disposal
-([plugin.md](packages/admin-vue-router/plugin.md)). Two invariants anchor
+([plugin.md](packages/admin-vue-router/plugin.md)). Hosts mount the package-owned
+`AdminProvider` root component to initialize preferences and the menu, seed the
+global Composer, and supply i18n overrides
+([provider.md](packages/admin/provider.md)). Two invariants anchor
 everything: **admin never imports vue-router** (router-neutrality), and
 **`AdminShellNavigation.active` is the only source of truth** for what the shell
 renders as active.
@@ -56,7 +59,7 @@ renders as active.
 | Package | Key exports (`src/index.ts`) |
 |---|---|
 | `@noob-naive-ui/i18n` | `createLibraryI18nPlugin`, `createComponentI18n`, `getComponentI18n`, `useGlobalI18nSync`, `i18nTextSchema`, `resolveI18nText`, `I18nText` |
-| `@noob-naive-ui/admin` | `AdminShell`, `AdminLoginPage`, `useAdminShell`, `useAdminAuthStore`, `useAdminShellPreferencesStore`, `useAdminShellMenuStore`, `useAdminShellNavigationStore`, `adminI18nPlugin`, `resolveAdminNaiveUiLocale`, `resolveAdminNaiveBaseFontSize`, `AdminShell*` type family (deliberately **not** exported: `useAdminShellTabsStore`, `useAdminShellTabs`, `adminShellContextKey`) |
+| `@noob-naive-ui/admin` | `AdminProvider`, `useAdminProvider`, `AdminShell`, `AdminLoginPage`, `useAdminShell`, `useAdminAuthStore`, `useAdminShellPreferencesStore`, `useAdminShellMenuStore`, `useAdminShellNavigationStore`, `adminI18nPlugin`, `resolveAdminNaiveUiLocale`, `resolveAdminNaiveBaseFontSize`, `AdminShell*` type family (deliberately **not** exported: `useAdminShellTabsStore`, `useAdminShellTabs`, `adminShellContextKey`) |
 | `@noob-naive-ui/admin-vue-router` | `createAdminRouterPlugin` (+ `ADMIN_DISPOSE_KEY`), `createAdminShellVueRouterRuntime`, `defineAdminRouteRegistry`, `defineAdminRouteUrlCodec`, `AdminRouteOverride` |
 | `@noob-naive-ui/prototype-i18n-verification` | `PrototypeCard`, hand-rolled plugin with `fallbackRoot = false` |
 | `tooling/vite/json-locale-types.ts` | `generateJsonLocaleTypes`, `regenerateLocaleTypes`, `scanJsonLocaleFiles`, `pascalCaseTypeName`, `createJsonLocaleTypesPlugin`, `createJsonLocaleTypesWatcherPlugin` |
@@ -71,11 +74,12 @@ renders as active.
 | Shell layout / tab state machine / heal | [packages/admin/shell.md](packages/admin/shell.md) | `components/admin-shell.tsx`, `use-admin-shell-tabs.ts`, `stores/tabs.ts` | `admin/tests/admin-shell.test.tsx` | `pnpm --filter @noob-naive-ui/admin test tests/admin-shell.test.tsx` |
 | Auth store / login page / restoration | [packages/admin/auth.md](packages/admin/auth.md) | `stores/auth.ts`, `components/admin-login-page.tsx` | `admin/tests/{auth-store.test.ts,admin-login-page.test.tsx}` | `pnpm --filter @noob-naive-ui/admin test tests/auth-store.test.ts tests/admin-login-page.test.tsx` |
 | Preferences persistence / naive-ui config | [packages/admin/preferences.md](packages/admin/preferences.md) | `runtime/shell-preferences.ts`, `runtime/naive-ui-config.ts`, `stores/shell-preferences.ts` | `admin/tests/shell-preferences.test.ts` | `pnpm --filter @noob-naive-ui/admin test tests/shell-preferences.test.ts` |
+| Root provider / host wiring / `useAdminProvider` | [packages/admin/provider.md](packages/admin/provider.md) | `components/admin-provider.tsx`, `use-admin-provider.ts`, `index.ts` | `admin/tests/admin-provider.test.tsx`, `use-admin-provider.test.ts` | `pnpm --filter @noob-naive-ui/admin test tests/admin-provider.test.tsx tests/use-admin-provider.test.ts` |
 | Route registry / URL codecs / destination↔URL | [packages/admin-vue-router/route-registry.md](packages/admin-vue-router/route-registry.md) | `admin-vue-router/src/route-registry.ts` | `admin-vue-router/tests/route-registry.test.ts` | `pnpm --filter @noob-naive-ui/admin-vue-router test tests/route-registry.test.ts` |
 | Navigation adapter / scope guard / enterScope / persisted state | [packages/admin-vue-router/navigation-runtime.md](packages/admin-vue-router/navigation-runtime.md) | `admin-vue-router/src/navigation.ts` | `admin-vue-router/tests/navigation.test.ts` | `pnpm --filter @noob-naive-ui/admin-vue-router test tests/navigation.test.ts` |
 | Router plugin / guards / dispose / redirect restoration | [packages/admin-vue-router/plugin.md](packages/admin-vue-router/plugin.md) | `admin-vue-router/src/create-admin-router.ts` | `admin-vue-router/tests/create-admin-router.test.ts` | `pnpm --filter @noob-naive-ui/admin-vue-router test tests/create-admin-router.test.ts` |
 | Locale-type codegen / build plugins / HMR | [tooling/vite-plugins.md](tooling/vite-plugins.md) | `tooling/vite/{json-locale-types,vue-i18n}.ts`, package `vite.config.ts` | `admin/tests/json-locale-types.test.ts` (includes no-drift) | `pnpm --filter @noob-naive-ui/admin test tests/json-locale-types.test.ts` |
-| Demo assembly / end-to-end wiring | [apps/demo.md](apps/demo.md) | `apps/demo/src/{main.ts,App.tsx,routes.ts,i18n.ts}` | none (integration host) | `pnpm --filter demo typecheck && pnpm --filter demo build` |
+| Demo assembly / end-to-end wiring | [apps/demo.md](apps/demo.md) | `apps/demo/src/{main.ts,App.tsx,routes.ts,i18n.ts}` | `admin/tests/admin-provider.test.tsx` (provider contract the demo relies on) | `pnpm --filter demo typecheck && pnpm --filter demo build` |
 | Theme bridge / ui package | [packages/ui.md](packages/ui.md) | `packages/ui/src/theme/naive.ts` | none (empty plugin) | `pnpm --filter @noob-naive-ui/ui typecheck` |
 | Prototype i18n verification | [packages/prototype-i18n-verification.md](packages/prototype-i18n-verification.md) | `packages/prototype-i18n-verification/src/` | `prototype-i18n-verification/tests/i18n-contract.test.ts` | `pnpm --filter @noob-naive-ui/prototype-i18n-verification test` |
 | Cross-package change / full CI | [testing.md](testing.md) + [architecture/overview.md](architecture/overview.md) | — | all suites | `pnpm -r --if-present typecheck && pnpm -r --if-present test && pnpm build` |
@@ -85,7 +89,7 @@ renders as active.
 1. [Repository Overview](architecture/overview.md) — map, glossary, build pipeline
 2. [Ownership Contract](architecture/ownership-contract.md) — why shell, router, and host are separate
 3. [packages/i18n.md](packages/i18n.md) — the foundation every package builds on
-4. [admin overview](packages/admin/overview.md) → [shell](packages/admin/shell.md), [auth](packages/admin/auth.md)
+4. [admin overview](packages/admin/overview.md) → [provider](packages/admin/provider.md), [shell](packages/admin/shell.md), [auth](packages/admin/auth.md)
 5. [admin-vue-router overview](packages/admin-vue-router/overview.md) → [plugin](packages/admin-vue-router/plugin.md), [navigation-runtime](packages/admin-vue-router/navigation-runtime.md), [route-registry](packages/admin-vue-router/route-registry.md)
 6. [apps/demo.md](apps/demo.md) — see it all assembled
 7. [tooling/vite-plugins.md](tooling/vite-plugins.md) + [testing.md](testing.md) when changing build or tests

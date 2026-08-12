@@ -23,7 +23,7 @@ Dependencies: `@noob-naive-ui/admin`, `@noob-naive-ui/admin-vue-router`,
 The file is a precise tutorial in host responsibilities:
 
 1. `createPinia()` before any public store resolves; `useAdminAuthStore(pinia)`
-   and `useAdminShellPreferencesStore(pinia)` resolve against it.
+   resolves against it.
 2. **Navigation scope**: `navigationScopeId = ref(crypto.randomUUID())` — the
    demo's host-owned history-isolation epoch, **rotated on every login** (and
    inside `login`), demonstrating that a scope is not a session credential.
@@ -36,36 +36,49 @@ The file is a precise tutorial in host responsibilities:
    status directly.
 4. `auth.configure({ login, logout, restore })` — configure before router
    creation.
-5. `preferences.initialize({ defaults: { availableLocales: [{key:"en"}, {key:"zh-CN"}] }, fallbackLocale: "en" })`.
-6. Seed the global Composer from the hydrated preference so the **pre-auth login
-   page** renders the restored locale before AdminShell mounts:
-   `i18n.global.locale.value = preferences.locale as "en" | "zh-CN"`.
-7. `useAdminShellMenuStore(pinia).configure(createDemoMenu())` — menu hierarchy
-   (`dashboard`; `demo → internationalization`; `workspace → reports, settings`)
-   with **reactive locale labels** (`label: () => i18n.global.t(labelKey)`) and
-   nav-key identity.
-8. `createAdminRouterPlugin({ history: createWebHistory(), registry:
+5. `createAdminRouterPlugin({ history: createWebHistory(), registry:
    demoRouteRegistry, homeDestination: { navKey: "dashboard" },
    describeDestination: describeDemoDestination, createPageId: () =>
    crypto.randomUUID(), getNavigationScopeId: () => navigationScopeId.value })`.
-9. `createApp(App).use(pinia).use(i18n).use(adminRouter)` — plugin **after**
+6. `createApp(App).use(pinia).use(i18n).use(adminRouter)` — plugin **after**
    Pinia; install binds stores and registers the router.
-10. Append the `naive-ui-style` meta element (naive-ui CSS injection contract)
-    and `app.mount("#app")`.
+7. Append the `naive-ui-style` meta element (naive-ui CSS injection contract)
+   and `app.mount("#app")`.
 
-A commented-out block shows the optional package i18n override install
-(`app.use(adminI18nPlugin, { messages: ... })`).
+`main.ts` deliberately stops at auth, the router plugin, and mount: preference
+initialization, menu configuration, global-Composer seeding, and i18n message
+seeding moved into the `AdminProvider` component mounted by `App.tsx` — see
+[Root Provider](../packages/admin/provider.md).
 
 ## Presentation root (`src/App.tsx`)
 
-`DemoApp` composes `NConfigProvider {...preferences.naiveUiConfig}` +
-`NGlobalStyle` + `RouterView` around the app:
+`DemoApp` mounts the package-owned **`AdminProvider`** as the root provider
+(which renders the `NConfigProvider` internally) around `RouterView`, supplying:
+
+- `messages={demoMessages}` — the per-locale demo resources
+  (`src/locales/demo.json`), seeded into the host global Composer by the
+  provider at setup and re-seeded on prop change (the HMR path);
+- `menu={createDemoMenu()}` — the demo menu hierarchy (`dashboard`;
+  `demo → internationalization`; `workspace → reports, settings`) with
+  **reactive locale labels** (`label: () => i18n.global.t(labelKey)`) and
+  nav-key identity; built in `App.tsx` by `createMenuOption`;
+- `storeOptions={{ defaults: { availableLocales: [...] }, fallbackLocale: "en" }}`
+  — preference defaults and host-owned naive-ui fallback locale;
+- `overrides={{ en: { AdminShell: { account: { signOut: "Log out" } } },
+  "zh-CN": { AdminShell: { account: { signOut: "退出" } } } }}` — the package
+  text-override snapshot (the component-based replacement for the former
+  `app.use(adminI18nPlugin, { messages })` install).
+
+The host component still owns the browser-level wiring that the provider does
+not:
 
 - tracks the browser `prefers-color-scheme` media query and mirrors it into the
-  runtime-only store signal `setSystemUsesDark` (listener removed on unmount);
+  runtime-only store signal via `provider.setSystemUsesDark` (listener removed
+  on unmount);
 - applies the preference base font to the root element via
-  `resolveAdminNaiveBaseFontSize(preferences.fontSize)` so `rem`-based content
-  scales with the font-size preference (naive-ui cannot scale plain HTML itself);
+  `resolveAdminNaiveBaseFontSize(provider.fontSize.value)` so `rem`-based
+  content scales with the font-size preference (naive-ui cannot scale plain HTML
+  itself);
 - binds nothing else — no auth, routes, or shell navigation ownership.
 
 ## Routes and destination policy (`src/routes.ts`)
@@ -93,7 +106,8 @@ registry aligned.
 - `dashboard-demo-page.tsx` — non-closable home (text via global Composer).
 - `internationalization-demo-page.tsx` — renders `PrototypeCard` from
   `@noob-naive-ui/prototype-i18n-verification` and exposes verification data
-  attributes `data-demo-preference-locale` / `data-demo-global-locale`.
+  attributes `data-demo-preference-locale` (read through
+  `useAdminProvider().locale`) / `data-demo-global-locale`.
 - `reports-demo-page.tsx` — uses `useAdminShell()`'s `navigate` with a
   **call-specific resolver** `() => ({ kind: "open" })` so each click opens a new
   detail instance even when a detail tab is already open.
@@ -103,11 +117,14 @@ registry aligned.
 ## i18n (`src/i18n.ts`)
 
 Single Composition-API global instance: `createI18n({ legacy: false, locale:
-"en", fallbackLocale: "en", messages: demoMessages })` from
-`src/locales/demo.json` (nav, tabs, login, pages messages in en + zh-CN). The
-host owns the active locale, fallback locale, and app-level messages; AdminShell
-owns all later store → Composer synchronization; non-component modules (menu,
-tab labels) translate through `i18n.global.t`.
+"en", fallbackLocale: "en" })` — created **without** messages. `AdminProvider`
+seeds the per-locale resources into this Composer at setup time (not at app
+setup), so locale-resource edits HMR through the provider's component
+self-accept boundary instead of a plain-module full reload. The host owns the
+active locale and fallback locale; AdminShell owns all later store → Composer
+synchronization; non-component modules (menu, tab labels) translate through
+`i18n.global.t` after the provider has mounted. See
+[Root Provider](../packages/admin/provider.md).
 
 ## Vite entry
 
@@ -127,6 +144,8 @@ typechecks consume TypeScript directly.
 ## Related
 
 - [Ownership Contract](../architecture/ownership-contract.md) — the host role
+- [Admin root provider](../packages/admin/provider.md) — the component that owns
+  the demo's preferences/menu/message/override wiring
 - [Admin router plugin](../packages/admin-vue-router/plugin.md) — the plugin the
   demo installs
 - [Route registry](../packages/admin-vue-router/route-registry.md) — demo codec

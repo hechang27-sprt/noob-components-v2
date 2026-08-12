@@ -25,7 +25,9 @@ Suite inventory (test-file counts from `grep` of `it(` blocks):
 | admin | `tests/admin-shell.test.tsx` | shell layout, i18n sync, descendant context, tabs state machine, HMR/session behavior (24 `it`: 19 shell + 5 navigation store) |
 | admin | `tests/auth-store.test.ts` | auth store lifecycle, restoration, login/logout, race containment (19 `it`) |
 | admin | `tests/admin-login-page.test.tsx` | login form submission, non-login states, error surface (4 `it`) |
-| admin | `tests/shell-preferences.test.ts` | hydration, persistence, normalization, naive-ui config derivation (7 `it`) |
+| admin | `tests/shell-preferences.test.ts` | hydration, persistence, normalization, storage-failure safety (6 `it`) |
+| admin | `tests/admin-provider.test.tsx` | AdminProvider: Composer seeding/re-seeding, store init, menu config, NConfigProvider render, override provision (6 `it`) |
+| admin | `tests/use-admin-provider.test.ts` | composable projection, action delegation, pure-projection invariant, naiveUiConfig/proLayoutConfig derivation (4 `it`) |
 | admin | `tests/i18n-contract.test.tsx` | admin override snapshot/slices, defaults, fallback (5 `it`) |
 | admin | `tests/json-locale-types.test.ts` | codegen correctness, stability, drift, watch path (15 `it`) |
 | i18n | `tests/i18n-text.test.ts` | I18nText schema + resolution (8 `it`) |
@@ -50,6 +52,12 @@ Suite inventory (test-file counts from `grep` of `it(` blocks):
   runtime with deterministic `createPageId` (`generated-N`) and scope
   `"scope-1"`; `afterNextNavigation` resolves after the router's next
   `afterEach`.
+- **admin-provider.test.tsx / use-admin-provider.test.ts** — mount under a real
+  Pinia and a host-owned global `createI18n`; `mountProvider()` re-renders
+  `AdminProvider` from a render-prop so reactive prop changes propagate;
+  `mountApi()` captures the `useAdminProvider()` API object during setup.
+  `configureStores()` (initialize + menu configure) is the consumer-owned step
+  the composable must never perform itself.
 - **i18n suites** — mount under a host-owned global `createI18n`, optionally
   `app.use(plugin, { messages: overrides })`; assertions read rendered
   `data-*` attributes.
@@ -64,6 +72,7 @@ Suite inventory (test-file counts from `grep` of `it(` blocks):
 | Shell / tabs / navigation store | `pnpm --filter @noob-naive-ui/admin test tests/admin-shell.test.tsx` |
 | Auth store / login page | `pnpm --filter @noob-naive-ui/admin test tests/auth-store.test.ts tests/admin-login-page.test.tsx` |
 | Preferences persistence / naive-ui config | `pnpm --filter @noob-naive-ui/admin test tests/shell-preferences.test.ts` |
+| AdminProvider / useAdminProvider / provider refactor | `pnpm --filter @noob-naive-ui/admin test tests/admin-provider.test.tsx tests/use-admin-provider.test.ts tests/shell-preferences.test.ts` |
 | Locale JSON changes (admin) | regenerate `locale-types.generated.ts`, then `pnpm --filter @noob-naive-ui/admin typecheck && pnpm --filter @noob-naive-ui/admin test tests/i18n-contract.test.tsx` |
 | Locale-type codegen changes | `pnpm --filter @noob-naive-ui/admin test tests/json-locale-types.test.ts` |
 | i18n package changes | `pnpm --filter @noob-naive-ui/i18n test` |

@@ -35,6 +35,10 @@ The barrel re-exports:
 - **Naive UI config helpers**: `resolveAdminNaiveBaseFontSize`,
   `resolveAdminNaiveUiLocale`, `AdminNaiveUiConfig` — see
   [Preferences](preferences.md).
+- **Root provider and consumption surface**: `AdminProvider` (+ `AdminProviderProps`)
+  and `useAdminProvider` (+ `AdminProviderApi`) — the props-driven root provider
+  that initializes stores, seeds the global Composer, provides i18n overrides,
+  and renders `NConfigProvider`; see [Root Provider](provider.md).
 - **Components**: `AdminLoginPage`, `AdminShell` and the full
   `AdminShell*` navigation/tab type family, `useAdminShell`, `AdminShellContext`
   — see [Shell](shell.md) and [Auth](auth.md).
@@ -57,12 +61,14 @@ src/
     shell-preferences.ts      useAdminShellPreferencesStore (see preferences.md)
     tabs.ts                   useAdminShellTabsStore (see shell.md)
   components/
-    admin-shell.tsx           AdminShell + navigation request contract
+    admin-provider.tsx         AdminProvider root provider (provider.md)
+    admin-shell.tsx            AdminShell + navigation request contract
     admin-shell-tabbar.tsx    tab strip slot
     admin-shell-navbar-controls.tsx  nav-left/nav-right slot controls
     admin-login-page.tsx      login presentation
     use-admin-shell.ts        AdminShellContext + useAdminShell
     use-admin-shell-tabs.ts   page-instance tab state machine
+  use-admin-provider.ts       useAdminProvider composable (provider.md)
   i18n/
     plugin.ts                 adminI18n plugin descriptor
     admin-locale.ts           locale typing over generated types
@@ -92,6 +98,10 @@ src/
   re-exported** from `src/index.ts` (shell-internal orchestration only), and the
   context key `adminShellContextKey` is documented as "not part of the public
   barrel surface" — descendants use `useAdminShell()`.
+- **Single consumption surface for presentational state**: hosts, shell chrome,
+  and demo pages reach theme/locale/font-size/sidebar/menu state through
+  `useAdminProvider()`, not through the underlying Pinia stores, which remain an
+  implementation detail ([Root Provider](provider.md)).
 
 ## Build contract
 
@@ -112,3 +122,4 @@ emitted for consumers. Details in [Repository Overview — build pipeline](../..
 - [Shell preferences and Naive UI config](preferences.md)
 - [Admin i18n plugin and locale resources](i18n.md)
 - [Navigation and menu runtime stores](runtime-stores.md)
+- [AdminProvider and useAdminProvider](provider.md)

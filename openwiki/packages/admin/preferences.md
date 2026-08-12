@@ -9,9 +9,14 @@ tags: [admin, preferences, naive-ui, persistence]
 
 `useAdminShellPreferencesStore` (`stores/shell-preferences.ts`) owns the
 **local display preferences** rendered by the AdminShell navbar controls: theme
-mode, font size, locale, and sidebar collapse. Persistence is a thin, defensive
-localStorage layer in `runtime/shell-preferences.ts`; Naive UI theming is derived
-in `runtime/naive-ui-config.ts`.
+mode, font size, locale, and sidebar collapse. The store is deliberately opaque
+with respect to preference semantics: it holds two reactive blobs and offers only
+blob-level persistence operations. Every semantic field, setter, and derivation
+lives in the `useAdminProvider` composable ([Root Provider](provider.md)), which
+reads and mutates these blobs; consumers should not import the store directly.
+Persistence is a thin, defensive localStorage layer in
+`runtime/shell-preferences.ts`; Naive UI theming is derived in
+`runtime/naive-ui-config.ts`.
 
 ## Preference model
 
@@ -29,7 +34,17 @@ Defaults: `system` / `medium` / `en` / `[]` / `false`.
 
 ## Store behavior
 
-- `initialize(options)` — call once by the host:
+The store is a minimal, storage-only state store with two reactive blobs:
+
+- `preferences` — the **persisted** blob (`AdminShellPreferences`, all fields
+  stored).
+- `runtime` — non-persisted runtime state: `isHydrated`, `systemUsesDark`
+  (browser dark-mode signal), `fallbackLocale`.
+
+Operations (blob-level only):
+
+- `initialize(options)` — **called once by `AdminProvider` at mount** (not by
+  the host entry point):
   - `defaults?: Partial<AdminShellPreferences>` (the demo passes
     `availableLocales` for en and zh-CN).
   - `storage?: AdminShellPreferencesStorage | null` — defaults to
@@ -37,14 +52,18 @@ Defaults: `system` / `medium` / `en` / `[]` / `false`.
     `null` disables persistence.
   - `fallbackLocale?: string` — host-owned naive-ui fallback locale
     (default `"en"`); runtime-only, never persisted.
-  - Hydrates from storage without writing, then sets `isHydrated`.
-- Mutators: `setThemeMode`, `setFontSize`, `setLocale`, `setAvailableLocales`
-  (repairs an invalid active locale by falling back to the first option or the
-  default), `setSidebarCollapsed`, `toggleSidebar`, `reset(defaults)`,
-  `replacePreferences(partial)` (normalizes), and `setSystemUsesDark` — a
-  **runtime-only browser dark-mode signal** fed by the host's `matchMedia`
-  listener, never serialized.
-- `preferences` computed returns a defensive copy of the preference snapshot.
+  - Hydrates from storage without writing, then sets `runtime.isHydrated`.
+- `replacePreferences(partial)` — merges a partial object into the blob
+  **opaque, without normalization**; the `useAdminProvider` action normalizes
+  input before calling.
+- `reset(preferencesBlob)` — replaces the entire preferences blob.
+
+The semantic mutators (`setThemeMode`, `setFontSize`, `setLocale`,
+`setAvailableLocales` — which repairs an invalid active locale by falling back
+to the first option or the default — `setSidebarCollapsed`, `toggleSidebar`,
+`reset(defaults)`, `replacePreferences(partial)`, and `setSystemUsesDark`) and
+the derived `preferences`/`naiveUiConfig`/`proLayoutConfig` computeds are all
+owned by `useAdminProvider` — see [Root Provider](provider.md).
 
 ### Persistence (`runtime/shell-preferences.ts`)
 
@@ -65,7 +84,8 @@ Defaults: `system` / `medium` / `en` / `[]` / `false`.
 
 ## Derived Naive UI configuration (`runtime/naive-ui-config.ts`)
 
-The store exposes two computed objects consumed by host and shell:
+The `useAdminProvider` composable derives two computed objects consumed by host
+and shell (the store itself exposes only the raw blobs):
 
 ### `naiveUiConfig: AdminNaiveUiConfig` — for `<n-config-provider>`
 
@@ -81,12 +101,12 @@ The store exposes two computed objects consumed by host and shell:
   global size knob, so every supported component's `size` option is set to the
   active tier (30+ components, from AutoComplete to TreeSelect).
 
-The host binds it directly:
-`<n-config-provider v-bind="preferences.naiveUiConfig">` (see
-[demo App](../../apps/demo.md)). Because naive-ui sets `body { font-size: 14px }`
-statically, the host additionally applies
-`resolveAdminNaiveBaseFontSize(fontSize)` to its root element so `rem`-based
-content scales with the preference.
+The host binds it directly by mounting `AdminProvider`, which spreads the
+derived config onto its `NConfigProvider` (see
+[Root Provider](provider.md) and [demo App](../../apps/demo.md)). Because
+naive-ui sets `body { font-size: 14px }` statically, the host additionally
+applies `resolveAdminNaiveBaseFontSize(fontSize)` to its root element so
+`rem`-based content scales with the preference.
 
 ### `proLayoutConfig: ProLayoutProps`
 
@@ -98,24 +118,31 @@ content scales with the preference.
 ## Locale flow
 
 The persisted preference locale is pushed **one way** into the host global
-Composer by AdminShell's `useGlobalI18nSync(() => preferences.locale)`; the host
-seeds the Composer at creation for the pre-auth login page. See
-[i18n package](../i18n.md) and [Shell](shell.md).
+Composer by AdminShell's `useGlobalI18nSync(() => preferences.locale)`.
+`AdminProvider` seeds the Composer with the hydrated preference locale at setup
+so the pre-auth login page renders the restored locale before AdminShell mounts
+([Root Provider](provider.md)). See [i18n package](../i18n.md) and
+[Shell](shell.md).
 
 ## Tests
 
-`packages/admin/tests/shell-preferences.test.ts`:
+`packages/admin/tests/shell-preferences.test.ts` (6 `it`):
 - hydrates defaults without browser storage;
 - rehydrates persisted preferences and keeps locale options from defaults;
 - writes only the persisted subset back to storage on mutation;
 - drops malformed persisted payloads and falls back to defaults;
-- derives `naiveUiConfig` runtime-only props from preferences;
 - maps each font-size preference to its CSS base font size;
 - treats storage adapter failures as no persistence.
+
+The `naiveUiConfig` derivation and the semantic mutators are covered by
+`use-admin-provider.test.ts` and `admin-provider.test.tsx` — see
+[Root Provider](provider.md).
 
 ## Related
 
 - [Admin overview](overview.md)
+- [Root Provider](provider.md) — the composable that projects these blobs and
+  the `AdminProvider` component that calls `initialize`
 - [Shell and page-instance state machine](shell.md) — navbar controls mutate
-  these preferences
-- [Demo host](../../apps/demo.md) — initialization and matchMedia wiring
+  these preferences through `useAdminProvider`
+- [Demo host](../../apps/demo.md) — `AdminProvider` mount and matchMedia wiring

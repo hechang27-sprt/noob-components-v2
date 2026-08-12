@@ -72,14 +72,17 @@ backend integration, or business pages.
 
 ### Host application — the consumer
 
-Supplies (the demo in `apps/demo/src/main.ts` is the reference example):
+Supplies (the demo in `apps/demo/src/main.ts` + `src/App.tsx` is the reference
+example):
 
 - the Pinia instance and the Vue Router history implementation;
 - auth effects (`login`/`logout`/`restore`) configured into the admin auth store —
   callbacks return frontend presentation identity while the package store owns
   auth-state transitions;
-- shell-preference defaults and available locales;
-- the final `MenuOption[]` (hierarchy, visibility, labels, stable keys);
+- shell-preference defaults and available locales, the final `MenuOption[]`
+  (hierarchy, visibility, labels, stable keys), per-locale message resources, and
+  package text overrides — all passed as `AdminProvider` props (see
+  [Root Provider](../packages/admin/provider.md));
 - route definitions, page components, and reversible payload codecs through
   `AdminRouteRegistry`;
 - `homeDestination`, destination-to-page-instance presentation policy,
@@ -87,9 +90,11 @@ Supplies (the demo in `apps/demo/src/main.ts` is the reference example):
 - backend clients, session restoration, permissions, application state, and
   business pages.
 
-The host must configure auth, preferences, and menu state **before** creating and
-installing the router, and must keep menu keys and route-registry navigation keys
-aligned where menu selection should navigate to a registered destination.
+The host must configure auth state **before** creating and installing the
+router; preferences and menu are initialized when the host mounts
+`AdminProvider`, which must therefore appear in the tree before `AdminShell`
+renders. The host must keep menu keys and route-registry navigation keys aligned
+where menu selection should navigate to a registered destination.
 
 ## Runtime flow
 
@@ -100,7 +105,8 @@ sequenceDiagram
     participant R as admin-vue-router plugin
     participant V as Vue Router
     participant S as AdminShell
-    H->>P: configure auth effects, preferences, menu
+    H->>P: configure auth effects
+    H->>H: mount AdminProvider (initializes preferences, menu, Composer seeding, overrides)
     H->>R: createAdminRouterPlugin(history, registry, home, policy, scope accessor)
     H->>R: app.use(pinia) then app.use(plugin)
     R->>P: resolve Pinia, configure navigation store with adapter
@@ -121,8 +127,8 @@ sequenceDiagram
 
 Concrete flow steps (ADR-0002):
 
-1. Host creates Pinia and configures auth callbacks, preferences, and the final
-   menu tree.
+1. Host creates Pinia and configures auth callbacks; mounting `AdminProvider`
+   initializes preferences and the final menu tree from its props.
 2. Host calls `createAdminRouterPlugin()` with history, route registry, home
    destination, descriptor policy, page-ID factory, and navigation-scope
    accessor, then installs the plugin **after** `app.use(pinia)`.

@@ -33,15 +33,19 @@ flowchart TD
     ProLayout --> Default
 ```
 
-- `useLayoutMenu` (pro-naive-ui) computes the vertical menu props; `activeKey`
-  is kept in sync with `nav.navigation?.active?.nav.navKey` by a watcher
-  (`immediate: true`), so tab activation, history traversal, and programmatic
-  navigation all keep the highlighted menu key aligned.
+- `useLayoutMenu` (pro-naive-ui) computes the vertical menu props from
+  `provider.menu` (the `useAdminProvider` surface — see
+  [Root Provider](provider.md)); `activeKey` is kept in sync with
+  `nav.navigation?.active?.nav.navKey` by a watcher (`immediate: true`), so tab
+  activation, history traversal, and programmatic navigation all keep the
+  highlighted menu key aligned.
 - A second watcher turns menu `activeKey` changes into
   `shellContext.navigate({ navKey })` — the single menu → navigation seam; the
   active-key guard stops programmatic navigation from re-navigating through it.
 - `showSidebar` is false when the menu tree is absent/empty; `showTabbar` is
-  false until a navigation controller is configured.
+  false until a navigation controller is configured. `ProLayout` receives
+  `provider.proLayoutConfig` (sidebar collapse state) and the collapse callback
+  writes back through `provider.setSidebarCollapsed`.
 - The `default` slot receives `{ navigate }` from the shell context — hosts use
   it to open pages (demo `ReportsDemoPage` calls `navigate` on a button click).
 
@@ -134,13 +138,16 @@ Key behaviors (each proven by `admin-shell.test.tsx`):
 
 ## `AdminShellNavLeft` / `AdminShellNavRight` (`components/admin-shell-navbar-controls.tsx`)
 
-- NavLeft: sidebar collapse toggle button (reads/writes the preferences store).
+- NavLeft: sidebar collapse toggle button — reads/writes preferences through
+  `useAdminProvider` (`provider.sidebarCollapsed`,
+  `provider.setSidebarCollapsed`).
 - NavRight: theme-mode toggle (dark ↔ light), font-size dropdown (small/medium/
-  large), locale dropdown (`availableLocales`), and the account dropdown with a
-  logout action that calls `auth.logout()`. All labels/aria text come from the
-  component Composer; icon set is `@vicons/ionicons5`.
+  large), locale dropdown (`provider.availableLocales`), and the account dropdown
+  with a logout action that calls `auth.logout()`. All labels/aria text come from
+  the component Composer; icon set is `@vicons/ionicons5`.
 - Both are `defineComponent` leaves for the same HMR-leaf reason as the tabbar,
-  and are pure presentation: they read stores directly, no props or callbacks.
+  and are pure presentation: they read the provider/stores directly, no props or
+  callbacks.
 
 ## Descendant context (`components/use-admin-shell.ts`)
 
@@ -177,6 +184,7 @@ Key behaviors (each proven by `admin-shell.test.tsx`):
 
 - [Auth store and login page](auth.md) — tab registry clears on anonymous
 - [Preferences](preferences.md) — navbar controls and ProLayout props
+- [Root Provider](provider.md) — the `useAdminProvider` surface the shell reads
 - [runtime stores](runtime-stores.md) — the navigation/menu controllers
 - [admin-vue-router navigation runtime](../admin-vue-router/navigation-runtime.md)
   — the Vue Router-backed controller that answers these requests
