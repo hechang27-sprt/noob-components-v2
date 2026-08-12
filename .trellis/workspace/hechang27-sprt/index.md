@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 37
-- **Last Active**: 2026-08-10
+- **Total Sessions**: 39
+- **Last Active**: 2026-08-12
 <!-- @@@/auto:current-status -->
 
 ---
@@ -29,6 +29,8 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 39 | 2026-08-12 | Archive 08-12-demo-component-local-i18n-chrome | `dec71be9` | `-` |
+| 38 | 2026-08-12 | AdminProvider root provider + opaque preferences store | `e6e36d27` | `-` |
 | 37 | 2026-08-10 | Spec: mandate naive-ui design-token theming for ui components | `c75d68cd` | `-` |
 | 36 | 2026-08-10 | Theme UI text/layout via naive-ui design tokens | `8c4770ae` | `-` |
 | 35 | 2026-08-07 | Archive completed tasks: library-i18n-integration, fallow-refactor-admin-shell | ptzssynousyy, xmmytukwowys | `-` |

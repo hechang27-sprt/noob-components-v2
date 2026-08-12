@@ -1383,3 +1383,33 @@ Built the admin-package `AdminProvider` root provider and consolidated the host 
 - Resolve the 2 pre-existing font-size theme test failures (in-progress theme work, outside this task).
 - Replace/flag the stale `noob-workspace-locale-hmr-boundaries` skill (user-authored; still documents the removed injection).
 - Optionally `task.py archive` this task via `/trellis:finish-work`.
+
+## Session 39: Archive 08-12-demo-component-local-i18n-chrome
+
+**Date**: 2026-08-12
+**Task**: 08-12-demo-component-local-i18n-chrome
+**Package**: admin, demo
+
+### Summary
+Archived the completed task (AdminProvider root provider + opaque preferences store + locale HMR consolidation). Squashed the two checkpoint commits into one; updated the workspace index with sessions 38 (the work) and 39 (this archive).
+
+### Main Changes
+- Archived `08-12-demo-component-local-i18n-chrome` → `.trellis/tasks/archive/2026-08/`; status completed.
+- Squashed spike + feature checkpoints into a single commit `e6e36d27`.
+- Updated `index.md` (Total Sessions 39, Last Active 2026-08-12, Session History rows 38–39).
+
+### Git Commits
+| Hash | Message |
+|------|---------|
+| `dec71be9` | chore(task): archive 08-12-demo-component-local-i18n-chrome |
+| `e6e36d27` | feat(admin): AdminProvider root provider + opaque preferences store |
+
+### Testing
+- [OK] No code change; commit history consolidated and task archived.
+
+### Status
+[OK] **Archived**
+
+### Next Steps
+- Resolve the 2 pre-existing font-size theme test failures (in-progress theme work).
+- Replace/flag the stale `noob-workspace-locale-hmr-boundaries` skill.
