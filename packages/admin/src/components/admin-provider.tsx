@@ -2,10 +2,8 @@ import { defineComponent, provide, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { NConfigProvider, type GlobalThemeOverrides } from "naive-ui";
 
-import {
-  adminI18nOverridesKey,
-  type AdminI18nPluginOptions,
-} from "../i18n/plugin";
+import { adminI18nOverridesKey } from "../i18n/plugin";
+import type { AdminLocaleOverrides } from "../i18n/admin-locale";
 import type { AdminMenuTree } from "../runtime-contract";
 import type { AdminShellPreferencesStoreOptions } from "../runtime/shell-preferences";
 import { useAdminProvider } from "../use-admin-provider";
@@ -35,7 +33,7 @@ export interface AdminProviderProps {
    *  former `app.use(adminI18nPlugin, { messages })` host install: this
    *  component provides the override snapshot via {@link adminI18nOverridesKey},
    *  which `createComponentI18n` injects when merging package text. */
-  overrides?: AdminI18nPluginOptions["messages"];
+  overrides?: AdminLocaleOverrides;
 }
 
 /**

@@ -57,7 +57,7 @@ export const AdminLoginPage = defineComponent(
     // override slice second, so overrides win at the leaf.
     const { t } = createComponentI18n({
       messages: adminLoginPageMessages,
-      plugin: adminI18n,
+      descriptor: adminI18n,
       componentId: "AdminLoginPage",
     });
 
@@ -213,9 +213,7 @@ export const AdminLoginPage = defineComponent(
                   <NH1>{t("form.signIn")}</NH1>
                   {anonymousStatusMessage ? (
                     <span role="status">
-                      <NElement
-                        tag="p"
-                        class="text-(length:--font-size-tiny)">
+                      <NElement tag="p" class="text-(length:--font-size-tiny)">
                         {anonymousStatusMessage}
                       </NElement>
                     </span>

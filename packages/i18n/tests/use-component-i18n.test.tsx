@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createComponentI18n,
-  createLibraryI18nPlugin,
+  createLibraryI18nDescriptor,
   getComponentI18n,
   type LibraryI18nOverrides,
 } from "../src/index";
@@ -28,8 +28,8 @@ type TestLocaleName = "en" | "zh-CN";
 
 type TestOverrides = LibraryI18nOverrides<TestLocaleName, TestLocale>;
 
-/** The harness library's plugin descriptor built by the shared factory. */
-const testPlugin = createLibraryI18nPlugin<TestLocaleName, TestLocale>({
+/** The harness library's descriptor built by the shared factory. */
+const testDescriptor = createLibraryI18nDescriptor<TestLocaleName, TestLocale>({
   libraryId: "test-library",
 });
 
@@ -44,7 +44,7 @@ const Probe = defineComponent({
   setup() {
     const composer = createComponentI18n({
       messages: packagedDefaults,
-      plugin: testPlugin,
+      descriptor: testDescriptor,
       componentId: "Greeter",
     });
     return () => (
@@ -63,7 +63,7 @@ const HostKeyProbe = defineComponent({
   setup() {
     const composer = createComponentI18n({
       messages: packagedDefaults,
-      plugin: testPlugin,
+      descriptor: testDescriptor,
       componentId: "Greeter",
     });
     return () => <div data-host-key={composer.t("hostOnly.title")} />;
@@ -94,7 +94,7 @@ const InnerProvider = defineComponent({
   setup() {
     createComponentI18n({
       messages: innerDefaults,
-      plugin: testPlugin,
+      descriptor: testDescriptor,
       componentId: "Greeter",
     });
     return () => <ComposerConsumer />;
@@ -106,7 +106,7 @@ const NestedProviders = defineComponent({
   setup() {
     createComponentI18n({
       messages: packagedDefaults,
-      plugin: testPlugin,
+      descriptor: testDescriptor,
       componentId: "Greeter",
     });
     return () => <InnerProvider />;
@@ -123,11 +123,11 @@ afterEach(() => {
 });
 
 /**
- * Mounts a component under a host-owned global Composer, optionally installing
- * the factory-built library plugin with override messages.
+ * Mounts a component under a host-owned global Composer, optionally providing
+ * the factory-built descriptor's override snapshot via its injection key.
  *
  * @param component - The root component to mount.
- * @param options - Host locale and optional plugin override tree.
+ * @param options - Host locale and optional descriptor override tree.
  * @returns The mounted container and the host global Composer.
  */
 function mount(
@@ -145,7 +145,7 @@ function mount(
   const app = createApp(component);
   app.use(i18n);
   if (options.overrides) {
-    app.use(testPlugin.plugin, { messages: options.overrides });
+    app.provide(testDescriptor.overridesKey, { messages: options.overrides });
   }
   app.mount(target);
   mountedApps.push(app);
@@ -153,7 +153,7 @@ function mount(
 }
 
 describe("createComponentI18n", () => {
-  it("renders packaged defaults when the plugin is not installed", () => {
+  it("renders packaged defaults when no overrides are provided", () => {
     const { container } = mount(Probe);
     const el = container.firstElementChild as HTMLElement;
     expect(el.dataset.greeting).toBe("Hello");

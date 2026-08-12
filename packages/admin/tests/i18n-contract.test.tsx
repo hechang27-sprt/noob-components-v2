@@ -1,15 +1,15 @@
 // @vitest-environment happy-dom
 
 import { createPinia, setActivePinia } from "pinia";
-import { createApp, type App, type Plugin } from "vue";
+import { createApp, defineComponent, inject, type App } from "vue";
 import { createI18n } from "vue-i18n";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AdminLoginPage } from "../src/components/admin-login-page";
+import { AdminProvider } from "../src/components/admin-provider";
 import {
   adminI18n,
   adminI18nOverridesKey,
-  adminI18nPlugin,
   type AdminI18nSnapshot,
 } from "../src/i18n/plugin";
 import type { AdminLocaleOverrides } from "../src/i18n/admin-locale";
@@ -26,7 +26,9 @@ afterEach(() => {
 
 /**
  * Mounts AdminLoginPage under a host-owned global Composer and an anonymous
- * signed-out auth status, optionally installing the admin override plugin.
+ * signed-out auth status, with optional package overrides supplied through
+ * the AdminProvider `overrides` prop (the replacement for the removed
+ * `adminI18nPlugin` install path).
  *
  * @param options - Host locale/fallback settings and optional package overrides.
  * @returns The mounted container and the host global Composer.
@@ -47,12 +49,22 @@ function mountLoginPage(
     messages: {},
   });
   const pinia = createPinia();
-  const app = createApp(AdminLoginPage);
+  const app = createApp({
+    setup: () => () => (
+      <AdminProvider
+        messages={{}}
+        menu={[]}
+        storeOptions={{
+          defaults: { locale: options.locale ?? "en" },
+          storage: null,
+        }}
+        overrides={options.overrides}>
+        <AdminLoginPage />
+      </AdminProvider>
+    ),
+  });
   app.use(pinia);
   app.use(i18n);
-  if (options.overrides) {
-    app.use(adminI18nPlugin, { messages: options.overrides });
-  }
   setActivePinia(pinia);
   const store = useAdminAuthStore();
   store.configure({
@@ -71,38 +83,50 @@ function mountLoginPage(
 }
 
 /**
- * Captures the application-scoped snapshot supplied by the admin plugin.
+ * Captures the application-scoped snapshot provided by AdminProvider's
+ * `overrides` prop through the injection key `createComponentI18n` reads.
  *
- * @param overrides - Caller-owned override tree passed during installation.
+ * @param overrides - Caller-owned override tree passed to the prop.
  * @returns The snapshot observed through Vue's application provider map.
  */
-function capturePluginSnapshot(
+function captureProviderSnapshot(
   overrides: AdminLocaleOverrides,
 ): AdminI18nSnapshot {
   let captured: AdminI18nSnapshot | undefined;
-  const capture: Plugin = {
-    install(app) {
-      captured = app._context.provides[
-        adminI18nOverridesKey as symbol
-      ] as AdminI18nSnapshot;
+  const Capture = defineComponent({
+    name: "SnapshotCapture",
+    setup() {
+      captured = inject(adminI18nOverridesKey, adminI18n.emptySnapshot);
+      return () => null;
     },
-  };
-  createApp({ render: () => null })
-    .use(adminI18nPlugin, { messages: overrides })
-    .use(capture);
+  });
+  const target = document.createElement("div");
+  document.body.append(target);
+  const i18n = createI18n({ legacy: false, locale: "en", messages: {} });
+  const pinia = createPinia();
+  const app = createApp({
+    setup: () => () => (
+      <AdminProvider messages={{}} menu={[]} overrides={overrides}>
+        <Capture />
+      </AdminProvider>
+    ),
+  });
+  app.use(i18n);
+  app.use(pinia);
+  setActivePinia(pinia);
+  app.mount(target);
+  mountedApps.push(app);
   if (!captured) throw new Error("Admin i18n snapshot was not provided");
   return captured;
 }
 
-describe("admin i18n plugin", () => {
-  it("snapshots caller overrides during installation", () => {
+describe("admin i18n overrides via AdminProvider", () => {
+  it("snapshots caller overrides when provided through the prop", () => {
     const overrides: AdminLocaleOverrides = {
       en: { AdminShell: { account: { signOut: "Installed sign out" } } },
     };
-
-    const snapshot = capturePluginSnapshot(overrides);
+    const snapshot = captureProviderSnapshot(overrides);
     overrides.en!.AdminShell!.account!.signOut = "Mutated sign out";
-
     expect(snapshot.messages.en?.AdminShell?.account?.signOut).toBe(
       "Installed sign out",
     );
@@ -111,11 +135,8 @@ describe("admin i18n plugin", () => {
   it("selects only the requested component slices by locale", () => {
     const overrides: AdminLocaleOverrides = {
       en: { AdminShell: { account: { signOut: "Log out" } } },
-      "zh-CN": {
-        AdminLoginPage: { form: { signIn: "登录" } },
-      },
+      "zh-CN": { AdminLoginPage: { form: { signIn: "登录" } } },
     };
-
     expect(adminI18n.selectComponentOverrides(overrides, "AdminShell")).toEqual(
       {
         en: { account: { signOut: "Log out" } },
@@ -127,6 +148,14 @@ describe("admin i18n plugin", () => {
       "zh-CN": { form: { signIn: "登录" } },
     });
   });
+
+  it("no longer exposes the removed adminI18nPlugin", async () => {
+    const plugin = (await import("../src/i18n/plugin")) as Record<
+      string,
+      unknown
+    >;
+    expect(plugin).not.toHaveProperty("adminI18nPlugin");
+  });
 });
 
 describe("AdminLoginPage locale ownership", () => {
@@ -136,7 +165,6 @@ describe("AdminLoginPage locale ownership", () => {
         en: { AdminLoginPage: { form: { signIn: "Log in" } } },
       },
     });
-
     const submit = container.querySelector<HTMLButtonElement>(
       'button[type="submit"]',
     );
@@ -146,7 +174,6 @@ describe("AdminLoginPage locale ownership", () => {
 
   it("renders the packaged zh-CN defaults when the host locale is zh-CN", () => {
     const { container } = mountLoginPage({ locale: "zh-CN" });
-
     expect(container.textContent).toContain("登录");
     expect(container.textContent).toContain("用户名");
     expect(container.textContent).toContain("您已退出登录。");
@@ -157,7 +184,6 @@ describe("AdminLoginPage locale ownership", () => {
       locale: "fr",
       fallbackLocale: "en",
     });
-
     expect(i18n.global.locale.value).toBe("fr");
     expect(container.textContent).toContain("You have signed out.");
     expect(container.textContent).toContain("Sign in");

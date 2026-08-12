@@ -4,18 +4,20 @@
 
 Apply this contract when `@noob-naive-ui/ui`, `@noob-naive-ui/admin`, or a source-consuming workspace application adds package-owned localized component text.
 
-The host owns one global Composition API Vue I18n instance, including active locale and fallback locale. Translating library components own fresh local Composers so identical component keys cannot collide globally. The package plugin, when installed, transports only an immutable startup snapshot of partial message overrides.
+The host owns one global Composition API Vue I18n instance, including active locale and fallback locale. Translating library components own fresh local Composers so identical component keys cannot collide globally. The package descriptor names the injection key, empty snapshot, and component slice selector; hosts provide an immutable startup snapshot of partial message overrides under that key.
 
 ## 2. Signatures
 
 ```ts
-interface LibraryI18nSnapshot / LibraryI18nPluginOptions are derived by the
+interface LibraryI18nSnapshot is derived by the factory; the library only
 factory; the library only supplies its schema.
-const libraryI18n = createLibraryI18nPlugin<LocaleName, Locale>({
+const libraryI18n = createLibraryI18nDescriptor<LocaleName, Locale>({
  libraryId: "noob-naive-ui:admin", // stable per-library identifier
 })
 
-app.use(libraryI18n.plugin, { messages: packageOverrides })
+// Hosts provide the override snapshot under the descriptor's injection key
+// (e.g. the admin AdminProvider `overrides` prop); there is no Vue plugin.
+app.provide(libraryI18n.overridesKey, { messages: packageOverrides })
 
 // Shared factory (packages/i18n): fresh local Composer inheriting the host's
 // root locale and fallback, merged packaged defaults then the component's
@@ -24,7 +26,7 @@ app.use(libraryI18n.plugin, { messages: packageOverrides })
 // provides it to descendants.
 const composer = createComponentI18n({
  messages: componentMessages, // locale-first packaged defaults
- plugin: libraryI18n, // factory descriptor: key + empty snapshot
+ descriptor: libraryI18n, // factory descriptor: key + empty snapshot
  componentId: "ComponentName", // resource file stem, selects the slice
 })
 
@@ -53,14 +55,14 @@ app.use(createPinia()).use(i18n) // host global i18n, empty messages
 
 ## 3. Contracts
 
-- The host must install one `createI18n({ legacy: false })` instance before package components mount. The host owns both active and fallback locale. Package plugins never create a Composer, configure fallback, or register global messages.
+- The host must install one `createI18n({ legacy: false })` instance before package components mount. The host owns both active and fallback locale. Package descriptors never create a Composer, configure fallback, or register global messages.
 - The preference store is the one-way active-locale authority: hydrated preference -> global Composer -> inheriting local Composers. `AdminShell` owns the ongoing store → Composer synchronization via an immediate watcher; the host seeds the Composer with the hydrated preference at startup so pre-auth screens render the restored locale before `AdminShell` mounts. Neither Composer belongs in serializable Pinia state.
-- Shared i18n logic lives in the internal `@noob-naive-ui/i18n` package (`packages/i18n`): the `I18nText` primitives (`I18nText`, `i18nTextSchema`, `resolveI18nText`), the composables `createComponentI18n`, `getComponentI18n`, and `useGlobalI18nSync`, and the plugin factory `createLibraryI18nPlugin<LocaleName, Locale>({ libraryId })`. The factory is the single implementation of the plugin transport (defensive-copy install + provide), the typed injection key, the frozen empty snapshot, and the generic `selectComponentOverrides(messages, componentId)` slice selector; consuming packages instantiate it with their locale schema and re-export the aliases they keep public (`adminI18nPlugin`, `adminI18nOverridesKey`, `DEFAULT_SNAPSHOT`). `createComponentI18n` consumes the descriptor via `{ messages, plugin, componentId }` — no per-package override-key, empty-snapshot, or selector customization.
+- Shared i18n logic lives in the internal `@noob-naive-ui/i18n` package (`packages/i18n`): the `I18nText` primitives (`I18nText`, `i18nTextSchema`, `resolveI18nText`), the composables `createComponentI18n`, `getComponentI18n`, and `useGlobalI18nSync`, and the descriptor factory `createLibraryI18nDescriptor<LocaleName, Locale>({ libraryId })`. The factory is the single implementation of the typed injection key, the frozen empty snapshot, and the generic `selectComponentOverrides(messages, componentId)` slice selector; consuming packages instantiate it with their locale schema and re-export the aliases they keep public (`adminI18nOverridesKey`, `DEFAULT_SNAPSHOT`). Hosts supply package text overrides through the `AdminProvider` `overrides` prop (which provides the snapshot via the injection key) rather than a Vue plugin install; the `app.use(libraryI18n.plugin, …)` transport remains available to libraries that opt into it. `createComponentI18n` consumes the descriptor via `{ messages, plugin, componentId }` — no per-package override-key, empty-snapshot, or selector customization.
 - Displayable tab titles use the shared `I18nText` discriminated union (`{ kind: "string"; value: string }` or `{ kind: "i18n"; key: string; named?: Record<string, string | number | boolean> }`). `i18n`-kind labels resolve against the host global Composer at render time, so open AND history-restored tabs follow locale switches. The navigation adapter persists the label as its I18nText representation via `i18nTextSchema`; `named` values persist with history state and must stay JSON-serializable primitives.
 - Descriptors handed to the navigation adapter must be plain data. `structuredClone` throws `DOMException: Proxy object could not be cloned` on reactive objects, and tab records live in a reactive map — snapshot them to plain copies (`{ ...nav }`, plain label with copied `named`) before requesting navigation.
 - Every translating component creates its registry via `createComponentI18n`: a fresh local Composer, packaged defaults merged first, then only its own override slice, provided to descendants. A descendant resolves the nearest ancestor composer through `getComponentI18n` (which throws when none exists). `fallbackRoot` stays true so keys absent from the package registry — host-authored tab labels and other host-global messages — resolve through the same local Composer.
 - Vue I18n 11.4.8 initializes an inheriting local Composer's `fallbackRoot` from the root. Enforce `composer.fallbackRoot = true` immediately after `useI18n()` so host-global keys resolve through the package Composer. Do not overwrite `composer.fallbackLocale`: the local Composer must inherit the host-owned global fallback.
-- Package plugin installation must defensively copy caller options. Later caller mutation must not affect mounted or subsequently mounted components.
+- Hosts providing an override snapshot must defensively copy caller options (the admin AdminProvider does via structuredClone). Later caller mutation must not affect mounted or subsequently mounted components.
 - Locale resources live at `src/locales/<ComponentName>.json`. Each component file is a locale-first object whose top-level keys are all supported locale identifiers and whose values share that component's message schema. A standalone library build precompiles those resources; consumers of the built library do not include library source in host Vite configuration.
 - `createWorkspaceVueI18nPlugin()` is optional monorepo development tooling for applications that alias libraries to source. It applies the repository-wide locale transform and component-scoped locale-file HMR without naming individual libraries. The application dev server and production build must still work when the preset is omitted; omission only removes locale-file HMR and this shared development transform. Never hard-code `../../packages/<library>/src/locales/**` in a host.
 - Standalone library builds own production locale precompilation. Consumers of built package output configure no workspace locale preset; production correctness must never depend on `createWorkspaceVueI18nPlugin()`.
@@ -77,9 +79,9 @@ app.use(createPinia()).use(i18n) // host global i18n, empty messages
 | Condition | Required result |
 | --- | --- |
 | Host omits global Vue I18n installation | Component setup fails; packages must not create a hidden fallback instance. |
-| Package plugin omitted | Bundled defaults render using the host global fallback. |
+| No override snapshot provided | Bundled defaults render using the host global fallback. |
 | Partial component override installed | Specified leaves override defaults; unspecified siblings remain. |
-| Caller mutates options after `app.use()` | Mounted and future component instances retain the installation snapshot. |
+| Caller mutates options after providing the snapshot | Mounted and future component instances retain the installation snapshot. |
 | Global locale is unsupported by the package | Local Composer renders the host-configured global fallback; global active locale stays unchanged. |
 | `i18n`-kind tab label with a locale switch | The shell resolves the label against the global Composer at render time; open and restored tabs follow the locale. |
 | Restored history entry carries an `i18n`-kind label | It renders through the message key in the current locale; `string`-kind labels render verbatim. |
@@ -142,7 +144,7 @@ const componentMessages = {
 
 const composer = createComponentI18n({
   messages: componentMessages,
-  plugin: packageI18n,
+  descriptor: packageI18n,
   componentId: "ComponentName",
 })
 ```

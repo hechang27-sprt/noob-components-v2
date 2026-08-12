@@ -20,7 +20,6 @@ export { useAdminShellNavigationStore } from "./stores/navigation";
 
 export { useAdminProvider, type AdminProviderApi } from "./use-admin-provider";
 
-export { adminI18nPlugin } from "./i18n/plugin";
 export type {
   AdminComponentId,
   AdminLocale,
@@ -29,7 +28,7 @@ export type {
   AdminLoginPageLocale,
   AdminShellLocale,
 } from "./i18n/admin-locale";
-export type { AdminI18nPluginOptions, AdminI18nSnapshot } from "./i18n/plugin";
+export type { AdminI18nSnapshot } from "./i18n/plugin";
 
 export {
   resolveAdminNaiveBaseFontSize,

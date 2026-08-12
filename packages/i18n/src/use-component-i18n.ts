@@ -1,6 +1,6 @@
 import { inject, provide, type InjectionKey } from "vue";
 import { useI18n, type Composer } from "vue-i18n";
-import type { LibraryI18nPlugin } from "./library-i18n-plugin";
+import type { LibraryI18nDescriptor } from "./library-i18n-descriptor";
 
 /**
  * Options for {@link createComponentI18n}.
@@ -14,8 +14,8 @@ export interface CreateComponentI18nOptions<
 > {
   /** Packaged defaults, locale-first resource object (e.g. `{ en, "zh-CN" }`). */
   messages: Readonly<Record<LocaleName, unknown>>;
-  /** The library's i18n plugin descriptor produced by the shared factory. */
-  plugin: LibraryI18nPlugin<LocaleName, Locale>;
+  /** The library's i18n descriptor produced by the shared factory. */
+  descriptor: LibraryI18nDescriptor<LocaleName, Locale>;
   /** The component's resource file stem, selecting its override slice. */
   componentId: keyof Locale & string;
 }
@@ -30,7 +30,7 @@ const componentI18nKey: InjectionKey<Composer> = Symbol("ComponentI18n");
 /**
  * Creates one package component's Vue I18n registry: a fresh local Composer
  * inheriting the host's root locale and fallback locale, seeded with the
- * packaged default messages and then the component's plugin override slice
+ * packaged default messages and then the component's override slice
  * so overrides win at the leaf. Each call builds a NEW Composer (it is not
  * idempotent) and provides it to descendants via {@link getComponentI18n}.
  *
@@ -42,10 +42,10 @@ const componentI18nKey: InjectionKey<Composer> = Symbol("ComponentI18n");
  *   stays enabled, so keys absent from the package registry — notably
  *   host-authored tab labels and other host-global messages — resolve
  *   through this same local Composer.
- * - Absent plugin installation, `inject` yields the plugin's frozen empty
+ * - Absent a provided snapshot, `inject` yields the descriptor's frozen empty
  *   snapshot, so the packaged defaults always render.
  *
- * @param options - Packaged defaults, the library plugin descriptor, and
+ * @param options - Packaged defaults, the library i18n descriptor, and
  * the component's resource file stem.
  * @returns The fresh local Composer (fallbackRoot already corrected).
  */
@@ -53,11 +53,11 @@ export function createComponentI18n<
   LocaleName extends string,
   Locale extends object,
 >(options: CreateComponentI18nOptions<LocaleName, Locale>): Composer {
-  const { messages, plugin, componentId } = options;
+  const { messages, descriptor, componentId } = options;
 
-  // The plugin's immutable override tree; absent plugin installation yields
-  // the frozen empty snapshot, so packaged defaults always render.
-  const snapshot = inject(plugin.overridesKey, plugin.emptySnapshot);
+  // The descriptor's immutable override tree; absent a provided snapshot,
+  // inject yields the frozen empty snapshot, so packaged defaults render.
+  const snapshot = inject(descriptor.overridesKey, descriptor.emptySnapshot);
 
   // Fresh local registry inheriting root locale and fallback locale; the
   // root's fallbackRoot flag is corrected below after creation.
@@ -91,7 +91,7 @@ export function createComponentI18n<
   }
 
   for (const [overrideLocale, componentMessages] of Object.entries(
-    plugin.selectComponentOverrides(snapshot.messages, componentId),
+    descriptor.selectComponentOverrides(snapshot.messages, componentId),
   )) {
     // The type keeps locale keys optional, so guard the definedness that
     // iteration guarantees at runtime; no locale cast.
