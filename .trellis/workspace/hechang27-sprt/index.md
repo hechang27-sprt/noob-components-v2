@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 39
+- **Total Sessions**: 40
 - **Last Active**: 2026-08-12
 <!-- @@@/auto:current-status -->
 
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 40 | 2026-08-12 | Remove AdminProvider-era vestiges; shrink i18n descriptor | `54d48c6f` | `-` |
 | 39 | 2026-08-12 | Archive 08-12-demo-component-local-i18n-chrome | `dec71be9` | `-` |
 | 38 | 2026-08-12 | AdminProvider root provider + opaque preferences store | `e6e36d27` | `-` |
 | 37 | 2026-08-10 | Spec: mandate naive-ui design-token theming for ui components | `c75d68cd` | `-` |

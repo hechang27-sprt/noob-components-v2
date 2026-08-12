@@ -1413,3 +1413,37 @@ Archived the completed task (AdminProvider root provider + opaque preferences st
 ### Next Steps
 - Resolve the 2 pre-existing font-size theme test failures (in-progress theme work).
 - Replace/flag the stale `noob-workspace-locale-hmr-boundaries` skill.
+
+## Session 40: Remove AdminProvider-era vestiges; shrink i18n descriptor
+
+**Date**: 2026-08-12
+**Task**: 08-12-remove-adminprovider-vestiges
+**Package**: admin, ui, i18n
+
+### Summary
+Removed code superseded by the AdminProvider architecture and shrank the shared i18n factory now that its plugin transport is unused. `packages/ui/src/theme` naive bridge deleted (theme overrides flow via the AdminProvider `theme` prop); `adminI18nPlugin` removed (the `overrides` prop provides the snapshot via the injection key). Renamed `createLibraryI18nPlugin` -> `createLibraryI18nDescriptor`, dropped the Vue plugin transport and `LibraryI18nPluginOptions`; the descriptor now carries only `overridesKey` + `emptySnapshot` + `selectComponentOverrides`. `createComponentI18n` option `plugin` -> `descriptor`; ui dropped the last `.plugin` consumer (`noobUiI18nPlugin`).
+
+### Main Changes
+- ui: deleted `packages/ui/src/theme/naive.ts` (dead bridge, no consumers); removed its re-export.
+- admin: removed `adminI18nPlugin` from `i18n/plugin.ts` + `index.ts`; `AdminProviderProps.overrides` now `AdminLocaleOverrides`; dropped `AdminI18nPluginOptions`.
+- i18n: renamed factory to `createLibraryI18nDescriptor` (file `library-i18n-descriptor.ts`); dropped `.plugin` + `LibraryI18nPluginOptions`; `CreateComponentI18nOptions.plugin` -> `descriptor`.
+- ui: removed `noobUiI18nPlugin` + `NoobUiI18nPluginOptions`; exported `noobUiI18n` descriptor seam.
+- tests: `i18n-contract` rewritten to the AdminProvider overrides-provide path; factory plugin-install test dropped; `use-component-i18n` provides the snapshot via the key.
+- spec: `library-i18n-contract.md` updated throughout (descriptor + provide path).
+
+### Git Commits
+| Hash | Message |
+|------|---------|
+| `54d48c6f` | feat(admin,ui,i18n): remove AdminProvider-era vestiges; shrink i18n descriptor |
+| `e8b7974b` | chore(task): archive 08-12-remove-adminprovider-vestiges |
+
+### Testing
+- [OK] i18n tests 22/22; admin 82 pass / 2 pre-existing theme failures (fontSize, "Large" dropdown).
+- [OK] admin + ui + i18n + demo + prototype typecheck clean; builds clean; oxlint + oxfmt clean.
+
+### Status
+[OK] **Archived**
+
+### Next Steps
+- Resolve the 2 pre-existing font-size theme test failures (in-progress theme work).
+- Regenerate openwiki (references removed `createLibraryI18nPlugin`/`adminI18nPlugin`).
