@@ -1346,3 +1346,40 @@ Session summary was not supplied.
 ### Next Steps
 
 - Consider exposing a themed caption token in FONT_SIZE_OVERRIDES if smaller-than-tiny text is needed
+
+## Session 38: AdminProvider root provider + opaque preferences store
+
+**Date**: 2026-08-12
+**Task**: 08-12-demo-component-local-i18n-chrome
+**Package**: admin, demo, i18n
+
+### Summary
+Built the admin-package `AdminProvider` root provider and consolidated the host configuration + locale HMR surface around it: provider-seeded global locale (validated HMR without the regex injection), a single `useAdminProvider()` consumption composable over Pinia stores, an opaque blob-persistence preferences store, and moving the admin i18n text override from `app.use(adminI18nPlugin, …)` into the provider's `overrides` prop.
+
+### Main Changes
+- `AdminProvider` (functional `defineComponent` per `tsx-components-and-tests.md`), props `messages`/`menu`/`preferences`/`theme`/`overrides`: seeds the host global Composer + active locale, `preferences.initialize` + `menu.configure` (not `main.ts`), `provide(adminI18nOverridesKey, …)` snapshot from `overrides`, renders `NConfigProvider`.
+- `useAdminProvider()`: single consumption surface over the stores; semantic setters + derivation (`preferences`/`naiveUiConfig`/`proLayoutConfig`) moved out of the store; tabs-style composable-over-store (no provide/inject; SSR + HMR safe).
+- `shell-preferences` store reduced to opaque blob persistence: `preferences` (persisted) + `runtime` reactive objects; storage/persistence only, no field semantics (tabs.ts-style minimalism).
+- Removed the regex accept-block injection from `createWorkspaceLocaleHmrPlugin.transform` (validated: locale HMR now runs on component self-accept + `handleHotUpdate` redirect; `demo.json` edits bound at `App.tsx`).
+- Demo: `main.ts` trims to auth + router; `App.tsx` consumes `AdminProvider` (imports `demo.json`, passes `overrides`); `locale-provider.tsx` deleted.
+- `library-i18n-contract.md`: locale resources imported+wired in a component (host `AdminProvider`), not app setup.
+
+### Git Commits
+| Hash | Message |
+|------|---------|
+| `64a093d0` | feat(admin): AdminProvider root provider + opaque preferences store |
+| `66128185` | (prior spike: provider-seeded i18n.global + injection removal) |
+
+### Testing
+- [OK] admin + demo typecheck; demo build; oxlint; oxfmt.
+- [OK] Admin tests 80/82 — 2 pre-existing failures from the in-progress font-size theme work (naiveUiConfig `themeOverrides` fontSize; admin-shell "Large" dropdown), NOT regressions.
+- [OK] `AdminProvider` 6/6 (incl. new overrides-provide test); `useAdminProvider` tests.
+- [OK] Browser (`DEBUG=vite:hmr`): edit `demo.json` → `hmr update /src/App.tsx`, beforeunload counter 0, text updates/reverts in place.
+
+### Status
+[OK] **Committed** (working copy clean). Session recorded.
+
+### Next Steps
+- Resolve the 2 pre-existing font-size theme test failures (in-progress theme work, outside this task).
+- Replace/flag the stale `noob-workspace-locale-hmr-boundaries` skill (user-authored; still documents the removed injection).
+- Optionally `task.py archive` this task via `/trellis:finish-work`.
