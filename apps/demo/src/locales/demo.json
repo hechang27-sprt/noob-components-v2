@@ -18,6 +18,14 @@
     "login": {
       "credentialsRequired": "Username and password are required."
     },
+    "themes": {
+      "default": "Default",
+      "ocean": "Ocean",
+      "sunset": "Sunset",
+      "midnight": "Midnight",
+      "forest": "Forest",
+      "crimson": "Crimson"
+    },
     "pages": {
       "dashboard": {
         "title": "Dashboard",
@@ -60,6 +68,14 @@
     },
     "login": {
       "credentialsRequired": "请输入用户名和密码。"
+    },
+    "themes": {
+      "default": "默认",
+      "ocean": "海洋",
+      "sunset": "落日",
+      "midnight": "午夜",
+      "forest": "森林",
+      "crimson": "绯红"
     },
     "pages": {
       "dashboard": {

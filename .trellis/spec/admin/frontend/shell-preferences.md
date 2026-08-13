@@ -12,7 +12,7 @@ Storage access goes through safe helpers so absent, blocked, or throwing `localS
 
 ## Persisted versus runtime-only state
 
-Persist only the documented persistent subset (theme mode, font size, locale, sidebar collapsed). Runtime-only presentation state (theme/provider configs, locale options, size-tier mappings) must never be serialized.
+Persist only the documented persistent subset (theme mode, theme preset key, font size, locale, sidebar collapsed). Runtime-only presentation state (theme/provider configs, theme presets + polarity defaults, locale options, size-tier mappings) must never be serialized.
 
 ## Shell chrome follows the size tier
 

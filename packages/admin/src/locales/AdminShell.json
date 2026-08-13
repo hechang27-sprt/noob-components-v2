@@ -6,8 +6,7 @@
       "fontSize": "Font size: {label}",
       "language": "Language: {label}",
       "account": "Account: {user}",
-      "themeLight": "Switch to light theme",
-      "themeDark": "Switch to dark theme",
+      "theme": "Theme: {label}",
       "sidebarExpand": "Expand sidebar",
       "sidebarCollapse": "Collapse sidebar"
     },
@@ -25,8 +24,7 @@
       "fontSize": "字号：{label}",
       "language": "语言：{label}",
       "account": "账户：{user}",
-      "themeLight": "切换到浅色主题",
-      "themeDark": "切换到深色主题",
+      "theme": "主题：{label}",
       "sidebarExpand": "展开侧边栏",
       "sidebarCollapse": "收起侧边栏"
     },

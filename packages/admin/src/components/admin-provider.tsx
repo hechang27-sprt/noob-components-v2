@@ -1,12 +1,12 @@
 import { defineComponent, provide, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { NConfigProvider, type GlobalThemeOverrides } from "naive-ui";
+import { NConfigProvider } from "naive-ui";
 
 import {
   libraryI18nOverridesKey,
   type LibraryI18nOverridesRegistry,
 } from "@noob-naive-ui/i18n";
-import type { AdminMenuTree } from "../runtime-contract";
+import type { AdminMenuTree, AdminThemePreset } from "../runtime-contract";
 import type { AdminShellPreferencesStoreOptions } from "../runtime/shell-preferences";
 import { useAdminProvider } from "../use-admin-provider";
 import { useAdminShellMenuStore } from "../stores/menu";
@@ -29,8 +29,12 @@ export interface AdminProviderProps {
   menu: AdminMenuTree;
   /** Optional shell-preferences store options (defaults, storage). */
   storeOptions?: AdminShellPreferencesStoreOptions;
-  /** Host naive-ui global theme overrides merged on top of the store's. */
-  theme?: GlobalThemeOverrides;
+  /** Host-supplied selectable theme presets (navbar dropdown options). */
+  themes?: AdminThemePreset[];
+  /** Default light preset key, used while theme mode is `"system"` and OS is light. */
+  defaultTheme?: string;
+  /** Default dark preset key, used while theme mode is `"system"` and OS is dark. */
+  defaultDarkTheme?: string;
   /** App-scoped text-override registry keyed by each component package's
    * libraryId (e.g. `admin`, `ui`). Replaces the former plugin host install:
    * this component provides the whole registry under {@link libraryI18nOverridesKey},
@@ -76,6 +80,16 @@ export const AdminProvider = defineComponent(
     // 3. Provider-owned (not main.ts) store initialization.
     preferences.initialize(props.storeOptions);
 
+    // 3b. Configure the host-supplied theme presets + polarity defaults so the
+    //     composable's derived naiveUiConfig (base theme + merged overrides)
+    //     and the navbar dropdown resolve them. The composable owns this
+    //     semantic write into the store's opaque runtime blob.
+    provider.configureThemePresets(
+      props.themes ?? [],
+      props.defaultTheme ?? "",
+      props.defaultDarkTheme ?? "",
+    );
+
     // 4. Seed the active locale so the PRE-AUTH login page renders the
     //    restored locale (AdminShell keeps syncing ongoing). Read the locale
     //    through the composable (toRef into the store's preferences blob). The
@@ -99,15 +113,11 @@ export const AdminProvider = defineComponent(
     );
 
     // 7. Render the naive-ui config provider: spread the derived config so
-    //    theme/locale/componentOptions flow, and merge the host `theme`
-    //    overrides on top of the derived themeOverrides.
+    //    theme/locale/componentOptions flow. The active theme preset (base
+    //    theme + merged overrides) is already resolved into naiveUiConfig by
+    //    the composable.
     return () => (
-      <NConfigProvider
-        {...provider.naiveUiConfig.value}
-        themeOverrides={{
-          ...provider.naiveUiConfig.value.themeOverrides,
-          ...props.theme,
-        }}>
+      <NConfigProvider {...provider.naiveUiConfig.value}>
         {slots.default?.()}
       </NConfigProvider>
     );
@@ -118,7 +128,9 @@ export const AdminProvider = defineComponent(
       messages: { type: Object, required: true },
       menu: { type: Array, required: true },
       storeOptions: { type: Object, default: undefined },
-      theme: { type: Object, default: undefined },
+      themes: { type: Array, default: undefined },
+      defaultTheme: { type: String, default: undefined },
+      defaultDarkTheme: { type: String, default: undefined },
       overrides: { type: Object, default: undefined },
     },
   },

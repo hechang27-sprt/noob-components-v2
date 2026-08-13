@@ -25,6 +25,8 @@ import { useAdminAuthStore } from "../src/stores/auth";
 import { useAdminShellPreferencesStore } from "../src/stores/shell-preferences";
 import { useAdminShellNavigationStore } from "../src/stores/navigation";
 import { useAdminShellMenuStore } from "../src/stores/menu";
+import type { AdminThemePreset } from "../src/runtime-contract";
+import { useAdminProvider } from "../src/use-admin-provider";
 
 /** Exercises descendant access to the nearest provided AdminShell context. */
 const ShellContextConsumer = defineComponent(
@@ -192,10 +194,16 @@ async function selectDropdownOption(
   label: string,
 ): Promise<void> {
   trigger.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
-  await settle();
-  const option = [
-    ...document.body.querySelectorAll(".n-dropdown-option-body"),
-  ].find((el) => el.textContent === label);
+  // Poll for the popup option body: naive-ui mounts dropdown popups into the
+  // document asynchronously, so a single tick may not have rendered them yet.
+  let option: Element | undefined;
+  for (let attempt = 0; attempt < 20 && !option; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await nextTick();
+    option = [
+      ...document.body.querySelectorAll(".n-dropdown-option-body"),
+    ].find((el) => el.textContent === label);
+  }
   if (!option) throw new Error(`Dropdown option "${label}" not found.`);
   option.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   await settle();
@@ -248,11 +256,34 @@ describe("AdminShell", () => {
         ],
       },
     ];
+
+    const themePresets: AdminThemePreset[] = [
+      {
+        key: "default",
+        label: { kind: "string", value: "Default" },
+        naiveUiConfig: {},
+        isDark: false,
+      },
+      {
+        key: "midnight",
+        label: { kind: "string", value: "Midnight" },
+        naiveUiConfig: {},
+        isDark: true,
+      },
+    ];
+    const themePinia = createPinia();
+    setActivePinia(themePinia);
+    useAdminProvider().configureThemePresets(
+      themePresets,
+      "default",
+      "midnight",
+    );
     const container = mountShell({
       content: "router-view",
       menuOptions,
       sidebarContent: "outside-sidebar",
       tabbarContent: "outside-tabbar",
+      pinia: themePinia,
     });
 
     expect(container.querySelector(".h-dvh")).not.toBeNull();
@@ -276,21 +307,27 @@ describe("AdminShell", () => {
     const preferences = useAdminShellPreferencesStore();
 
     const theme = container.querySelector<HTMLElement>(
-      '[data-admin-control="theme-mode"]',
+      '[data-admin-control="theme"]',
     );
     expect(theme?.classList).toContain("n-button");
     expect(theme?.querySelector("svg")).not.toBeNull();
-    expect(theme?.getAttribute("data-admin-theme-action")).toBe("enter-dark");
-    expect(theme?.getAttribute("aria-label")).toBe("Switch to dark theme");
-    theme?.click();
-    await settle();
+    // Presets are pre-configured, so the theme dropdown is enabled and
+    // selecting a preset pins mode + key.
+    expect(theme?.hasAttribute("disabled")).toBe(false);
+    await selectDropdownOption(theme!, "Midnight");
     expect(preferences.preferences.themeMode).toBe("dark");
-    expect(theme?.getAttribute("data-admin-theme-action")).toBe("exit-dark");
-    expect(theme?.getAttribute("aria-label")).toBe("Switch to light theme");
-    theme?.click();
+    expect(preferences.preferences.themeKey).toBe("midnight");
+    // Wait for the popup to fully close before re-opening for the second pick.
     await settle();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await selectDropdownOption(
+      container.querySelector<HTMLElement>('[data-admin-control="theme"]')!,
+      "Default",
+    );
     expect(preferences.preferences.themeMode).toBe("light");
-    expect(theme?.getAttribute("data-admin-theme-action")).toBe("enter-dark");
+    expect(preferences.preferences.themeKey).toBe("default");
+    expect(preferences.preferences.themeKey).toBe("default");
+    expect(preferences.preferences.themeKey).toBe("default");
 
     const fontSize = container.querySelector<HTMLElement>(
       '[data-admin-control="font-size"]',
@@ -325,6 +362,15 @@ describe("AdminShell", () => {
     const logoutSpy = vi.spyOn(auth, "logout");
     await selectDropdownOption(account!, "Sign out");
     expect(logoutSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables the theme control when no presets are configured", () => {
+    const container = mountShell({ content: "router-view" });
+    const theme = container.querySelector<HTMLElement>(
+      '[data-admin-control="theme"]',
+    );
+    expect(theme).not.toBeNull();
+    expect(theme?.hasAttribute("disabled")).toBe(true);
   });
 
   it("synchronizes the preference locale one way into the global Composer", async () => {

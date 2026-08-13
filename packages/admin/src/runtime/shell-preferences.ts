@@ -21,6 +21,8 @@ export type AdminShellPreferencesStoreOptions = {
 
 const STORAGE_KEY = "@noob-naive-ui/admin:shell-preferences";
 const DEFAULT_THEME_MODE: AdminThemeMode = "system";
+/** `""` means "no preset picked yet" — resolution falls back to the polarity default. */
+const DEFAULT_THEME_KEY = "";
 const DEFAULT_FONT_SIZE: AdminFontSize = "medium";
 const DEFAULT_LOCALE = "en";
 /** Host-owned naive-ui fallback locale applied when the active locale is unsupported. */
@@ -60,6 +62,11 @@ const localeOptionsSchema = z
 const themeModeInputSchema = themeModeSchema
   .catch(DEFAULT_THEME_MODE)
   .default(DEFAULT_THEME_MODE);
+/** Missing/corrupt themeKey collapses to `""` (no preset picked yet). */
+const themeKeyInputSchema = z
+  .string()
+  .catch(DEFAULT_THEME_KEY)
+  .default(DEFAULT_THEME_KEY);
 const fontSizeInputSchema = fontSizeSchema
   .catch(DEFAULT_FONT_SIZE)
   .default(DEFAULT_FONT_SIZE);
@@ -70,6 +77,7 @@ const sidebarCollapsedInputSchema = z.boolean().catch(false).default(false);
 const normalizedShellPreferencesSchema = z
   .object({
     themeMode: themeModeInputSchema,
+    themeKey: themeKeyInputSchema,
     fontSize: fontSizeInputSchema,
     locale: localeInputSchema,
     availableLocales: localeOptionsSchema.default([]),
@@ -78,12 +86,14 @@ const normalizedShellPreferencesSchema = z
   .transform(
     ({
       themeMode,
+      themeKey,
       fontSize,
       locale,
       availableLocales,
       sidebarCollapsed,
     }): AdminShellPreferences => ({
       themeMode,
+      themeKey,
       fontSize,
       locale: locale ?? availableLocales[0]?.key ?? DEFAULT_LOCALE,
       availableLocales,
@@ -92,6 +102,7 @@ const normalizedShellPreferencesSchema = z
   );
 const persistedShellPreferencesSchema = z.object({
   themeMode: themeModeInputSchema,
+  themeKey: themeKeyInputSchema,
   fontSize: fontSizeInputSchema,
   locale: nonEmptyStringSchema,
   sidebarCollapsed: z.boolean(),
@@ -106,6 +117,7 @@ export function createDefaultAdminShellPreferences(
 ): AdminShellPreferences {
   return normalizeShellPreferences({
     themeMode: DEFAULT_THEME_MODE,
+    themeKey: DEFAULT_THEME_KEY,
     fontSize: DEFAULT_FONT_SIZE,
     locale: DEFAULT_LOCALE,
     availableLocales: [],
@@ -172,6 +184,7 @@ export function persistAdminShellPreferences(
 
   const persisted: PersistedShellPreferences = {
     themeMode: preferences.themeMode,
+    themeKey: preferences.themeKey,
     fontSize: preferences.fontSize,
     locale: preferences.locale,
     sidebarCollapsed: preferences.sidebarCollapsed,

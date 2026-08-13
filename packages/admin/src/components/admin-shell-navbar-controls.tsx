@@ -8,17 +8,16 @@ import {
   type DropdownOption,
 } from "naive-ui";
 import {
+  ColorPaletteOutline,
   LanguageOutline,
   LogOutOutline,
   MenuOutline,
-  MoonOutline,
   PersonCircleOutline,
-  SunnyOutline,
   TextOutline,
 } from "@vicons/ionicons5";
 import { defineComponent } from "vue";
 
-import { getComponentI18n } from "@noob-naive-ui/i18n";
+import { getComponentI18n, resolveI18nText } from "@noob-naive-ui/i18n";
 
 import { useAdminAuthStore } from "../stores/auth";
 import { useAdminProvider } from "../use-admin-provider";
@@ -115,6 +114,15 @@ export const AdminShellNavRight = defineComponent(
         { key: "large", label: t("fontSize.large") },
       ] satisfies DropdownOption[];
 
+      /** Presents the host-supplied theme presets with reactive locale labels. */
+      const themeOptions = provider.themes.value.map(
+        (preset) =>
+          ({
+            key: preset.key,
+            label: resolveI18nText(preset.label, t),
+          }) satisfies DropdownOption,
+      );
+
       /** Presents the fixed account actions with a reactive locale label. */
       const accountOptions = [
         {
@@ -135,8 +143,10 @@ export const AdminShellNavRight = defineComponent(
         provider.availableLocales.value.find(
           ({ key }) => key === provider.locale.value,
         )?.label ?? provider.locale.value;
-      const themeIcon =
-        provider.themeMode.value === "dark" ? SunnyOutline : MoonOutline;
+      const activeTheme = provider.activeTheme.value;
+      const themeLabel = activeTheme
+        ? resolveI18nText(activeTheme.label, t)
+        : provider.themeMode.value;
 
       return (
         <NFlex
@@ -144,26 +154,32 @@ export const AdminShellNavRight = defineComponent(
           class="h-full overflow-hidden"
           wrap={false}
           data-admin-controls>
-          <NButton
-            attr-type="button"
-            quaternary
-            circle
-            data-admin-control="theme-mode"
-            data-admin-theme-action={
-              provider.themeMode.value === "dark" ? "exit-dark" : "enter-dark"
-            }
-            aria-label={
-              provider.themeMode.value === "dark"
-                ? t("aria.themeLight")
-                : t("aria.themeDark")
-            }
-            onClick={() =>
-              provider.setThemeMode(
-                provider.themeMode.value === "dark" ? "light" : "dark",
-              )
-            }>
-            {{ icon: () => <NIcon component={themeIcon} /> }}
-          </NButton>
+          <NDropdown
+            trigger="hover"
+            delay={DROPDOWN_DELAY}
+            value={provider.activeTheme.value?.key}
+            options={themeOptions}
+            onSelect={(value: string | number) => {
+              if (typeof value === "string") {
+                provider.setTheme(value);
+              }
+            }}>
+            <NButton
+              attr-type="button"
+              quaternary
+              circle
+              data-admin-control="theme"
+              disabled={themeOptions.length === 0}
+              aria-label={t("aria.theme", { label: themeLabel })}>
+              {{
+                icon: () => (
+                  <NIcon>
+                    <ColorPaletteOutline />
+                  </NIcon>
+                ),
+              }}
+            </NButton>
+          </NDropdown>
           <NDropdown
             trigger="hover"
             delay={DROPDOWN_DELAY}

@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { reactive } from "vue";
 
 import type { AdminShellPreferences } from "../runtime-contract";
+import type { AdminThemePreset } from "../runtime-contract";
 import {
   createDefaultAdminShellPreferences,
   DEFAULT_FALLBACK_LOCALE,
@@ -20,6 +21,12 @@ type AdminShellPreferencesRuntime = {
   systemUsesDark: boolean;
   /** Host-owned naive-ui fallback locale; runtime-only, never persisted. */
   fallbackLocale: string;
+  /** Host-supplied theme presets rendered by the navbar dropdown; never persisted. */
+  themes: AdminThemePreset[];
+  /** Default light preset key used while theme mode is `"system"` and OS is light. */
+  defaultTheme: string;
+  /** Default dark preset key used while theme mode is `"system"` and OS is dark. */
+  defaultDarkTheme: string;
 };
 
 /**
@@ -35,7 +42,16 @@ type AdminShellPreferencesRuntime = {
  * Division is by persistence, not meaning: all persisted fields live in
  * `preferences`; all non-persisted runtime state lives in `runtime`.
  */
-const setup = () => {
+/** The opaque store surface returned by the shell-preferences setup. */
+export type AdminShellPreferencesStoreApi = {
+  preferences: AdminShellPreferences;
+  runtime: AdminShellPreferencesRuntime;
+  initialize: (options?: AdminShellPreferencesStoreOptions) => void;
+  replacePreferences: (value: Partial<AdminShellPreferences>) => void;
+  reset: (preferencesBlob: AdminShellPreferences) => void;
+};
+
+const setup = (): AdminShellPreferencesStoreApi => {
   /** The persisted preferences blob (all fields are stored). */
   const preferences = reactive<AdminShellPreferences>(
     createDefaultAdminShellPreferences(),
@@ -45,6 +61,9 @@ const setup = () => {
     isHydrated: false,
     systemUsesDark: false,
     fallbackLocale: DEFAULT_FALLBACK_LOCALE,
+    themes: [],
+    defaultTheme: "",
+    defaultDarkTheme: "",
   });
 
   let storage: AdminShellPreferencesStorage | null = null;

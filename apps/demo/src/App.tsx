@@ -11,6 +11,11 @@ import { i18n } from "./i18n";
 import demoMessages from "./locales/demo.json";
 import type { DemoNavKey } from "./routes";
 import type { AdminLocaleOverrides } from "@noob-naive-ui/admin";
+import {
+  demoDefaultDarkTheme,
+  demoDefaultTheme,
+  demoThemePresets,
+} from "./themes";
 
 /**
  * Renders the demo's root providers around the host-owned outer route view.
@@ -120,6 +125,9 @@ export default defineComponent(
           },
           fallbackLocale: "en",
         }}
+        themes={demoThemePresets}
+        defaultTheme={demoDefaultTheme}
+        defaultDarkTheme={demoDefaultDarkTheme}
         overrides={{
           "noob-naive-ui:admin": {
             en: { AdminShell: { account: { signOut: "Log out" } } },

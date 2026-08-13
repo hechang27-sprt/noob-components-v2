@@ -7,6 +7,7 @@ import { useAdminShellPreferencesStore } from "../src/stores/shell-preferences";
 const STORAGE_KEY = "@noob-naive-ui/admin:shell-preferences";
 const DEFAULT_PREFERENCES = {
   themeMode: "system",
+  themeKey: "",
   fontSize: "medium",
   locale: "en",
   availableLocales: [],
@@ -16,6 +17,7 @@ const DEFAULT_PREFERENCES = {
 /** The persisted preference fields the store holds in its `preferences` blob. */
 interface RawPreferenceState {
   themeMode: string;
+  themeKey: string;
   fontSize: string;
   locale: string;
   availableLocales: { key: string; label: string }[];
@@ -115,6 +117,7 @@ describe("useAdminShellPreferencesStore", () => {
 
     expect(preferencesOf(store)).toEqual({
       themeMode: "light",
+      themeKey: "",
       fontSize: "large",
       locale: "zh-CN",
       availableLocales: [{ key: "zh-CN", label: "简体中文" }],
@@ -136,12 +139,14 @@ describe("useAdminShellPreferencesStore", () => {
       },
     });
     store.preferences.themeMode = "dark";
+    store.preferences.themeKey = "ocean";
     store.preferences.fontSize = "large";
     store.preferences.locale = "zh-CN";
     store.preferences.sidebarCollapsed = true;
 
     expect(JSON.parse(storage.getItem(STORAGE_KEY) ?? "null")).toEqual({
       themeMode: "dark",
+      themeKey: "ocean",
       fontSize: "large",
       locale: "zh-CN",
       sidebarCollapsed: true,

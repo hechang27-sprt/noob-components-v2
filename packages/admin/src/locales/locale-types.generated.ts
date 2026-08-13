@@ -66,8 +66,7 @@ export interface AdminShell {
       fontSize: string;
       language: string;
       account: string;
-      themeLight: string;
-      themeDark: string;
+      theme: string;
       sidebarExpand: string;
       sidebarCollapse: string;
     };
@@ -93,8 +92,7 @@ export interface AdminShell {
       fontSize: string;
       language: string;
       account: string;
-      themeLight: string;
-      themeDark: string;
+      theme: string;
       sidebarExpand: string;
       sidebarCollapse: string;
     };

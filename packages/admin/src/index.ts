@@ -11,6 +11,7 @@ export type {
   AdminRouteKey,
   AdminShellPreferences,
   AdminThemeMode,
+  AdminThemePreset,
 } from "./runtime-contract";
 
 export { useAdminAuthStore } from "./stores/auth";

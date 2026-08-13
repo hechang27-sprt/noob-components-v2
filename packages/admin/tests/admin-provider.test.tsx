@@ -23,6 +23,7 @@ import {
 import { type AdminI18nSnapshot } from "../src/i18n/plugin";
 import { useAdminShellMenuStore } from "../src/stores/menu";
 import { useAdminShellPreferencesStore } from "../src/stores/shell-preferences";
+import type { AdminThemePreset } from "../src/runtime-contract";
 
 /** Retains mounted apps until cleanup prevents DOM and Pinia state leakage. */
 const mountedApps: App[] = [];
@@ -70,7 +71,9 @@ function mountProvider(
           messages={props.messages ?? {}}
           menu={props.menu ?? []}
           storeOptions={props.storeOptions}
-          theme={props.theme}>
+          themes={props.themes}
+          defaultTheme={props.defaultTheme}
+          defaultDarkTheme={props.defaultDarkTheme}>
           <div data-slot="child" />
         </AdminProvider>
       );
@@ -193,6 +196,45 @@ describe("AdminProvider", () => {
 
     expect(container.querySelector(".n-config-provider")).not.toBeNull();
     expect(container.querySelector('[data-slot="child"]')).not.toBeNull();
+  });
+
+  it("configures the theme presets and polarity defaults from props", () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const i18n = createI18n({
+      legacy: false,
+      locale: "en",
+      fallbackLocale: "en",
+      messages: {},
+    });
+    const themes: AdminThemePreset[] = [
+      {
+        key: "default",
+        label: { kind: "string", value: "Default" },
+        naiveUiConfig: { common: { primaryColor: "#18a058" } },
+        isDark: false,
+      },
+      {
+        key: "midnight",
+        label: { kind: "string", value: "Midnight" },
+        naiveUiConfig: { common: { primaryColor: "#6366f1" } },
+        isDark: true,
+      },
+    ];
+
+    mountProvider(pinia, i18n, () => ({
+      messages: baseMessages,
+      menu,
+      storeOptions: preferences,
+      themes,
+      defaultTheme: "default",
+      defaultDarkTheme: "midnight",
+    }));
+
+    const store = useAdminShellPreferencesStore(pinia);
+    expect(store.runtime.themes).toEqual(themes);
+    expect(store.runtime.defaultTheme).toBe("default");
+    expect(store.runtime.defaultDarkTheme).toBe("midnight");
   });
 
   it("provides the admin text-override snapshot to descendants via the overrides key", () => {
