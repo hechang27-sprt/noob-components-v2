@@ -75,6 +75,7 @@ export function createComponentI18n<
     useScope: "local",
     inheritLocale: true,
     fallbackRoot: true,
+    fallbackWarn: false,
   });
 
   // Vue I18n 11.4.8: with `__root && inheritLocale` the local Composer

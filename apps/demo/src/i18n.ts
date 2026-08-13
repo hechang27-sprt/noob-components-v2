@@ -16,4 +16,13 @@ export const i18n = createI18n({
   legacy: false,
   locale: "en",
   fallbackLocale: "en",
+  // Both warn flags must be off on the root composer: component local
+  // composers (createComponentI18n) inherit missingWarn/fallbackWarn FROM
+  // the root, ignoring their own useI18n options (vue-i18n 11.4.8
+  // createComposer: `__root ? __root.missingWarn : options...`). And the
+  // "Fall back to translate ... with root locale" warning fires when
+  // `fallbackWarn || missingWarn` — so fallbackWarn:false alone is NOT
+  // enough; missingWarn defaults to true and keeps it firing.
+  missingWarn: false,
+  fallbackWarn: false,
 });
