@@ -1447,3 +1447,37 @@ Removed code superseded by the AdminProvider architecture and shrank the shared 
 ### Next Steps
 - Resolve the 2 pre-existing font-size theme test failures (in-progress theme work).
 - Regenerate openwiki (references removed `createLibraryI18nPlugin`/`adminI18nPlugin`).
+
+## Session 41: Single shared i18n override registry; drop i18n factory
+
+**Date**: 2026-08-13
+**Task**: 08-13-i18n-override-registry
+**Package**: i18n, admin, ui
+
+### Summary
+Replaced per-package i18n override injection keys with one shared override registry keyed by `libraryId`, provided once by AdminProvider so hosts supply admin + ui (and future package) text overrides through a single channel — no UiProvider. Removed the `createLibraryI18nDescriptor` factory (it only returned `libraryId` + two shared constants); collapsed `LibraryI18nDescriptor` to a typed `{ libraryId }` handle with a type-level brand; exported `emptySnapshot` + `selectComponentOverrides` as shared constants.
+
+### Main Changes
+- i18n: `libraryI18nOverridesKey` + `LibraryI18nOverridesRegistry` (entries are bare override trees, no `messages` wrapper, so hosts write `{ admin: {...} satisfies AdminLocaleOverrides }`).
+- i18n: removed `createLibraryI18nDescriptor`; `LibraryI18nDescriptor<L, Loc>` = `{ libraryId }` + `__i18n` phantom brand pinning the locale schema for inference; `emptySnapshot` + `selectComponentOverrides` shared exports.
+- i18n: `createComponentI18n` resolves `registry[descriptor.libraryId] ?? emptySnapshot` and uses the shared selector.
+- admin: `AdminProvider.overrides` is the whole registry, provided under `libraryI18nOverridesKey` with per-entry `structuredClone`; removed `adminI18nOverridesKey`/`DEFAULT_SNAPSHOT`; `adminI18n` is a typed literal.
+- ui: `noobUiI18n` is a typed literal (same registry channel).
+- demo: overrides use the registry + `satisfies AdminLocaleOverrides`.
+- tests/spec updated to the registry model.
+
+### Git Commits
+| Hash | Message |
+|------|---------|
+| `c7482cda` | feat(i18n,admin): single shared override registry; drop i18n factory |
+| `3de0ce84` | chore(task): archive 08-13-i18n-override-registry |
+
+### Testing
+- [OK] i18n tests 23/23; admin 82 pass / 2 pre-existing theme failures (fontSize, "Large" dropdown).
+- [OK] i18n/admin/ui/demo typecheck clean; builds clean; oxlint + oxfmt clean.
+
+### Status
+[OK] **Archived**
+
+### Next Steps
+- Resolve the 2 pre-existing font-size theme test failures (in-progress theme work).
