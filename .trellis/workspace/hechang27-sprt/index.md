@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 41
+- **Total Sessions**: 42
 - **Last Active**: 2026-08-13
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1348 | Active |
+| `journal-1.md` | ~1520 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 42 | 2026-08-13 | Multi theme presets in AdminProvider + navbar theme dropdown | klmyzqtq | `-` |
 | 41 | 2026-08-13 | Single shared i18n override registry; drop i18n factory | `c7482cda` | `i18n-override-registry` |
 | 40 | 2026-08-12 | Remove AdminProvider-era vestiges; shrink i18n descriptor | `54d48c6f` | `-` |
 | 39 | 2026-08-12 | Archive 08-12-demo-component-local-i18n-chrome | `dec71be9` | `-` |

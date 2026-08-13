@@ -1481,3 +1481,40 @@ Replaced per-package i18n override injection keys with one shared override regis
 
 ### Next Steps
 - Resolve the 2 pre-existing font-size theme test failures (in-progress theme work).
+
+
+## Session 42: Multi theme presets in AdminProvider + navbar theme dropdown
+
+**Date**: 2026-08-13
+**Task**: Multi theme presets in AdminProvider + navbar theme dropdown
+**Package**: admin
+
+### Summary
+
+Replaced AdminProvider's single theme?: GlobalThemeOverrides prop with an array of named theme presets (themes?: AdminThemePreset[], each { key, label: I18nText, naiveUiConfig, isDark }) plus defaultTheme/defaultDarkTheme polarity-default keys. The navbar dark/light toggle became a hover dropdown listing all presets. Added 6 demo presets (Default/Ocean/Sunset light; Midnight/Forest/Crimson dark).
+
+### Main Changes
+
+- contract: AdminThemePreset type; persisted themeKey (last picked preset, '' default); optional fontSizeOverrides?: Record<AdminFontSize, GlobalThemeOverrides> replacing built-in FONT_SIZE_OVERRIDES per tier (built-in font tier wins over direct naiveUiConfig font values when absent).
+- resolution: resolveThemePreset (picked-key -> polarity default -> first of polarity; empty themes -> old themeMode resolution); naiveUiConfig.theme = darkTheme|null by preset isDark; themeOverrides deep-merged via es-toolkit merge.
+- composable/provider: themes, themeKey, activeTheme, setTheme(key) pinning mode by isDark, configureThemePresets (writes store runtime blob; store stays opaque). AdminProvider props themes/defaultTheme/defaultDarkTheme.
+- navbar: theme NDropdown (disabled when no presets) with ColorPaletteOutline icon; aria.theme replaces aria.themeLight/Dark. demo themes.ts presets with i18n-key labels; demo.json themes block (en + zh-CN).
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `klmyzqtq` | (see git log) |
+
+### Testing
+
+- [OK] admin 87/87 tests; admin + demo typecheck clean; oxlint 0; oxfmt applied.
+- [OK] Browser-verified: theme dropdown renders 6 presets; selecting Midnight -> dark #0f1220 + themeMode:dark/themeKey:midnight persisted; Ocean -> light; survives reload; labels localize reactively to zh-CN.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- openwiki regeneration (user-managed).
