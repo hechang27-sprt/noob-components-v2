@@ -1518,3 +1518,35 @@ Replaced AdminProvider's single theme?: GlobalThemeOverrides prop with an array 
 ### Next Steps
 
 - openwiki regeneration (user-managed).
+
+
+## Session 43: Silence vue-i18n fallback warnings in demo
+
+**Date**: 2026-08-14
+**Task**: Silence vue-i18n fallback warnings in demo
+
+### Summary
+
+Fixed persistent 'Not found ... key in zh/en' and 'Fall back to translate ... with root locale' vue-i18n warnings in the demo console. Root cause: component local composers inherit missingWarn/fallbackWarn from the root global composer (ignoring their own useI18n options), and the FALLBACK_TO_ROOT warning fires on fallbackWarn || missingWarn — so fallbackWarn:false alone was insufficient while missingWarn defaulted to true. Set missingWarn:false on the demo root createI18n.
+
+### Main Changes
+
+- Demo root i18n: add missingWarn:false alongside fallbackWarn:false so host-message fallbacks (themes.*, tabs.*) resolve silently through createComponentI18n local composers.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ed3c87e1` | (see git log) |
+
+### Testing
+
+- [OK] Browser-verified on [::1]:5174 via page.on('console') capture: fresh mount+login, theme dropdown hover (6 labels), language dropdown, and zh-CN switch all produce zero intlify warnings; labels still resolve (not raw keys).
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None (small config fix; already committed).
