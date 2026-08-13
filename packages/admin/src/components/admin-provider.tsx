@@ -1,6 +1,6 @@
 import { defineComponent, provide, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { NConfigProvider } from "naive-ui";
+import { NConfigProvider, NGlobalStyle } from "naive-ui";
 
 import {
   libraryI18nOverridesKey,
@@ -118,6 +118,7 @@ export const AdminProvider = defineComponent(
     //    the composable.
     return () => (
       <NConfigProvider {...provider.naiveUiConfig.value}>
+        <NGlobalStyle />
         {slots.default?.()}
       </NConfigProvider>
     );
