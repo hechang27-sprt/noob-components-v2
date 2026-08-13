@@ -1,3 +1,17 @@
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in this repository’s GitHub Issues. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Triage uses the five default canonical labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Domain documentation uses a multi-context layout. See `docs/agents/domain.md`.
+
 <!-- TRELLIS:START -->
 
 # Trellis Instructions
@@ -22,37 +36,6 @@ Managed by Trellis. Edits outside this block are preserved; edits inside may be 
 
 <!-- TRELLIS:END -->
 
-## Code Authoring Rules
-
-Apply these rules to every code change:
-
-1. **Document every method.** Each method needs a comment explaining why it exists, its responsibility, every input parameter, and its return value. Keep the comment adjacent to the method and update it when the signature or behavior changes. Note that this applies not just to functions/methods, depending on the languages, this also applies to class fields, global variables, component states etc..
-2. **Read before writing.** Before changing code, read the relevant implementation and its callers. State the business logic the change captures and why the change is necessary before writing code.
-3. **Make minimal changes.** Reuse established logic and conventions. Avoid broad rewrites, speculative abstractions, and cleverness that obscures maintenance.
-4. **Follow language standards.** Use the language and project formatting/conventions, keep methods focused, and apply design patterns only when they make control flow and ownership clearer.
-
-## Subagent Orchestration
-
-1. Don't just spawn a lone subagent. If only one is necessary, just do it with the default agent.
-
-2. Don't give entire file/feature to subagents to implement. Design the overall architecture or, depending on the scale, API surface and/or structure of the code with the main agent, then delegate the details to subagents.
-
-3. Only give scoped tasks to subagents. Avoid potentially open-ended tasks that can leave subagent running for a long time.
-
-## Agent skills
-
-### Issue tracker
-
-Issues are tracked in this repository’s GitHub Issues. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Triage uses the five default canonical labels. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Domain documentation uses a multi-context layout. See `docs/agents/domain.md`.
-
 <!-- OPENWIKI:START -->
 
 ## OpenWiki
@@ -65,3 +48,37 @@ This repository has a generated `openwiki/` evidence index. It is optional just-
 The scheduled OpenWiki GitHub Actions workflow refreshes the repository wiki. Do not hand-edit generated OpenWiki pages unless explicitly asked; prefer updating source code/docs and letting OpenWiki regenerate.
 
 <!-- OPENWIKI:END -->
+
+<!-- gitnexus:start -->
+
+# GitNexus — Code Intelligence
+
+This project is indexed by GitNexus as **noob-components-v2** (991 symbols, 1790 relationships, 36 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+
+> Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
+
+## Always Do
+
+- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
+- **MUST run `detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows. For regression review, compare against the default branch: `detect_changes({scope: "compare", base_ref: "main"})`.
+- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
+- When exploring unfamiliar code, use `query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
+- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `context({name: "symbolName"})`.
+
+## Never Do
+
+- NEVER edit a function, class, or method without first running `impact` on it.
+- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
+- NEVER rename symbols with find-and-replace — use `rename` which understands the call graph.
+- NEVER commit changes without running `detect_changes()` to check affected scope.
+
+## Resources
+
+| Resource                                            | Use for                                  |
+| --------------------------------------------------- | ---------------------------------------- |
+| `gitnexus://repo/noob-components-v2/context`        | Codebase overview, check index freshness |
+| `gitnexus://repo/noob-components-v2/clusters`       | All functional areas                     |
+| `gitnexus://repo/noob-components-v2/processes`      | All execution flows                      |
+| `gitnexus://repo/noob-components-v2/process/{name}` | Step-by-step execution trace             |
+
+<!-- gitnexus:end -->
