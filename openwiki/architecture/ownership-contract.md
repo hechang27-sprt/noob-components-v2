@@ -168,5 +168,7 @@ Concrete flow steps (ADR-0002):
   unavailable recovery, cross-tab invalidation) describe sequenced future work,
   not current code. The source of truth is the [auth store](../packages/admin/auth.md).
 - `docs/admin-i18n-design-options.md` — design comparison that motivated the
-  explicit library i18n plugin approach implemented in
-  [i18n package](../packages/i18n.md).
+  explicit library i18n approach implemented in the
+  [i18n package](../packages/i18n.md) (now a libraryId-keyed override registry
+  with per-component Composers; see
+  [Admin i18n](../packages/admin/i18n.md)).

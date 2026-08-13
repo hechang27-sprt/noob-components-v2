@@ -22,25 +22,40 @@ A Vite plugin **preset** (nested array, flattened by Vite) composed of:
    this helper, not to the consumer. Source-consuming application builds only;
    built package output already contains precompiled message ASTs.
 2. `createWorkspaceLocaleHmrPlugin()` — a serve-only companion (`apply:
-   "serve"`, `enforce: "pre"`) that:
+   "serve"`, `enforce: "pre"`) that makes locale edits hot-reload. It injects
+   no code: no `import.meta.hot.accept` boundary and no app-side HMR code.
 
-   - records static JSON imports from untransformed source modules
-     (`JSON_IMPORT_PATTERN`) and tracks importers per normalized locale file;
-   - **injects an HMR accept boundary** for plain-module aggregators that both
-     import a workspace locale resource and declare a top-level
-     `createI18n`/`createComposer` (`COMPOSER_DECL_PATTERN`): on locale edit the
-     callback re-applies the re-imported precompiled virtual module through
-     `(composer.global ?? composer).setLocaleMessage(locale, messages)`, so text
-     updates in place without app-side `import.meta.hot.accept` code. Vue
-     component importers (`.vue`/`.tsx`/`.jsx`) already self-accept through
-     plugin-vue/plugin-vue-jsx; modules with their own `import.meta.hot.accept`
-     are skipped (no double boundary). Production builds strip `import.meta.hot`
-     blocks.
-   - `handleHotUpdate` redirects a changed locale resource to its Intlify
-     virtual module (`virtual:intlify-i18n-*`), letting Vite propagation reach
-     both importer kinds; returns nothing when no virtual dependency is
-     reachable so Vite falls back to default handling (never a forced full
-     reload for unrelated files).
+   **The problem.** `VueI18nPlugin` rewrites every `src/locales/*.json` import
+   into a precompiled Intlify virtual module (`virtual:intlify-i18n-*`). At
+   runtime no component imports the raw JSON file; the virtual module is its
+   only graph connection. A raw JSON edit therefore has no importer for
+   Vite's default HMR to propagate from.
+
+   **The fix.** The companion bridges the raw file to its virtual module in
+   two hooks:
+
+   - `transform` (before the precompiler, so the filesystem path is still
+     visible) scans untransformed source for static JSON imports
+     (`JSON_IMPORT_PATTERN`). It keeps those whose resolved path matches
+     `isWorkspaceLocaleResource` — JSON under `apps/*/src/locales` or
+     `packages/*/src/locales`, mirroring the unplugin `include` globs — and
+     records each importer per normalized locale file.
+   - `handleHotUpdate` looks up the changed file's recorded importers,
+     resolves each in the module graph, and returns the Intlify virtual
+     modules among their dependencies. Returning those modules makes Vite run
+     its normal propagation from them to the importing component. The
+     component self-accepts via plugin-vue/plugin-vue-jsx (`.vue`/`.tsx`/
+     `.jsx`), so the edit re-executes the component and its setup re-applies
+     the freshly precompiled resource.
+
+   When no virtual module is reachable the hook returns nothing. Vite then
+   falls back to default handling; an empty array would force a full reload,
+   so this never reloads the page for unrelated files.
+
+   **Constraint.** Locale resources must be imported and wired inside a
+   component (e.g. a host `LocaleProvider`), not at app setup in a plain
+   module. A plain-module aggregator has no self-accept boundary, so locale
+   edits would degrade to Vite's default full-reload behavior.
 
 Consumers: `apps/demo/vite.config.ts` and `packages/prototype-i18n-verification`
 (a direct `vueI18n` include, not the preset).

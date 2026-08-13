@@ -54,7 +54,7 @@ Renders a localized card through a **fresh, empty component-local Composer**:
    Composer.
 2. `composer.fallbackRoot = false` is set **after creation** (Vue I18n 11.4.8
    initializes fallback settings from the root when `__root && inheritLocale`) —
-   deliberately the opposite of the shared factory's `fallbackRoot: true`, so
+   deliberately the opposite of the shared registry's `fallbackRoot: true`, so
    missing package keys never resolve from host-global registries here.
 3. Merges packaged defaults first (`src/locales/PrototypeCard.json`, locale-first
    `{ en, "zh-CN" }`), then the component's plugin override slice — overrides win
@@ -81,3 +81,4 @@ tests):
 - [i18n package](i18n.md) — the shared factory this package mirrors
 - [Demo host](../apps/demo.md) — `InternationalizationDemoPage` renders
   `PrototypeCard` with locale diagnostics
+th locale diagnostics

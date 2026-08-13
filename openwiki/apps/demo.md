@@ -64,10 +64,12 @@ seeding moved into the `AdminProvider` component mounted by `App.tsx` — see
   nav-key identity; built in `App.tsx` by `createMenuOption`;
 - `storeOptions={{ defaults: { availableLocales: [...] }, fallbackLocale: "en" }}`
   — preference defaults and host-owned naive-ui fallback locale;
-- `overrides={{ en: { AdminShell: { account: { signOut: "Log out" } } },
-  "zh-CN": { AdminShell: { account: { signOut: "退出" } } } }}` — the package
-  text-override snapshot (the component-based replacement for the former
-  `app.use(adminI18nPlugin, { messages })` install).
+- `overrides={{ "noob-naive-ui:admin": { en: { AdminShell: { account: { signOut:
+  "Log out" } } }, "zh-CN": { AdminShell: { account: { signOut: "退出" } } } }
+  satisfies AdminLocaleOverrides }}` — the shared libraryId-keyed override
+  registry (the component-based replacement for the former per-package
+  `app.use(adminI18nPlugin, { messages })` install; each entry is typed with
+  that package's override type).
 
 The host component still owns the browser-level wiring that the provider does
 not:

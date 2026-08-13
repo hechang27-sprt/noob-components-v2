@@ -28,10 +28,13 @@ The barrel re-exports:
 - **Stores**: `useAdminAuthStore` (+ `AdminAuthStore`, `AdminAuthStoreConfig`),
   `useAdminShellPreferencesStore`, `useAdminShellMenuStore`,
   `useAdminShellNavigationStore`.
-- **i18n**: `adminI18nPlugin`, plus `AdminLocale`-family types
-  (`AdminComponentId`, `AdminLocaleName`, `AdminLocaleOverrides`,
-  `AdminShellLocale`, `AdminLoginPageLocale`, `AdminI18nPluginOptions`,
-  `AdminI18nSnapshot`).
+- **i18n**: `AdminI18nSnapshot` (type only, from `i18n/plugin.ts`); the
+  `adminI18n` descriptor (`libraryId: "noob-naive-ui:admin"`) is
+  **module-internal** — hosts override package text through the shared
+  libraryId-keyed registry (`libraryI18nOverridesKey` from
+  `@noob-naive-ui/i18n`), supplied via the `AdminProvider` `overrides` prop.
+  Plus `AdminLocale`-family types (`AdminComponentId`, `AdminLocaleName`,
+  `AdminLocaleOverrides`, `AdminShellLocale`, `AdminLoginPageLocale`).
 - **Naive UI config helpers**: `resolveAdminNaiveBaseFontSize`,
   `resolveAdminNaiveUiLocale`, `AdminNaiveUiConfig` — see
   [Preferences](preferences.md).
@@ -70,7 +73,7 @@ src/
     use-admin-shell-tabs.ts   page-instance tab state machine
   use-admin-provider.ts       useAdminProvider composable (provider.md)
   i18n/
-    plugin.ts                 adminI18n plugin descriptor
+    plugin.ts                 adminI18n descriptor + AdminI18nSnapshot type
     admin-locale.ts           locale typing over generated types
   locales/
     AdminShell.json           en/zh-CN packaged messages
@@ -120,6 +123,6 @@ emitted for consumers. Details in [Repository Overview — build pipeline](../..
 - [Auth store and login page](auth.md)
 - [Shell, tabbar, and page-instance state machine](shell.md)
 - [Shell preferences and Naive UI config](preferences.md)
-- [Admin i18n plugin and locale resources](i18n.md)
+- [Admin i18n descriptor and locale resources](i18n.md)
 - [Navigation and menu runtime stores](runtime-stores.md)
 - [AdminProvider and useAdminProvider](provider.md)

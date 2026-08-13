@@ -13,8 +13,8 @@ previously lived hand-wired in the demo's `main.ts`/`App.tsx`. Hosts mount it on
 under a configured Pinia and a global vue-i18n Composer, and it:
 
 1. provides the admin package's i18n text-override snapshot to descendants
-   (replacing the former `app.use(adminI18nPlugin, { messages })` install — see
-   [Admin i18n](i18n.md));
+   (replacing the former per-package `app.use(adminI18nPlugin, { messages })`
+   install — see [Admin i18n](i18n.md));
 2. initializes the shell-preferences store from `storeOptions` (see
    [Preferences](preferences.md));
 3. configures the shell menu store from the `menu` prop;
@@ -37,32 +37,34 @@ remain an implementation detail.
 | `menu` | `AdminMenuTree` (`MenuOption[]`) | The shell sidebar menu, configured into the menu store (configure-once). |
 | `storeOptions?` | `AdminShellPreferencesStoreOptions` | Preferences `defaults`, `storage`, and `fallbackLocale` (see [Preferences](preferences.md)). |
 | `theme?` | `GlobalThemeOverrides` | Host naive-ui global theme overrides, spread **on top of** the derived font-size overrides. |
-| `overrides?` | `AdminI18nPluginOptions["messages"]` | Per-locale, per-component overrides of admin package text; provided under `adminI18nOverridesKey`, which `createComponentI18n` injects when merging package text. |
+| `overrides?` | `LibraryI18nOverridesRegistry` | The shared libraryId-keyed override registry (from `@noob-naive-ui/i18n`), e.g. `{ "noob-naive-ui:admin": {...} satisfies AdminLocaleOverrides }`; provided under `libraryI18nOverridesKey`, which `createComponentI18n` reads to merge package text. |
 
 The host must `app.use(i18n)` and `app.use(createPinia())` before mounting this
 component.
 
 ## Setup ordering (`components/admin-provider.tsx`)
 
-<!-- openwiki: mermaid parse failed and this diagram was converted to a text fence so it does not break rendering. Fix the diagram source and restore the mermaid fence. Parser error: Heuristic: a semicolon inside a label breaks rendering; rephrase the label. -->
-```text
+```mermaid
 sequenceDiagram
     participant H as Host app
     participant P as AdminProvider
-    participant S as stores (preferences/menu)
+    participant S as Pinia stores
     participant C as global Composer
     H->>P: mount with messages/menu/storeOptions/overrides
-    P->>P: provide(adminI18nOverridesKey, structuredClone(overrides) ?? {})
+    P->>P: provide(libraryI18nOverridesKey, cloned registry)
     P->>S: preferences.initialize(storeOptions)
     P->>C: composer.locale.value = provider.locale.value
     P->>S: menu.configure(menu)
-    P->>C: setLocaleMessage(locale, messages) (watch, immediate; re-seed on prop change)
-    P->>P: render NConfigProvider (derived config + host theme overrides)
+    P->>C: setLocaleMessage per locale (watch, immediate, re-seed)
+    P->>P: render NConfigProvider (derived config + host theme)
 ```
 
-- The override snapshot is defensively `structuredClone`d before `provide`, so
-  mutating the host's objects after mount cannot affect current or future
-  mounts.
+*AdminProvider mount ordering: override registry, store initialization, Composer seeding, and derived config rendering.*
+
+- The override registry is defensively `structuredClone`d per entry before
+  `provide`, so mutating the host's objects after mount cannot affect current or
+  future mounts. The registry carries entries for every component package by
+  `libraryId` (admin, ui, …), not just admin — see [i18n package](../i18n.md).
 - Store initialization is idempotent across Vue HMR remounts because the
   preferences and menu stores once-guard their own initialization (a fresh
   provider setup re-uses the same store state).
@@ -116,9 +118,11 @@ To add a new persisted preference field:
 
 To migrate a host from the manual wiring (old demo `main.ts` pattern) to
 `AdminProvider`: move `preferences.initialize(...)`, the global-Composer locale
-seed, `menu.configure(...)`, and `app.use(adminI18nPlugin, { messages })` into
-`<AdminProvider messages menu storeOptions overrides>`, then delete the manual
-calls. The demo at [apps/demo](../../apps/demo.md) is the reference migration.
+seed, `menu.configure(...)`, and the former per-package plugin override install
+into `<AdminProvider messages menu storeOptions overrides>`, then delete the
+manual calls. The `overrides` prop supplies the shared libraryId-keyed registry
+in place of `app.use(adminI18nPlugin, { messages })` ([Admin i18n](i18n.md)).
+The demo at [apps/demo](../../apps/demo.md) is the reference migration.
 
 ## Tests
 
@@ -126,7 +130,8 @@ calls. The demo at [apps/demo](../../apps/demo.md) is the reference migration.
   Composer on mount; re-seeds when the `messages` prop changes; initializes the
   preferences store from `storeOptions`; configures the menu store from
   `menu`; renders an `NConfigProvider` wrapping the default slot; provides the
-  override snapshot under `adminI18nOverridesKey`.
+  admin text-override snapshot under `libraryI18nOverridesKey` (registry entry
+  for `"noob-naive-ui:admin"`).
 - `packages/admin/tests/use-admin-provider.test.ts` (4 `it`): reactive
   projection from configured stores; action call-through; pure-projection
   invariant; derivation of `preferences`/`naiveUiConfig`/`proLayoutConfig`
@@ -139,6 +144,7 @@ tests/admin-provider.test.tsx tests/use-admin-provider.test.ts`.
 
 - [Admin overview](overview.md) — the public barrel this page is exported from
 - [Preferences](preferences.md) — the store blobs `useAdminProvider` projects
-- [Admin i18n](i18n.md) — the override snapshot replaced `adminI18nPlugin`
+- [Admin i18n](i18n.md) — the shared override registry replaced the per-package
+  `adminI18nPlugin`
 - [Shell](shell.md) — AdminShell and the navbar controls consume the provider
 - [Demo host](../../apps/demo.md) — reference host mount

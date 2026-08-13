@@ -28,11 +28,11 @@ Suite inventory (test-file counts from `grep` of `it(` blocks):
 | admin | `tests/shell-preferences.test.ts` | hydration, persistence, normalization, storage-failure safety (6 `it`) |
 | admin | `tests/admin-provider.test.tsx` | AdminProvider: Composer seeding/re-seeding, store init, menu config, NConfigProvider render, override provision (6 `it`) |
 | admin | `tests/use-admin-provider.test.ts` | composable projection, action delegation, pure-projection invariant, naiveUiConfig/proLayoutConfig derivation (4 `it`) |
-| admin | `tests/i18n-contract.test.tsx` | admin override snapshot/slices, defaults, fallback (5 `it`) |
+| admin | `tests/i18n-contract.test.tsx` | shared-registry overrides via the `AdminProvider` `overrides` prop: defensive snapshot, slice selection, removed-plugin guard, defaults, fallback (6 `it`) |
 | admin | `tests/json-locale-types.test.ts` | codegen correctness, stability, drift, watch path (15 `it`) |
 | i18n | `tests/i18n-text.test.ts` | I18nText schema + resolution (8 `it`) |
-| i18n | `tests/library-i18n-plugin.test.ts` | factory descriptor, slices, defensive copy (5 `it`) |
-| i18n | `tests/use-component-i18n.test.tsx` | packaged defaults, override merge, fallbackRoot, host-key resolution, nearest-composer (7 `it`) |
+| i18n | `tests/library-i18n-descriptor.test.ts` | shared registry + descriptor primitives: frozen empty snapshot, per-component slice selection, descriptor from just a libraryId, single shared key (5 `it`) |
+| i18n | `tests/use-component-i18n.test.tsx` | packaged defaults, override merge through the shared registry key, fallbackRoot, host-key resolution, nearest-composer (7 `it`) |
 | i18n | `tests/use-global-i18n-sync.test.tsx` | one-way locale sync (3 `it`) |
 | prototype | `tests/i18n-contract.test.ts` | plugin snapshot, slices, card locale ownership (4 `it`) |
 
@@ -58,9 +58,12 @@ Suite inventory (test-file counts from `grep` of `it(` blocks):
   `mountApi()` captures the `useAdminProvider()` API object during setup.
   `configureStores()` (initialize + menu configure) is the consumer-owned step
   the composable must never perform itself.
-- **i18n suites** — mount under a host-owned global `createI18n`, optionally
-  `app.use(plugin, { messages: overrides })`; assertions read rendered
-  `data-*` attributes.
+- **i18n suites** — mount under a host-owned global `createI18n`; override
+  snapshots are supplied through the shared `libraryI18nOverridesKey` registry
+  (harness `app.provide(libraryI18nOverridesKey, { "test-library": ... })`, or
+  the admin `AdminProvider` `overrides` prop in admin suites) — there is no
+  per-package plugin install anymore; assertions read rendered `data-*`
+  attributes.
 
 ## Narrowest validation per change area
 
@@ -73,6 +76,7 @@ Suite inventory (test-file counts from `grep` of `it(` blocks):
 | Auth store / login page | `pnpm --filter @noob-naive-ui/admin test tests/auth-store.test.ts tests/admin-login-page.test.tsx` |
 | Preferences persistence / naive-ui config | `pnpm --filter @noob-naive-ui/admin test tests/shell-preferences.test.ts` |
 | AdminProvider / useAdminProvider / provider refactor | `pnpm --filter @noob-naive-ui/admin test tests/admin-provider.test.tsx tests/use-admin-provider.test.ts tests/shell-preferences.test.ts` |
+| Admin i18n registry / override prop | `pnpm --filter @noob-naive-ui/admin test tests/i18n-contract.test.tsx tests/admin-provider.test.tsx` (plus `pnpm --filter @noob-naive-ui/i18n test` for the shared registry) |
 | Locale JSON changes (admin) | regenerate `locale-types.generated.ts`, then `pnpm --filter @noob-naive-ui/admin typecheck && pnpm --filter @noob-naive-ui/admin test tests/i18n-contract.test.tsx` |
 | Locale-type codegen changes | `pnpm --filter @noob-naive-ui/admin test tests/json-locale-types.test.ts` |
 | i18n package changes | `pnpm --filter @noob-naive-ui/i18n test` |

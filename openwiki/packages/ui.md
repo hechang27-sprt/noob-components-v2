@@ -1,7 +1,7 @@
 ---
 type: package
 title: "@noob-naive-ui/ui"
-description: The small ui package — a Naive UI theme bridge marked obsolete and an empty i18n plugin transport; mostly a place-holder surface today.
+description: The small ui package — a Naive UI theme bridge marked obsolete and an empty i18n descriptor surface; mostly a place-holder package today.
 tags: [ui, naive-ui, theme, package]
 ---
 
@@ -10,8 +10,8 @@ tags: [ui, naive-ui, theme, package]
 The `ui` package (`packages/ui`) currently ships a minimal surface:
 
 - `src/index.ts` exports the theme bridge (`defineNoobNaiveThemeBridge`,
-  `toNoobNaiveThemeOverrides`, `NoobNaiveThemeBridge`) and the ui i18n plugin
-  (`noobUiI18nPlugin` + types), and imports `./style.css` for side effects.
+  `toNoobNaiveThemeOverrides`, `NoobNaiveThemeBridge`) and the ui i18n
+  descriptor (`noobUiI18n` + types), and imports `./style.css` for side effects.
 - Dependencies: `@noob-naive-ui/i18n`. Peers: `naive-ui`, `vue`, `vue-i18n`
   (`catalog:`).
 
@@ -28,16 +28,19 @@ and `toNoobNaiveThemeOverrides` maps only the `common` slice into Naive UI
 > Treat this file as dead surface pending removal or redesign; do not build new
 > consumers on it.
 
-## i18n plugin (`src/i18n/plugin.ts`)
+## i18n descriptor (`src/i18n/plugin.ts`)
 
-`noobUiI18n` is created by the shared factory
-`createLibraryI18nPlugin<NoobUiLocaleName, Record<never, never>>` with
-`libraryId: "noob-naive-ui:ui"`. The component id union `NoobUiComponentId` is
-`never` today — the package ships no translatable text. The plugin transport
-ships ahead of the first translating component; the comment states the convention
-for extending it: the union grows, and locale-first resources then live under
+`noobUiI18n` is a `LibraryI18nDescriptor<NoobUiLocaleName, Record<never, never>>`
+with `libraryId: "noob-naive-ui:ui"` — the same descriptor shape the admin
+package uses (see [i18n package](i18n.md) and
+[Admin i18n](admin/i18n.md)). The component id union `NoobUiComponentId` is
+`never` today — the package ships no translatable text. The descriptor ships
+ahead of the first translating component; the comment states the convention for
+extending it: the union grows, and locale-first resources then live under
 `src/locales/<ComponentName>.json` and are precompiled by the shared workspace
-preset ([tooling](../tooling/vite-plugins.md)).
+preset ([tooling](../tooling/vite-plugins.md)). Hosts would supply ui overrides
+through the same shared `libraryI18nOverridesKey` registry (via the admin
+`AdminProvider` `overrides` prop) under the `noob-naive-ui:ui` key.
 
 ## Stylesheet (`src/style.css`)
 

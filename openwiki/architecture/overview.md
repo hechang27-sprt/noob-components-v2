@@ -24,8 +24,8 @@ apps/
   admin-starter/   package "admin-starter" — placeholder, not scaffolded (dev script prints a stub)
   demo/            package "demo" — backend-free host application (Vite dev/build)
 packages/
-  i18n/            @noob-naive-ui/i18n — shared library i18n plugin factory + component i18n registry
-  ui/              @noob-naive-ui/ui — theme bridge (marked obsolete) + empty i18n plugin
+  i18n/            @noob-naive-ui/i18n — shared i18n override registry/descriptors + component i18n registry
+  ui/              @noob-naive-ui/ui — theme bridge (marked obsolete) + empty i18n descriptor
   admin/           @noob-naive-ui/admin — router-neutral admin shell, login page, stores, naive-ui config
   admin-vue-router/@noob-naive-ui/admin-vue-router — Vue Router lifecycle integration (registry, navigation adapter, plugin-owned router)
   prototype-i18n-verification/ @noob-naive-ui/prototype-i18n-verification — PrototypeCard + standalone i18n plugin
