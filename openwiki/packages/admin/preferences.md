@@ -9,20 +9,21 @@ tags: [admin, preferences, naive-ui, persistence]
 
 `useAdminShellPreferencesStore` (`stores/shell-preferences.ts`) owns the
 **local display preferences** rendered by the AdminShell navbar controls: theme
-mode, font size, locale, and sidebar collapse. The store is deliberately opaque
-with respect to preference semantics: it holds two reactive blobs and offers only
-blob-level persistence operations. Every semantic field, setter, and derivation
-lives in the `useAdminProvider` composable ([Root Provider](provider.md)), which
-reads and mutates these blobs; consumers should not import the store directly.
-Persistence is a thin, defensive localStorage layer in
-`runtime/shell-preferences.ts`; Naive UI theming is derived in
-`runtime/naive-ui-config.ts`.
+mode, theme presets, font size, locale, and sidebar collapse. The store is
+deliberately opaque with respect to preference semantics: it holds two reactive
+blobs and offers only blob-level persistence operations. Every semantic field,
+setter, and derivation lives in the `useAdminProvider` composable
+([Root Provider](provider.md)), which reads and mutates these blobs; consumers
+should not import the store directly. Persistence is a thin, defensive
+localStorage layer in `runtime/shell-preferences.ts`; Naive UI theming is
+derived in `runtime/naive-ui-config.ts`.
 
 ## Preference model
 
 ```ts
 type AdminShellPreferences = {
   themeMode: "light" | "dark" | "system";
+  themeKey: string;                 // "" until a preset is picked
   fontSize: "small" | "medium" | "large";
   locale: string;
   availableLocales: AdminLocaleOption[];   // { key, label }
@@ -30,7 +31,43 @@ type AdminShellPreferences = {
 };
 ```
 
-Defaults: `system` / `medium` / `en` / `[]` / `false`.
+Defaults: `system` / `""` / `medium` / `en` / `[]` / `false`.
+
+## Theme presets (`runtime-contract.ts` + `runtime/naive-ui-config.ts`)
+
+`AdminThemePreset` is the host-supplied, navbar-selectable theme surface:
+
+```ts
+type AdminThemePreset = {
+  key: string;                       // stable preset identity, persisted in themeKey
+  label: I18nText;                   // resolved reactively against the nearest Composer
+  naiveUiConfig: GlobalThemeOverrides; // preset color overrides
+  fontSizeOverrides?: Record<AdminFontSize, GlobalThemeOverrides>; // optional per-size layers
+  isDark: boolean;                   // preset polarity (base darkTheme vs light)
+};
+```
+
+- `themeKey` stores the last-picked preset key; `""` means "no preset picked
+  yet", and resolution falls back to the polarity default.
+- `resolveThemePreset(themes, defaultTheme, defaultDarkTheme, themeMode,
+  themeKey, systemUsesDark)` picks the active preset by precedence: (1) an
+  explicitly picked preset whose `isDark` matches the effective polarity when
+  mode is `light`/`dark`; (2) the polarity default (`defaultDarkTheme` when
+  dark, else `defaultTheme`); (3) the first preset of the effective polarity.
+  While mode is `"system"`, the picked `themeKey` is ignored and the OS-driven
+  polarity default wins.
+- `mergeAdminNaiveUiThemeOverrides(size, preset)` deep-merges (es-toolkit
+  `merge`) the active preset's `naiveUiConfig` with the font-size tier layer —
+  the font-size layer is the source so the built-in hardcoded default font size
+  wins over font-size values the preset sets directly, unless the preset ships
+  its own `fontSizeOverrides[size]`.
+- `resolveDefaultNaiveUiTheme(themeMode, systemUsesDark)` provides the
+  no-preset fallback (`darkTheme` for dark or system+dark, else `null`).
+- `setTheme(key)` (in `useAdminProvider`) selects a preset and **pins the mode
+  to its polarity**; `configureThemePresets(themes, defaultTheme,
+  defaultDarkTheme)` writes the host-supplied set and polarity defaults into the
+  store's runtime blob. The navbar theme dropdown renders `themes` and is
+  disabled when the list is empty (see [Shell](shell.md)).
 
 ## Store behavior
 
@@ -39,7 +76,9 @@ The store is a minimal, storage-only state store with two reactive blobs:
 - `preferences` — the **persisted** blob (`AdminShellPreferences`, all fields
   stored).
 - `runtime` — non-persisted runtime state: `isHydrated`, `systemUsesDark`
-  (browser dark-mode signal), `fallbackLocale`.
+  (browser dark-mode signal), `fallbackLocale`, `themes` (host-supplied
+  `AdminThemePreset[]`), `defaultTheme`/`defaultDarkTheme` (polarity-default
+  preset keys for `"system"` mode).
 
 Operations (blob-level only):
 
@@ -58,7 +97,8 @@ Operations (blob-level only):
   input before calling.
 - `reset(preferencesBlob)` — replaces the entire preferences blob.
 
-The semantic mutators (`setThemeMode`, `setFontSize`, `setLocale`,
+The semantic mutators (`setThemeMode`, `setTheme`, `configureThemePresets`,
+`setFontSize`, `setLocale`,
 `setAvailableLocales` — which repairs an invalid active locale by falling back
 to the first option or the default — `setSidebarCollapsed`, `toggleSidebar`,
 `reset(defaults)`, `replacePreferences(partial)`, and `setSystemUsesDark`) and
@@ -68,10 +108,10 @@ owned by `useAdminProvider` — see [Root Provider](provider.md).
 ### Persistence (`runtime/shell-preferences.ts`)
 
 - Storage key: `"@noob-naive-ui/admin:shell-preferences"`.
-- Persisted shape is a subset (`themeMode`, `fontSize`, `locale`,
-  `sidebarCollapsed`); `availableLocales` and the system-dark signal are
-  intentionally **not** persisted — locale options always come from host
-  defaults.
+- Persisted shape is a subset (`themeMode`, `themeKey`, `fontSize`, `locale`,
+  `sidebarCollapsed`); `availableLocales`, the theme presets/polarity defaults,
+  and the system-dark signal are intentionally **not** persisted — locale
+  options and theme presets always come from host defaults.
 - Hydration reads and validates with Zod; malformed/unparseable payloads are
   removed and defaults returned. Mutation persistence is wired through
   `store.$subscribe(..., { detached: true, flush: "sync" })` with an
@@ -89,11 +129,16 @@ and shell (the store itself exposes only the raw blobs):
 
 ### `naiveUiConfig: AdminNaiveUiConfig` — for `<n-config-provider>`
 
-- `theme`: `darkTheme` when the mode is `dark`, or when mode is `system` and the
-  runtime `systemUsesDark` signal is true; otherwise `null` (light).
-- `themeOverrides`: fixed per-font-size overrides from `FONT_SIZE_OVERRIDES`
-  (common font sizes, Typography header sizes, Flex gaps; the 13/14/16px mapping
-  lives in exactly one place).
+- `theme`: the **active theme preset's base** when one resolves — `darkTheme`
+  for a dark preset (`isDark`), `null` for a light preset — otherwise
+  `resolveDefaultNaiveUiTheme(themeMode, systemUsesDark)` (`darkTheme` when the
+  mode is `dark`, or `system` + dark signal; else `null`).
+- `themeOverrides`: `mergeAdminNaiveUiThemeOverrides(fontSize, activeTheme)`
+  deep-merges the active preset's `naiveUiConfig` over the fixed per-font-size
+  overrides from `FONT_SIZE_OVERRIDES` (common font sizes, Typography header
+  sizes, Flex gaps; the 13/14/16px mapping lives in exactly one place, and the
+  font-size layer wins over preset font-size values unless the preset ships
+  `fontSizeOverrides`).
 - `locale`: `resolveAdminNaiveUiLocale(activeLocale, fallbackLocale)` maps
   `en` → `enUS`, `zh-CN` → `zhCN`; unsupported locales fall back to the
   host-owned fallback, then `null` (naive-ui keeps its built-in `enUS`).
@@ -134,9 +179,11 @@ so the pre-auth login page renders the restored locale before AdminShell mounts
 - maps each font-size preference to its CSS base font size;
 - treats storage adapter failures as no persistence.
 
-The `naiveUiConfig` derivation and the semantic mutators are covered by
-`use-admin-provider.test.ts` and `admin-provider.test.tsx` — see
-[Root Provider](provider.md).
+The `naiveUiConfig` derivation (including theme-preset resolution and override
+merging) and the semantic mutators are covered by `use-admin-provider.test.ts`
+(5 `it`, including "resolves the active theme preset and merges its overrides")
+and `admin-provider.test.tsx` (7 `it`, including "configures the theme presets
+and polarity defaults from props") — see [Root Provider](provider.md).
 
 ## Related
 

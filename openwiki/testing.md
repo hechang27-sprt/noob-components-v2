@@ -22,12 +22,12 @@ Suite inventory (test-file counts from `grep` of `it(` blocks):
 | admin-vue-router | `tests/create-admin-router.test.ts` | plugin contract, generated routes, overrides, guards, dispose, redirect restoration (43 `it`) |
 | admin-vue-router | `tests/navigation.test.ts` | navigation adapter: heal, scope guard, enterScope, fallback identity, metadata persistence (24 `it`) |
 | admin-vue-router | `tests/route-registry.test.ts` | registry binding, codec encode/decode, error propagation (8 `it`) |
-| admin | `tests/admin-shell.test.tsx` | shell layout, i18n sync, descendant context, tabs state machine, HMR/session behavior (24 `it`: 19 shell + 5 navigation store) |
+| admin | `tests/admin-shell.test.tsx` | shell layout, i18n sync, descendant context, tabs state machine, theme-control disable, HMR/session behavior (25 `it`: 20 shell + 5 navigation store) |
 | admin | `tests/auth-store.test.ts` | auth store lifecycle, restoration, login/logout, race containment (19 `it`) |
 | admin | `tests/admin-login-page.test.tsx` | login form submission, non-login states, error surface (4 `it`) |
 | admin | `tests/shell-preferences.test.ts` | hydration, persistence, normalization, storage-failure safety (6 `it`) |
-| admin | `tests/admin-provider.test.tsx` | AdminProvider: Composer seeding/re-seeding, store init, menu config, NConfigProvider render, override provision (6 `it`) |
-| admin | `tests/use-admin-provider.test.ts` | composable projection, action delegation, pure-projection invariant, naiveUiConfig/proLayoutConfig derivation (4 `it`) |
+| admin | `tests/admin-provider.test.tsx` | AdminProvider: Composer seeding/re-seeding, store init, menu config, theme-preset config, NConfigProvider render, override provision (7 `it`) |
+| admin | `tests/use-admin-provider.test.ts` | composable projection, action delegation, pure-projection invariant, naiveUiConfig/proLayoutConfig derivation, active theme-preset resolution + override merging (5 `it`) |
 | admin | `tests/i18n-contract.test.tsx` | shared-registry overrides via the `AdminProvider` `overrides` prop: defensive snapshot, slice selection, removed-plugin guard, defaults, fallback (6 `it`) |
 | admin | `tests/json-locale-types.test.ts` | codegen correctness, stability, drift, watch path (15 `it`) |
 | i18n | `tests/i18n-text.test.ts` | I18nText schema + resolution (8 `it`) |
@@ -74,7 +74,7 @@ Suite inventory (test-file counts from `grep` of `it(` blocks):
 | Router plugin / guards / dispose | `pnpm --filter @noob-naive-ui/admin-vue-router test tests/create-admin-router.test.ts` |
 | Shell / tabs / navigation store | `pnpm --filter @noob-naive-ui/admin test tests/admin-shell.test.tsx` |
 | Auth store / login page | `pnpm --filter @noob-naive-ui/admin test tests/auth-store.test.ts tests/admin-login-page.test.tsx` |
-| Preferences persistence / naive-ui config | `pnpm --filter @noob-naive-ui/admin test tests/shell-preferences.test.ts` |
+| Preferences persistence / naive-ui config / theme presets | `pnpm --filter @noob-naive-ui/admin test tests/shell-preferences.test.ts tests/use-admin-provider.test.ts` |
 | AdminProvider / useAdminProvider / provider refactor | `pnpm --filter @noob-naive-ui/admin test tests/admin-provider.test.tsx tests/use-admin-provider.test.ts tests/shell-preferences.test.ts` |
 | Admin i18n registry / override prop | `pnpm --filter @noob-naive-ui/admin test tests/i18n-contract.test.tsx tests/admin-provider.test.tsx` (plus `pnpm --filter @noob-naive-ui/i18n test` for the shared registry) |
 | Locale JSON changes (admin) | regenerate `locale-types.generated.ts`, then `pnpm --filter @noob-naive-ui/admin typecheck && pnpm --filter @noob-naive-ui/admin test tests/i18n-contract.test.tsx` |

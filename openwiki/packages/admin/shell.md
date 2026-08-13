@@ -141,10 +141,14 @@ Key behaviors (each proven by `admin-shell.test.tsx`):
 - NavLeft: sidebar collapse toggle button — reads/writes preferences through
   `useAdminProvider` (`provider.sidebarCollapsed`,
   `provider.setSidebarCollapsed`).
-- NavRight: theme-mode toggle (dark ↔ light), font-size dropdown (small/medium/
-  large), locale dropdown (`provider.availableLocales`), and the account dropdown
-  with a logout action that calls `auth.logout()`. All labels/aria text come from
-  the component Composer; icon set is `@vicons/ionicons5`.
+- NavRight: **theme-preset dropdown** (host-supplied presets from
+  `provider.themes`, active preset highlighted via `provider.activeTheme`,
+  selection calls `provider.setTheme(key)` which pins the mode to the preset's
+  polarity; disabled when no presets are configured), font-size dropdown
+  (small/medium/large), locale dropdown (`provider.availableLocales`), and the
+  account dropdown with a logout action that calls `auth.logout()`. All
+  labels/aria text come from the component Composer; icon set is
+  `@vicons/ionicons5` (theme = `ColorPaletteOutline`).
 - Both are `defineComponent` leaves for the same HMR-leaf reason as the tabbar,
   and are pure presentation: they read the provider/stores directly, no props or
   callbacks.
@@ -165,11 +169,12 @@ Key behaviors (each proven by `admin-shell.test.tsx`):
 
 ## Tests — `packages/admin/tests/admin-shell.test.tsx`
 
-24 `it` behaviors in two suites:
+25 `it` behaviors in two suites:
 
-- `describe("AdminShell")` (19 tests): authenticated layout render; sidebar
+- `describe("AdminShell")` (20 tests): authenticated layout render; sidebar
   hidden when menu absent/empty; content/menu/preference-control composition;
-  one-way preference→Composer locale sync; reactive i18n-kind tab labels;
+  theme control disabled when no presets are configured; one-way
+  preference→Composer locale sync; reactive i18n-kind tab labels;
   descendant context surface (navigation control only); per-shell context
   isolation; open-candidate commit only after host confirmation; rejected-open
   non-commit; newest-equal-destination activation; payload-different open; call-
@@ -186,5 +191,8 @@ Key behaviors (each proven by `admin-shell.test.tsx`):
 - [Preferences](preferences.md) — navbar controls and ProLayout props
 - [Root Provider](provider.md) — the `useAdminProvider` surface the shell reads
 - [runtime stores](runtime-stores.md) — the navigation/menu controllers
+- [admin-vue-router navigation runtime](../admin-vue-router/navigation-runtime.md)
+  — the Vue Router-backed controller that answers these requests
+time-stores.md) — the navigation/menu controllers
 - [admin-vue-router navigation runtime](../admin-vue-router/navigation-runtime.md)
   — the Vue Router-backed controller that answers these requests

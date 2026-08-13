@@ -24,10 +24,15 @@ The barrel re-exports:
   `AdminAuthStatus`, `AdminAuthIdentity`, `AdminAuthRestoreResult`,
   `AdminLoginValues`, `AdminRouteKey`, `AdminMenuTree` (= Naive UI `MenuOption[]`),
   `AdminThemeMode` ("light" | "dark" | "system"), `AdminFontSize`
-  ("small" | "medium" | "large"), `AdminLocaleOption`, `AdminShellPreferences`.
-- **Stores**: `useAdminAuthStore` (+ `AdminAuthStore`, `AdminAuthStoreConfig`),
-  `useAdminShellPreferencesStore`, `useAdminShellMenuStore`,
-  `useAdminShellNavigationStore`.
+  ("small" | "medium" | "large"), `AdminThemePreset` (navbar-selectable theme
+  presets with per-font-size override layers), `AdminLocaleOption`,
+  `AdminShellPreferences`.
+- **Stores**: only `useAdminAuthStore` (+ `AdminAuthStore`,
+  `AdminAuthStoreConfig`) and `useAdminShellNavigationStore` are re-exported from
+  the barrel. `useAdminShellPreferencesStore` and `useAdminShellMenuStore` are
+  **module-internal** — consumers reach preferences/menu state through
+  `useAdminProvider` (see [Root Provider](provider.md) and
+  [runtime stores](runtime-stores.md)).
 - **i18n**: `AdminI18nSnapshot` (type only, from `i18n/plugin.ts`); the
   `adminI18n` descriptor (`libraryId: "noob-naive-ui:admin"`) is
   **module-internal** — hosts override package text through the shared
@@ -55,7 +60,7 @@ src/
   index.ts                    public barrel
   runtime-contract.ts         router-neutral public types
   runtime/
-    naive-ui-config.ts        theme/locale/font-size/component-size derivation
+    naive-ui-config.ts        theme/locale/font-size/component-size derivation + theme-preset resolution
     shell-preferences.ts      persistence schema, storage adapter, load/normalize/persist
   stores/
     auth.ts                   useAdminAuthStore (see auth.md)
@@ -124,5 +129,8 @@ emitted for consumers. Details in [Repository Overview — build pipeline](../..
 - [Shell, tabbar, and page-instance state machine](shell.md)
 - [Shell preferences and Naive UI config](preferences.md)
 - [Admin i18n descriptor and locale resources](i18n.md)
+- [Navigation and menu runtime stores](runtime-stores.md)
+- [AdminProvider and useAdminProvider](provider.md)
+locale resources](i18n.md)
 - [Navigation and menu runtime stores](runtime-stores.md)
 - [AdminProvider and useAdminProvider](provider.md)

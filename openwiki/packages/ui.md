@@ -1,32 +1,37 @@
 ---
 type: package
 title: "@noob-naive-ui/ui"
-description: The small ui package — a Naive UI theme bridge marked obsolete and an empty i18n descriptor surface; mostly a place-holder package today.
-tags: [ui, naive-ui, theme, package]
+description: The minimal ui package — an empty i18n descriptor surface (`NoobUiComponentId = never`) and the shared Tailwind v4 stylesheet that the admin package re-imports; mostly a place-holder package today.
+tags: [ui, naive-ui, i18n, package]
 ---
 
 # `@noob-naive-ui/ui`
 
 The `ui` package (`packages/ui`) currently ships a minimal surface:
 
-- `src/index.ts` exports the theme bridge (`defineNoobNaiveThemeBridge`,
-  `toNoobNaiveThemeOverrides`, `NoobNaiveThemeBridge`) and the ui i18n
-  descriptor (`noobUiI18n` + types), and imports `./style.css` for side effects.
+- `src/index.ts` exports the ui i18n descriptor (`noobUiI18n` + types) and
+  imports `./style.css` for side effects. The former theme bridge
+  (`src/theme/naive.ts`, `defineNoobNaiveThemeBridge`,
+  `toNoobNaiveThemeOverrides`, `NoobNaiveThemeBridge`) **has been removed** —
+  the admin package derives all theme configuration itself in
+  `runtime/naive-ui-config.ts` (see [Preferences](admin/preferences.md)).
 - Dependencies: `@noob-naive-ui/i18n`. Peers: `naive-ui`, `vue`, `vue-i18n`
   (`catalog:`).
 
-## Theme bridge (`src/theme/naive.ts`)
+## Public surface (`src/index.ts`)
 
-`NoobNaiveThemeBridge` is `{ common?: GlobalThemeOverrides["common"], layout?:
-{ pageMaxWidth?, contentPadding? } }`. `defineNoobNaiveThemeBridge` normalizes it
-and `toNoobNaiveThemeOverrides` maps only the `common` slice into Naive UI
-`GlobalThemeOverrides`.
+```ts
+export { noobUiI18n } from "./i18n/plugin";
+export type {
+  NoobUiComponentId,
+  NoobUiI18nSnapshot,
+  NoobUiLocaleName,
+  NoobUiLocaleOverrides,
+} from "./i18n/plugin";
+```
 
-> **Obsolete**: the module carries the comment `// Obsolete ???`. The admin
-> package does not use this bridge — it derives all theme configuration itself in
-> `runtime/naive-ui-config.ts` (see [Preferences](admin/preferences.md)).
-> Treat this file as dead surface pending removal or redesign; do not build new
-> consumers on it.
+The barrel exports only the i18n descriptor and its types. There is no theme
+surface, no component, and no runtime logic today.
 
 ## i18n descriptor (`src/i18n/plugin.ts`)
 
@@ -55,3 +60,12 @@ Tailwind v4 CSS: `@layer theme, base, components, utilities;`, imports
 
 No test suite exists for the ui package (`tests/` directory absent); its
 behavior is exercised indirectly through the admin package and demo.
+
+## Related
+
+- [i18n package](i18n.md) — the shared descriptor/registry primitives
+- [Admin i18n](admin/i18n.md) — the same descriptor pattern with real components
+- [Admin preferences](admin/preferences.md) — the admin package derives its own
+  theme configuration (the removed bridge is not needed)
+- [Repository Overview](../architecture/overview.md) — build pipeline and
+  `./style.css` subpath contract

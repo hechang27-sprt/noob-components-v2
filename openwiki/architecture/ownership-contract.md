@@ -80,8 +80,9 @@ example):
   callbacks return frontend presentation identity while the package store owns
   auth-state transitions;
 - shell-preference defaults and available locales, the final `MenuOption[]`
-  (hierarchy, visibility, labels, stable keys), per-locale message resources, and
-  package text overrides — all passed as `AdminProvider` props (see
+  (hierarchy, visibility, labels, stable keys), per-locale message resources,
+  selectable theme presets and polarity defaults, and package text overrides —
+  all passed as `AdminProvider` props (see
   [Root Provider](../packages/admin/provider.md));
 - route definitions, page components, and reversible payload codecs through
   `AdminRouteRegistry`;

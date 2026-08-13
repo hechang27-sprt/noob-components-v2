@@ -14,4 +14,7 @@ A code wiki for this repository.
 
 ## Prose & Style guide
 
-Prefer concise and clear technical writing and avoid using both excessively terse and complicated language. Avoid overusing jargonish language. For English language output, try to follow the ASD-STE100 standard.
+- Prefer concise and clear technical writing and avoid using both excessively terse and complicated language.
+- Avoid overusing jargonish language.
+- Avoid running sentences.
+- For English language output, try to follow the ASD-STE100 standard.

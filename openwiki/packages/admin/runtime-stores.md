@@ -13,6 +13,13 @@ AdminShell consumes reactively. They share a deliberate design: non-serializable
 values are kept out of Pinia's serializable state tree, and each store accepts
 configuration exactly once per Pinia instance.
 
+> **Export status**: neither store is re-exported from `src/index.ts`
+> ([overview](overview.md)) — they are module-internal. Hosts configure them
+> through `AdminProvider` props (`menu`; the router plugin configures the
+> navigation store at install time) and read their state through
+> `useAdminProvider` ([Root Provider](provider.md)). The code samples below
+> document the store internals for the shell and plugin that consume them.
+
 ## `useAdminShellNavigationStore` — the plugin↔shell seam
 
 ```ts

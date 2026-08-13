@@ -1,7 +1,7 @@
 ---
 type: app
 title: apps/demo — Backend-Free Host Application
-description: "The reference host application proving the full admin stack: Pinia plus auth effects plus preferences plus menu assembly, the admin router plugin, registry codecs, tab presentation policy, and demo pages."
+description: "The reference host application proving the full admin stack: Pinia plus auth effects plus preferences plus theme presets plus menu assembly, the admin router plugin, registry codecs, tab presentation policy, and demo pages."
 tags: [app, demo, host, integration]
 ---
 
@@ -64,6 +64,11 @@ seeding moved into the `AdminProvider` component mounted by `App.tsx` — see
   nav-key identity; built in `App.tsx` by `createMenuOption`;
 - `storeOptions={{ defaults: { availableLocales: [...] }, fallbackLocale: "en" }}`
   — preference defaults and host-owned naive-ui fallback locale;
+- `themes={demoThemePresets}` with `defaultTheme="default"` and
+  `defaultDarkTheme="midnight"` — the host-supplied theme presets and their
+  polarity defaults, configured into the store's runtime blob by the provider
+  (`configureThemePresets`) and rendered by the navbar theme dropdown
+  (`src/themes.ts`, see [Theme presets](#theme-presets-srcthemests) below);
 - `overrides={{ "noob-naive-ui:admin": { en: { AdminShell: { account: { signOut:
   "Log out" } } }, "zh-CN": { AdminShell: { account: { signOut: "退出" } } } }
   satisfies AdminLocaleOverrides }}` — the shared libraryId-keyed override
@@ -127,6 +132,22 @@ active locale and fallback locale; AdminShell owns all later store → Composer
 synchronization; non-component modules (menu, tab labels) translate through
 `i18n.global.t` after the provider has mounted. See
 [Root Provider](../packages/admin/provider.md).
+
+## Theme presets (`src/themes.ts`)
+
+`demoThemePresets` is an `AdminThemePreset[]` of six accent presets —
+light `default` (#18a058), `ocean` (#2563eb), `sunset` (#f97316); dark
+`midnight` (#6366f1), `forest` (#22c55e), `crimson` (#ef4444). Each preset's
+`label` is an `I18nText` i18n key (`themes.*` in `src/locales/demo.json`) so
+names localize with the active language; dark presets override the base dark
+surfaces (`bodyColor`, `cardColor`, etc.) so each theme reads distinctly.
+`demoDefaultTheme = "default"` and `demoDefaultDarkTheme = "midnight"` are the
+polarity defaults resolved while the stored theme mode is `"system"` — the
+browser color scheme picks between them until the user selects a preset
+explicitly (which pins the mode to the preset's polarity). The presets flow
+through `AdminProvider`'s `themes`/`defaultTheme`/`defaultDarkTheme` props into
+the store's runtime blob and render in the shell's navbar theme dropdown
+([Admin preferences](../packages/admin/preferences.md)).
 
 ## Vite entry
 
