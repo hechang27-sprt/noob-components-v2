@@ -10,6 +10,7 @@ import { RouterView } from "vue-router";
 import { i18n } from "./i18n";
 import demoMessages from "./locales/demo.json";
 import type { DemoNavKey } from "./routes";
+import type { AdminLocaleOverrides } from "@noob-naive-ui/admin";
 
 /**
  * Renders the demo's root providers around the host-owned outer route view.
@@ -120,8 +121,10 @@ export default defineComponent(
           fallbackLocale: "en",
         }}
         overrides={{
-          en: { AdminShell: { account: { signOut: "Log out" } } },
-          "zh-CN": { AdminShell: { account: { signOut: "退出" } } },
+          "noob-naive-ui:admin": {
+            en: { AdminShell: { account: { signOut: "Log out" } } },
+            "zh-CN": { AdminShell: { account: { signOut: "退出" } } },
+          } satisfies AdminLocaleOverrides,
         }}>
         <RouterView />
       </AdminProvider>

@@ -6,8 +6,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createComponentI18n,
-  createLibraryI18nDescriptor,
   getComponentI18n,
+  libraryI18nOverridesKey,
+  type LibraryI18nDescriptor,
   type LibraryI18nOverrides,
 } from "../src/index";
 
@@ -28,10 +29,10 @@ type TestLocaleName = "en" | "zh-CN";
 
 type TestOverrides = LibraryI18nOverrides<TestLocaleName, TestLocale>;
 
-/** The harness library's descriptor built by the shared factory. */
-const testDescriptor = createLibraryI18nDescriptor<TestLocaleName, TestLocale>({
+/** The harness library's typed i18n descriptor (libraryId + pinned schema). */
+const testDescriptor: LibraryI18nDescriptor<TestLocaleName, TestLocale> = {
   libraryId: "test-library",
-});
+};
 
 /** Packaged defaults a library component ships with. */
 const packagedDefaults: Readonly<Record<TestLocaleName, unknown>> = {
@@ -145,7 +146,9 @@ function mount(
   const app = createApp(component);
   app.use(i18n);
   if (options.overrides) {
-    app.provide(testDescriptor.overridesKey, { messages: options.overrides });
+    app.provide(libraryI18nOverridesKey, {
+      "test-library": options.overrides,
+    });
   }
   app.mount(target);
   mountedApps.push(app);

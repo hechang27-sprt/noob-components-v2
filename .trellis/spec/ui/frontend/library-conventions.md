@@ -37,7 +37,7 @@ Inspect the built root entry when changing exports or externals: `dist/index.js`
 
 `fallow`'s dead-code/unused-export analysis is heuristic and frequently false-positive for this codebase. Before deleting anything it flags, verify against the package's public surface and the spec contract:
 
-- A symbol re-exported from the package barrel (`src/index.ts`) is public API even if no consumer inside the repo uses it. `fallow` reports these as unused exports / unused store members — do not remove. Example: `DEFAULT_SNAPSHOT` in `packages/admin/src/i18n/plugin.ts` and `replacePreferences`/`reset` in `useAdminShellPreferencesStore`.
+- A symbol re-exported from the package barrel (`src/index.ts`) is public API even if no consumer inside the repo uses it. `fallow` reports these as unused exports / unused store members — do not remove. Example: `AdminI18nSnapshot` in `packages/admin/src/i18n/plugin.ts` and `replacePreferences`/`reset` in `useAdminShellPreferencesStore`.
 - A file imported only from a Vite config is reported as an unused file (Vite configs are not entry points). Example: `tooling/vite/vue-i18n.ts` (imported by `apps/demo/vite.config.ts`).
 - Framework CSS imports (`tailwindcss/theme.css`, `tailwindcss/utilities.css`) and root-declared devDeps consumed in package Vite configs are reported as unresolved/unlisted. Leave them.
 - Generated files (e.g. `packages/*/src/locales/locale-types.generated.ts`) legitimately repeat shapes; regenerate, never hand-edit.

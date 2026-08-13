@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  createLibraryI18nDescriptor,
+  emptySnapshot,
+  libraryI18nOverridesKey,
+  selectComponentOverrides,
+  type LibraryI18nDescriptor,
   type LibraryI18nOverrides,
 } from "../src/index";
 
@@ -16,14 +19,14 @@ interface TestLocale {
 type TestLocaleName = "en" | "zh-CN";
 type TestOverrides = LibraryI18nOverrides<TestLocaleName, TestLocale>;
 
-const testDescriptor = createLibraryI18nDescriptor<TestLocaleName, TestLocale>({
+const testDescriptor: LibraryI18nDescriptor<TestLocaleName, TestLocale> = {
   libraryId: "test-library",
-});
+};
 
-describe("createLibraryI18nDescriptor", () => {
+describe("shared i18n registry + descriptor primitives", () => {
   it("ships a frozen empty snapshot for the absent-override path", () => {
-    expect(testDescriptor.emptySnapshot).toEqual({ messages: {} });
-    expect(Object.isFrozen(testDescriptor.emptySnapshot)).toBe(true);
+    expect(emptySnapshot).toEqual({});
+    expect(Object.isFrozen(emptySnapshot)).toBe(true);
   });
 
   it("selects one component's override slice per locale, skipping absent locales", () => {
@@ -31,28 +34,26 @@ describe("createLibraryI18nDescriptor", () => {
       en: { Greeter: { greeting: "Hi" } },
       "zh-CN": {},
     };
-    expect(
-      testDescriptor.selectComponentOverrides(messages, "Greeter"),
-    ).toEqual({ en: { greeting: "Hi" } });
+    expect(selectComponentOverrides(messages, "Greeter")).toEqual({
+      en: { greeting: "Hi" },
+    });
   });
 
   it("selects an empty tree when the component carries no overrides", () => {
     const messages: TestOverrides = { en: {} };
-    expect(
-      testDescriptor.selectComponentOverrides(messages, "Greeter"),
-    ).toEqual({});
+    expect(selectComponentOverrides(messages, "Greeter")).toEqual({});
   });
 
-  it("supports a library with an empty component schema", () => {
-    const emptyDescriptor = createLibraryI18nDescriptor<
-      "en" | "zh-CN",
-      Record<never, never>
-    >({ libraryId: "empty-library" });
-    expect(emptyDescriptor.emptySnapshot).toEqual({ messages: {} });
-    const emptyOverrides: LibraryI18nOverrides<
-      "en" | "zh-CN",
-      Record<never, never>
-    > = { en: {} };
-    expect(emptyOverrides).toEqual({ en: {} });
+  it("types a descriptor from just a libraryId (no factory)", () => {
+    expect(testDescriptor.libraryId).toBe("test-library");
+    expect("emptySnapshot" in testDescriptor).toBe(false);
+    expect("selectComponentOverrides" in testDescriptor).toBe(false);
+  });
+
+  it("exposes one shared registry key", () => {
+    expect(typeof libraryI18nOverridesKey).toBe("symbol");
+    // Overrides resolve through the shared registry by libraryId; there is no
+    // per-descriptor injection key.
+    expect("overridesKey" in testDescriptor).toBe(false);
   });
 });

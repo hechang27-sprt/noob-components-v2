@@ -16,7 +16,11 @@ import {
   AdminProvider,
   type AdminProviderProps,
 } from "../src/components/admin-provider";
-import { adminI18n, adminI18nOverridesKey } from "../src/i18n/plugin";
+import {
+  libraryI18nOverridesKey,
+  type LibraryI18nOverridesRegistry,
+} from "@noob-naive-ui/i18n";
+import { type AdminI18nSnapshot } from "../src/i18n/plugin";
 import { useAdminShellMenuStore } from "../src/stores/menu";
 import { useAdminShellPreferencesStore } from "../src/stores/shell-preferences";
 
@@ -200,15 +204,18 @@ describe("AdminProvider", () => {
       fallbackLocale: "en",
       messages: {},
     });
-    const overrides = {
-      en: { AdminShell: { account: { signOut: "Log out" } } },
+    const overrides: LibraryI18nOverridesRegistry = {
+      "noob-naive-ui:admin": {
+        en: { AdminShell: { account: { signOut: "Log out" } } },
+      },
     };
     const OverrideProbe = defineComponent({
       name: "OverrideProbe",
       setup() {
-        const snapshot = inject(adminI18nOverridesKey, adminI18n.emptySnapshot);
-        const signOut =
-          snapshot.messages.en?.AdminShell?.account?.signOut ?? "";
+        const snapshot = inject(libraryI18nOverridesKey, {})[
+          "noob-naive-ui:admin"
+        ] as AdminI18nSnapshot | undefined;
+        const signOut = snapshot?.en?.AdminShell?.account?.signOut ?? "";
         return () => <div data-probe={signOut} />;
       },
     });

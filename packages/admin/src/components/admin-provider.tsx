@@ -2,8 +2,10 @@ import { defineComponent, provide, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { NConfigProvider, type GlobalThemeOverrides } from "naive-ui";
 
-import { adminI18nOverridesKey } from "../i18n/plugin";
-import type { AdminLocaleOverrides } from "../i18n/admin-locale";
+import {
+  libraryI18nOverridesKey,
+  type LibraryI18nOverridesRegistry,
+} from "@noob-naive-ui/i18n";
 import type { AdminMenuTree } from "../runtime-contract";
 import type { AdminShellPreferencesStoreOptions } from "../runtime/shell-preferences";
 import { useAdminProvider } from "../use-admin-provider";
@@ -29,11 +31,13 @@ export interface AdminProviderProps {
   storeOptions?: AdminShellPreferencesStoreOptions;
   /** Host naive-ui global theme overrides merged on top of the store's. */
   theme?: GlobalThemeOverrides;
-  /** Per-locale, per-component overrides of admin package text. Replaces the
-   *  former `app.use(adminI18nPlugin, { messages })` host install: this
-   *  component provides the override snapshot via {@link adminI18nOverridesKey},
-   *  which `createComponentI18n` injects when merging package text. */
-  overrides?: AdminLocaleOverrides;
+  /** App-scoped text-override registry keyed by each component package's
+   * libraryId (e.g. `admin`, `ui`). Replaces the former plugin host install:
+   * this component provides the whole registry under {@link libraryI18nOverridesKey},
+   * which every package's `createComponentI18n` reads by its own libraryId.
+   * Type each entry by importing that package's override type (`AdminLocaleOverrides`,
+   * `NoobUiLocaleOverrides`). */
+  overrides?: LibraryI18nOverridesRegistry;
 }
 
 /**
@@ -46,13 +50,20 @@ export interface AdminProviderProps {
  */
 export const AdminProvider = defineComponent(
   (props: AdminProviderProps, { slots }) => {
-    // 0. Provide the admin package text-override snapshot under the injection
-    //    key `createComponentI18n` reads, so hosts no longer install
-    //    `adminI18nPlugin`. Defensively copied to preserve the immutable
-    //    snapshot contract. Must precede child setup (AdminShell/AdminLoginPage).
-    provide(adminI18nOverridesKey, {
-      messages: props.overrides ? structuredClone(props.overrides) : {},
-    });
+    // 0. Provide the shared, libraryId-keyed text-override registry under the
+    // injection key every package's `createComponentI18n` reads, so hosts no
+    // longer install a per-package plugin or provider. Each entry's messages are
+    // defensively copied to preserve the immutable snapshot contract. Must
+    // precede child setup (AdminShell/AdminLoginPage).
+    provide(
+      libraryI18nOverridesKey,
+      Object.fromEntries(
+        Object.entries(props.overrides ?? {}).map(([libraryId, entry]) => [
+          libraryId,
+          structuredClone(entry ?? {}),
+        ]),
+      ),
+    );
     // 1. Resolve the package-owned stores before configuring them, plus the
     //    consumption surface that derives the render config (naiveUiConfig).
     const preferences = useAdminShellPreferencesStore();

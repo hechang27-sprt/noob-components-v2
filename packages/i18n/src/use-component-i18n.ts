@@ -1,6 +1,12 @@
 import { inject, provide, type InjectionKey } from "vue";
 import { useI18n, type Composer } from "vue-i18n";
-import type { LibraryI18nDescriptor } from "./library-i18n-descriptor";
+import {
+  emptySnapshot,
+  libraryI18nOverridesKey,
+  selectComponentOverrides,
+  type LibraryI18nDescriptor,
+  type LibraryI18nOverrides,
+} from "./library-i18n-descriptor";
 
 /**
  * Options for {@link createComponentI18n}.
@@ -55,9 +61,13 @@ export function createComponentI18n<
 >(options: CreateComponentI18nOptions<LocaleName, Locale>): Composer {
   const { messages, descriptor, componentId } = options;
 
-  // The descriptor's immutable override tree; absent a provided snapshot,
-  // inject yields the frozen empty snapshot, so packaged defaults render.
-  const snapshot = inject(descriptor.overridesKey, descriptor.emptySnapshot);
+  // Resolve this library's override snapshot from the shared, libraryId-keyed
+  // registry; absent an entry the frozen empty snapshot renders packaged
+  // defaults. The registry value is loose at the provider boundary, so the
+  // cast here is the consumer-side contract the descriptor's selector enforces.
+  const registry = inject(libraryI18nOverridesKey, {});
+  const snapshot = (registry[descriptor.libraryId] ??
+    emptySnapshot) as LibraryI18nOverrides<LocaleName, Locale>;
 
   // Fresh local registry inheriting root locale and fallback locale; the
   // root's fallbackRoot flag is corrected below after creation.
@@ -91,7 +101,7 @@ export function createComponentI18n<
   }
 
   for (const [overrideLocale, componentMessages] of Object.entries(
-    descriptor.selectComponentOverrides(snapshot.messages, componentId),
+    selectComponentOverrides(snapshot, componentId),
   )) {
     // The type keeps locale keys optional, so guard the definedness that
     // iteration guarantees at runtime; no locale cast.

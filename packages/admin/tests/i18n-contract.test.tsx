@@ -8,10 +8,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { AdminLoginPage } from "../src/components/admin-login-page";
 import { AdminProvider } from "../src/components/admin-provider";
 import {
-  adminI18n,
-  adminI18nOverridesKey,
-  type AdminI18nSnapshot,
-} from "../src/i18n/plugin";
+  libraryI18nOverridesKey,
+  selectComponentOverrides,
+  type LibraryI18nOverridesRegistry,
+} from "@noob-naive-ui/i18n";
+import { type AdminI18nSnapshot } from "../src/i18n/plugin";
 import type { AdminLocaleOverrides } from "../src/i18n/admin-locale";
 import { useAdminAuthStore } from "../src/stores/auth";
 
@@ -37,7 +38,7 @@ function mountLoginPage(
   options: {
     locale?: string;
     fallbackLocale?: string;
-    overrides?: AdminLocaleOverrides;
+    overrides?: LibraryI18nOverridesRegistry;
   } = {},
 ) {
   const target = document.createElement("div");
@@ -90,13 +91,15 @@ function mountLoginPage(
  * @returns The snapshot observed through Vue's application provider map.
  */
 function captureProviderSnapshot(
-  overrides: AdminLocaleOverrides,
+  overrides: LibraryI18nOverridesRegistry,
 ): AdminI18nSnapshot {
   let captured: AdminI18nSnapshot | undefined;
   const Capture = defineComponent({
     name: "SnapshotCapture",
     setup() {
-      captured = inject(adminI18nOverridesKey, adminI18n.emptySnapshot);
+      captured = inject(libraryI18nOverridesKey, {})["noob-naive-ui:admin"] as
+        | AdminI18nSnapshot
+        | undefined;
       return () => null;
     },
   });
@@ -122,12 +125,16 @@ function captureProviderSnapshot(
 
 describe("admin i18n overrides via AdminProvider", () => {
   it("snapshots caller overrides when provided through the prop", () => {
-    const overrides: AdminLocaleOverrides = {
-      en: { AdminShell: { account: { signOut: "Installed sign out" } } },
+    const overrides: LibraryI18nOverridesRegistry = {
+      "noob-naive-ui:admin": {
+        en: { AdminShell: { account: { signOut: "Installed sign out" } } },
+      },
     };
     const snapshot = captureProviderSnapshot(overrides);
-    overrides.en!.AdminShell!.account!.signOut = "Mutated sign out";
-    expect(snapshot.messages.en?.AdminShell?.account?.signOut).toBe(
+    (
+      overrides["noob-naive-ui:admin"] as AdminI18nSnapshot
+    ).en!.AdminShell!.account!.signOut = "Mutated sign out";
+    expect(snapshot?.en?.AdminShell?.account?.signOut).toBe(
       "Installed sign out",
     );
   });
@@ -137,14 +144,10 @@ describe("admin i18n overrides via AdminProvider", () => {
       en: { AdminShell: { account: { signOut: "Log out" } } },
       "zh-CN": { AdminLoginPage: { form: { signIn: "登录" } } },
     };
-    expect(adminI18n.selectComponentOverrides(overrides, "AdminShell")).toEqual(
-      {
-        en: { account: { signOut: "Log out" } },
-      },
-    );
-    expect(
-      adminI18n.selectComponentOverrides(overrides, "AdminLoginPage"),
-    ).toEqual({
+    expect(selectComponentOverrides(overrides, "AdminShell")).toEqual({
+      en: { account: { signOut: "Log out" } },
+    });
+    expect(selectComponentOverrides(overrides, "AdminLoginPage")).toEqual({
       "zh-CN": { form: { signIn: "登录" } },
     });
   });
@@ -162,7 +165,9 @@ describe("AdminLoginPage locale ownership", () => {
   it("merges a partial override after defaults without losing siblings", () => {
     const { container } = mountLoginPage({
       overrides: {
-        en: { AdminLoginPage: { form: { signIn: "Log in" } } },
+        "noob-naive-ui:admin": {
+          en: { AdminLoginPage: { form: { signIn: "Log in" } } },
+        },
       },
     });
     const submit = container.querySelector<HTMLButtonElement>(

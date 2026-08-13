@@ -1,7 +1,7 @@
-import {
-  createLibraryI18nDescriptor,
-  type LibraryI18nOverrides,
-  type LibraryI18nSnapshot,
+import type {
+  LibraryI18nDescriptor,
+  LibraryI18nOverrides,
+  LibraryI18nSnapshot,
 } from "@noob-naive-ui/i18n";
 
 /** Supported packaged locale identifiers for ui package components. */
@@ -23,12 +23,12 @@ export type NoobUiComponentId = never;
  * component slice selector; this module only pins the ui locale schema
  * (empty component set today).
  */
-export const noobUiI18n = createLibraryI18nDescriptor<
+export const noobUiI18n: LibraryI18nDescriptor<
   NoobUiLocaleName,
   Record<never, never>
->({
+> = {
   libraryId: "noob-naive-ui:ui",
-});
+};
 
 /** The ui package's immutable, application-scoped override snapshot. */
 export type NoobUiI18nSnapshot = LibraryI18nSnapshot<
