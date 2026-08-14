@@ -43,7 +43,7 @@ export interface LibraryOverridesRegistry {
  * Recursively makes every leaf optional. Used internally to derive the i18n
  * override projection from a declared full locale type.
  */
-type DeepPartial<T> = {
+export type DeepPartial<T> = {
   [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K];
 };
 

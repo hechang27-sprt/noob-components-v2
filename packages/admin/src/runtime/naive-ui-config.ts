@@ -3,7 +3,7 @@ import {
   dateEnUS,
   dateZhCN,
   enUS,
-  NDateLocale,
+  type NDateLocale,
   zhCN,
   type GlobalComponentConfig,
   type GlobalTheme,

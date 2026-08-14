@@ -65,8 +65,10 @@ export function createComponentI18n<
   // libraryId-keyed registry; absent an entry the frozen empty snapshot
   // renders packaged defaults. The registry value is loose at the provider
   // boundary, so the cast here is the consumer-side contract the descriptor's
-  // selector enforces. The registry is a ComputedRef provided by the admin
-  // aggregator; the optional chaining handles a missing provider.
+  // selector enforces. The registry is a ComputedRef provided by the
+  // per-package ConfigProviders (AdminConfigProvider / AdminUiConfigProvider)
+  // that the admin aggregator mounts — AdminProvider itself provides nothing;
+  // the optional chaining handles a missing provider.
   const registry = inject(libraryOverridesKey, null);
   const snapshot = (registry?.value?.[descriptor.libraryId]?.i18n ??
     emptySnapshot) as LibraryI18nOverrides<LocaleName, Locale>;

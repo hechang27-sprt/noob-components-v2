@@ -1,5 +1,5 @@
 /**
- * Theme-vars trio for one component library, mirroring the i18n descriptor
+ * Theme-vars pair for one component library, mirroring the i18n descriptor
  * trio in `library-i18n-descriptor.ts`. Component libraries (e.g. the ui
  * package) declare per-component themeVars with exact `--n-*` names preserved
  * in the type, and a typed descriptor pins that schema so consumers can
@@ -36,24 +36,3 @@ export type LibraryThemeDescriptor<Components> = {
    */
   readonly __theme?: LibraryThemeOverrides<Components>;
 };
-
-/**
- * Selects one component's themeVar override slice from an override tree.
- * Shared because the selector is generic over the library's themeVar schema
- * and identical for every library.
- *
- * @typeParam Components - The library's component-first themeVar schema.
- * @typeParam ComponentId - One stable component identifier.
- * @param overrides - The library's themeVar override tree.
- * @param componentId - The component whose vars are requested.
- * @returns The component's override slice, or an empty object when absent.
- */
-export function selectComponentThemeOverrides<
-  Components,
-  ComponentId extends keyof Components & string,
->(
-  overrides: LibraryThemeOverrides<Components>,
-  componentId: ComponentId,
-): Partial<Components[ComponentId]> {
-  return overrides[componentId] ?? {};
-}

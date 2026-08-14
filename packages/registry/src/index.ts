@@ -1,5 +1,6 @@
 export {
   libraryOverridesKey,
+  type DeepPartial,
   type LibraryOverridesRegistry,
   type LibraryOverridesRegistryValue,
   type RegistryI18nOverrides,

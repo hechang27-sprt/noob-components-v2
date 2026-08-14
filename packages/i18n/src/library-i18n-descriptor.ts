@@ -1,13 +1,5 @@
 import { objectEntries } from "tsafe/objectEntries";
-
-/**
- * Recursively makes every message leaf optional for partial override trees.
- *
- * @typeParam T - The full message shape being made optional.
- */
-type DeepPartial<T> = {
-  [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K];
-};
+import type { DeepPartial } from "@noob-naive-ui/registry";
 
 /**
  * Locale-first partial override tree accepted by one component library.
@@ -61,8 +53,10 @@ export type LibraryI18nComponentSelector<
  * stable `libraryId` under which overrides live in the shared registry; the
  * generic parameters pin the package's locale schema so `createComponentI18n`
  * can type its component selector and override fallback per package. Hosts
- * provide the override registry once (e.g. the admin `AdminProvider`
- * `i18nOverrides` prop); there is no Vue plugin and no per-package provider.
+ * hand per-package override trees to the admin `AdminProvider` (a pure
+ * aggregator), which mounts per-package ConfigProviders (`AdminConfigProvider`
+ * / `AdminUiConfigProvider`) that provide their own slices of the registry
+ * under `libraryOverridesKey`; there is no Vue plugin.
  *
  * @typeParam LocaleName - Supported packaged locale identifiers.
  * @typeParam Locale - The library's component-first full message schema.
