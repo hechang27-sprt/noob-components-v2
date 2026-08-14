@@ -156,6 +156,8 @@ export function useAdminProvider(): AdminProviderApi {
 
   const naiveUiConfig = computed<AdminNaiveUiConfig>(() => {
     const preset = activeTheme.value;
+    const { nLocale, nDateLocale } =
+      resolveAdminNaiveUiLocale(locale.value, fallbackLocale.value) ?? {};
     return {
       theme: preset
         ? preset.isDark
@@ -163,7 +165,8 @@ export function useAdminProvider(): AdminProviderApi {
           : null
         : resolveDefaultNaiveUiTheme(themeMode.value, systemUsesDark.value),
       themeOverrides: mergeAdminNaiveUiThemeOverrides(fontSize.value, preset),
-      locale: resolveAdminNaiveUiLocale(locale.value, fallbackLocale.value),
+      locale: nLocale ?? null,
+      dateLocale: nDateLocale ?? null,
       componentOptions: COMPONENT_SIZE_OPTIONS[fontSize.value],
     };
   });

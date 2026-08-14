@@ -1,6 +1,6 @@
 import { defineComponent, provide, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { NConfigProvider, NGlobalStyle } from "naive-ui";
+import { NGlobalStyle } from "naive-ui";
 
 import {
   libraryI18nOverridesKey,
@@ -11,6 +11,7 @@ import type { AdminShellPreferencesStoreOptions } from "../runtime/shell-prefere
 import { useAdminProvider } from "../use-admin-provider";
 import { useAdminShellMenuStore } from "../stores/menu";
 import { useAdminShellPreferencesStore } from "../stores/shell-preferences";
+import { ProConfigProvider } from "pro-naive-ui";
 
 /**
  * Props-driven root provider that owns mount-safe host configuration for the
@@ -117,10 +118,10 @@ export const AdminProvider = defineComponent(
     //    theme + merged overrides) is already resolved into naiveUiConfig by
     //    the composable.
     return () => (
-      <NConfigProvider {...provider.naiveUiConfig.value}>
+      <ProConfigProvider {...provider.naiveUiConfig.value}>
         <NGlobalStyle />
         {slots.default?.()}
-      </NConfigProvider>
+      </ProConfigProvider>
     );
   },
   {

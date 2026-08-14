@@ -1,6 +1,9 @@
 import {
   darkTheme,
+  dateEnUS,
+  dateZhCN,
   enUS,
+  NDateLocale,
   zhCN,
   type GlobalComponentConfig,
   type GlobalTheme,
@@ -30,6 +33,10 @@ export type AdminNaiveUiConfig = {
   themeOverrides: GlobalThemeOverrides;
   /** Naive UI locale object, or null to keep the naive-ui default (enUS). */
   locale: NLocale | null;
+
+  /** Naive UI date locale object, or null to keep the default */
+  dateLocale: NDateLocale | null;
+
   /**
    * Per-component size tier applied through `n-config-provider`'s
    * `componentOptions`, derived from the font-size preference. naive-ui has
@@ -39,10 +46,12 @@ export type AdminNaiveUiConfig = {
   componentOptions: GlobalComponentConfig;
 };
 
+type NaiveUiLocale = { nLocale: NLocale; nDateLocale: NDateLocale };
+
 /** Maps each supported admin locale name to its naive-ui locale object. */
-const NAIVE_UI_LOCALES: Record<AdminLocaleName, NLocale> = {
-  en: enUS,
-  "zh-CN": zhCN,
+const NAIVE_UI_LOCALES: Record<AdminLocaleName, NaiveUiLocale> = {
+  en: { nLocale: enUS, nDateLocale: dateEnUS },
+  "zh-CN": { nLocale: zhCN, nDateLocale: dateZhCN },
 };
 
 /**
@@ -57,7 +66,7 @@ const NAIVE_UI_LOCALES: Record<AdminLocaleName, NLocale> = {
 export function resolveAdminNaiveUiLocale(
   activeLocale: string,
   fallbackLocale: string,
-): NLocale | null {
+): NaiveUiLocale | null {
   return (
     NAIVE_UI_LOCALES[activeLocale as AdminLocaleName] ??
     NAIVE_UI_LOCALES[fallbackLocale as AdminLocaleName] ??
