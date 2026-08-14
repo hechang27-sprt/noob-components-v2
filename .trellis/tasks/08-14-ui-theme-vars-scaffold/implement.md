@@ -11,9 +11,9 @@ New workspace package (clone the i18n package structure: package.json, tsconfig,
 - Internal `DeepPartial<T>`; `RegistryI18nOverrides` = `DeepPartial` of each declared `locale`; `RegistryThemeOverrides` = `LibraryThemeOverrides` of each declared `theme`.
 - `LibraryOverridesRegistryValue` (loose `{ i18n?, theme? }` index) + `libraryOverridesKey: InjectionKey<ComputedRef<LibraryOverridesRegistryValue>>`.
 
-`packages/registry/src/library-theme-overrides.ts`: theme trio moved from i18n — `LibraryThemeOverrides` + `selectComponentThemeOverrides` internal; `LibraryThemeDescriptor` exported (used by `noobUiTheme`).
+`packages/registry/src/library-theme-overrides.ts`: theme trio moved from i18n — `LibraryThemeOverrides` internal; `LibraryThemeDescriptor` exported (used by `noobUiTheme`).
 
-`packages/registry/src/index.ts`: export `libraryOverridesKey`, `LibraryOverridesRegistry`, `LibraryOverridesRegistryValue`, `RegistryI18nOverrides`, `RegistryThemeOverrides`, `LibraryThemeDescriptor`. **Not** `LibraryThemeOverrides`/`selectComponentThemeOverrides`.
+`packages/registry/src/index.ts`: export `libraryOverridesKey`, `LibraryOverridesRegistry`, `LibraryOverridesRegistryValue`, `RegistryI18nOverrides`, `RegistryThemeOverrides`, `LibraryThemeDescriptor`. **Not** `LibraryThemeOverrides`.
 
 **Rewire i18n**: drop the registry + theme trio from `library-i18n-descriptor.ts`; `createComponentI18n` imports `libraryOverridesKey` from `@noob-naive-ui/registry`; i18n index exports i18n-only surface. **`LibraryI18nOverridesRegistry` is eliminated** (replaced by the derived `RegistryI18nOverrides`).
 

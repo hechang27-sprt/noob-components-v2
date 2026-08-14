@@ -167,7 +167,7 @@ export const UiCard = defineComponent({
 
 ## 6. Public surface
 
-- `packages/registry/src/index.ts`: `libraryOverridesKey`, `LibraryOverridesRegistry` (augmentation point), `LibraryOverridesRegistryValue`, `RegistryI18nOverrides`, `RegistryThemeOverrides`, `LibraryThemeDescriptor`. `LibraryThemeOverrides` + `selectComponentThemeOverrides` stay internal.
+- `packages/registry/src/index.ts`: `libraryOverridesKey`, `LibraryOverridesRegistry` (augmentation point), `LibraryOverridesRegistryValue`, `RegistryI18nOverrides`, `RegistryThemeOverrides`, `LibraryThemeDescriptor`. `LibraryThemeOverrides` stays internal.
 - `packages/i18n/src/index.ts`: i18n-only (`LibraryI18nOverrides`, `LibraryI18nDescriptor`, `selectComponentOverrides`, `emptySnapshot`, `createComponentI18n`, …). `LibraryI18nOverridesRegistry` eliminated.
 - `packages/admin/src/index.ts`: add `AdminConfigProvider`, `AdminConfigProviderProps`. `AdminThemeOverrides`/`AdminPresetThemeOverrides` derive from `RegistryThemeOverrides`.
 - `packages/ui/src/index.ts`: add `AdminUiConfigProvider`, `useUiTheme`, `UiCard`, `UiCardThemeVars`, `NoobUiThemeOverrides` (derived), `UiThemeComponents`, `noobUiTheme`; keep existing i18n exports.

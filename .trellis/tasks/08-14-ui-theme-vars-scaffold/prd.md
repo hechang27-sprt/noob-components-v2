@@ -28,7 +28,7 @@ Per user decisions:
 
 ## Acceptance Criteria
 
-- [ ] `@noob-naive-ui/registry` exports the augmentation point + `libraryOverridesKey` + `LibraryOverridesRegistryValue` + derived `RegistryI18nOverrides`/`RegistryThemeOverrides`; `LibraryThemeOverrides`/`selectComponentThemeOverrides` stay internal.
+- [ ] `@noob-naive-ui/registry` exports the augmentation point + `libraryOverridesKey` + `LibraryOverridesRegistryValue` + derived `RegistryI18nOverrides`/`RegistryThemeOverrides`; `LibraryThemeOverrides` stays internal.
 - [ ] admin + ui augment the registry with their FULL `locale`/`theme` types; registry preseeded with naive-ui/pro-naive-ui (`GlobalThemeOverrides`).
 - [ ] `AdminUiConfigProvider` (ui) + `AdminConfigProvider` (admin) accept per-package `i18n`/`themeOverride` props, standalone-capable.
 - [ ] `AdminProviderProps.i18nOverrides: RegistryI18nOverrides`; `AdminProvider` provides nothing, aggregates both ConfigProviders internally (themeOverride from active preset); hosts (demo) pass only `AdminProvider`.
