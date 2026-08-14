@@ -128,7 +128,7 @@ export default defineComponent(
         themes={demoThemePresets}
         defaultTheme={demoDefaultTheme}
         defaultDarkTheme={demoDefaultDarkTheme}
-        overrides={{
+        i18nOverrides={{
           "noob-naive-ui:admin": {
             en: { AdminShell: { account: { signOut: "Log out" } } },
             "zh-CN": { AdminShell: { account: { signOut: "退出" } } },

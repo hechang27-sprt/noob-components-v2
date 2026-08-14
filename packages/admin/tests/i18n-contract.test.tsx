@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { AdminLoginPage } from "../src/components/admin-login-page";
 import { AdminProvider } from "../src/components/admin-provider";
 import {
-  libraryI18nOverridesKey,
+  libraryOverridesKey,
   selectComponentOverrides,
   type LibraryI18nOverridesRegistry,
 } from "@noob-naive-ui/i18n";
@@ -28,7 +28,7 @@ afterEach(() => {
 /**
  * Mounts AdminLoginPage under a host-owned global Composer and an anonymous
  * signed-out auth status, with optional package overrides supplied through
- * the AdminProvider `overrides` prop (the replacement for the removed
+ * the AdminProvider `i18nOverrides` prop (the replacement for the removed
  * `adminI18nPlugin` install path).
  *
  * @param options - Host locale/fallback settings and optional package overrides.
@@ -59,7 +59,7 @@ function mountLoginPage(
           defaults: { locale: options.locale ?? "en" },
           storage: null,
         }}
-        overrides={options.overrides}>
+        i18nOverrides={options.overrides}>
         <AdminLoginPage />
       </AdminProvider>
     ),
@@ -85,7 +85,7 @@ function mountLoginPage(
 
 /**
  * Captures the application-scoped snapshot provided by AdminProvider's
- * `overrides` prop through the injection key `createComponentI18n` reads.
+ * `i18nOverrides` prop through the injection key `createComponentI18n` reads.
  *
  * @param overrides - Caller-owned override tree passed to the prop.
  * @returns The snapshot observed through Vue's application provider map.
@@ -97,9 +97,9 @@ function captureProviderSnapshot(
   const Capture = defineComponent({
     name: "SnapshotCapture",
     setup() {
-      captured = inject(libraryI18nOverridesKey, {})["noob-naive-ui:admin"] as
-        | AdminI18nSnapshot
-        | undefined;
+      const registry = inject(libraryOverridesKey, null);
+      captured = registry?.value?.["noob-naive-ui:admin"]
+        ?.i18n as AdminI18nSnapshot | undefined;
       return () => null;
     },
   });
@@ -109,7 +109,10 @@ function captureProviderSnapshot(
   const pinia = createPinia();
   const app = createApp({
     setup: () => () => (
-      <AdminProvider messages={{}} menu={[]} overrides={overrides}>
+      <AdminProvider
+        messages={{}}
+        menu={[]}
+        i18nOverrides={overrides}>
         <Capture />
       </AdminProvider>
     ),

@@ -119,13 +119,13 @@ describe("useAdminProvider", () => {
         {
           key: "default",
           label: { kind: "string", value: "Default" },
-          naiveUiConfig: {},
+          themeOverrides: { "naive-ui": {} },
           isDark: false,
         },
         {
           key: "midnight",
           label: { kind: "string", value: "Midnight" },
-          naiveUiConfig: {},
+          themeOverrides: { "naive-ui": {} },
           isDark: true,
         },
       ],
@@ -250,15 +250,15 @@ describe("useAdminProvider", () => {
       {
         key: "default",
         label: { kind: "string", value: "Default" },
-        naiveUiConfig: {
-          common: { primaryColor: "#18a058", fontSize: "99px" },
+        themeOverrides: { "naive-ui": {
+          common: { primaryColor: "#18a058", fontSize: "99px" } },
         },
         isDark: false,
       },
       {
         key: "ocean",
         label: { kind: "string", value: "Ocean" },
-        naiveUiConfig: { common: { primaryColor: "#2563eb" } },
+        themeOverrides: { "naive-ui": { common: { primaryColor: "#2563eb" } } },
         fontSizeOverrides: {
           small: { common: { fontSize: "12px" } },
           medium: { common: { fontSize: "18px" } },
@@ -269,7 +269,7 @@ describe("useAdminProvider", () => {
       {
         key: "midnight",
         label: { kind: "string", value: "Midnight" },
-        naiveUiConfig: { common: { primaryColor: "#6366f1" } },
+        themeOverrides: { "naive-ui": { common: { primaryColor: "#6366f1" } } },
         isDark: true,
       },
     ];

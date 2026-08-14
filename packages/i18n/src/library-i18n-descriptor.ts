@@ -1,4 +1,4 @@
-import type { InjectionKey } from "vue";
+import type { ComputedRef, InjectionKey } from "vue";
 import { objectEntries } from "tsafe/objectEntries";
 
 /**
@@ -49,12 +49,33 @@ export interface LibraryI18nOverridesRegistry {
 }
 
 /**
+ * App-scoped override registry shared by every component package, unified
+ * across kinds. Keyed by each package's stable `libraryId`; each entry
+ * carries the package's i18n override tree under `i18n` and its themeVar
+ * override tree under `theme`. Values are deliberately loose (`unknown`) at
+ * the provider boundary: hosts type per-package entries with
+ * `satisfies <Package>Overrides`, and each package's descriptor re-validates
+ * and types its own entry at consumption.
+ */
+export interface LibraryOverridesRegistry {
+  [libraryId: string]: {
+    /** The library's i18n override tree, typed at consumption. */
+    i18n?: unknown;
+    /** The library's themeVar override tree, typed at consumption. */
+    theme?: unknown;
+  };
+}
+
+/**
  * The single injection key under which the override registry is provided.
  * Shared across all component packages; consumers look up their own
- * `libraryId` rather than injecting a per-package key.
+ * `libraryId` rather than injecting a per-package key. Providers supply a
+ * `ComputedRef` (naive-ui's merged-overrides-ref pattern); consumers
+ * `inject(key, null)` and read `.value` with optional chaining.
  */
-export const libraryI18nOverridesKey: InjectionKey<LibraryI18nOverridesRegistry> =
-  Symbol("noob-naive-ui:i18n-overrides-registry");
+export const libraryOverridesKey: InjectionKey<
+  ComputedRef<LibraryOverridesRegistry>
+> = Symbol("noob-naive-ui:overrides-registry");
 
 /**
  * The frozen empty override tree every package falls back to when its

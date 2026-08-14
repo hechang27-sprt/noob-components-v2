@@ -1,13 +1,13 @@
 // @vitest-environment happy-dom
 
-import { createApp, defineComponent, type App, type Component } from "vue";
+import { computed, createApp, defineComponent, type App, type Component } from "vue";
 import { createI18n } from "vue-i18n";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createComponentI18n,
   getComponentI18n,
-  libraryI18nOverridesKey,
+  libraryOverridesKey,
   type LibraryI18nDescriptor,
   type LibraryI18nOverrides,
 } from "../src/index";
@@ -146,9 +146,10 @@ function mount(
   const app = createApp(component);
   app.use(i18n);
   if (options.overrides) {
-    app.provide(libraryI18nOverridesKey, {
-      "test-library": options.overrides,
-    });
+    app.provide(
+      libraryOverridesKey,
+      computed(() => ({ "test-library": { i18n: options.overrides } })),
+    );
   }
   app.mount(target);
   mountedApps.push(app);

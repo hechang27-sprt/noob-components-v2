@@ -261,13 +261,13 @@ describe("AdminShell", () => {
       {
         key: "default",
         label: { kind: "string", value: "Default" },
-        naiveUiConfig: {},
+        themeOverrides: { "naive-ui": {} },
         isDark: false,
       },
       {
         key: "midnight",
         label: { kind: "string", value: "Midnight" },
-        naiveUiConfig: {},
+        themeOverrides: { "naive-ui": {} },
         isDark: true,
       },
     ];

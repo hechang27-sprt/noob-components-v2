@@ -16,7 +16,12 @@ function preset(
   isDark: boolean,
   overrides: GlobalThemeOverrides,
 ): AdminThemePreset {
-  return { key, label: themeLabel(key), naiveUiConfig: overrides, isDark };
+  return {
+    key,
+    label: themeLabel(key),
+    themeOverrides: { "naive-ui": overrides },
+    isDark,
+  };
 }
 
 /** Accent-only light presets (base light theme provides surfaces/typography). */

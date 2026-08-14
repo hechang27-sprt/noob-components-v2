@@ -43,6 +43,11 @@ export {
 } from "./components/admin-login-page";
 
 export {
+  AdminConfigProvider,
+  type AdminConfigProviderProps,
+} from "./components/admin-config-provider";
+
+export {
   AdminProvider,
   type AdminProviderProps,
 } from "./components/admin-provider";

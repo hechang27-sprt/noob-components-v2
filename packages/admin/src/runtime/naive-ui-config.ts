@@ -253,7 +253,11 @@ export function resolveDefaultNaiveUiTheme(
  * drop `fontSize`; es-toolkit `merge` deep-merges instead. The font-size layer
  * is the *source* so it takes precedence: without a preset `fontSizeOverrides`
  * entry the built-in hardcoded default font size wins over any font-size
- * values the preset sets directly in `naiveUiConfig`.
+ * values the preset sets directly in `themeOverrides["naive-ui"]`.
+ *
+ * The naive-ui and pro-naive-ui slices both carry naive-ui `GlobalThemeOverrides`
+ * (pro-naive-ui forwards its themeOverrides to naive-ui's NConfigProvider, so
+ * the two merge into the same naive-ui provider's themeOverrides).
  *
  * @param size - Active font-size tier.
  * @param preset - The active theme preset, or undefined when none applies.
@@ -266,7 +270,11 @@ export function mergeAdminNaiveUiThemeOverrides(
   if (!preset) return FONT_SIZE_OVERRIDES[size];
   const fontBase =
     preset.fontSizeOverrides?.[size] ?? FONT_SIZE_OVERRIDES[size];
-  return merge(merge({}, preset.naiveUiConfig), fontBase);
+  const colorBase = merge(
+    merge({}, preset.themeOverrides["naive-ui"] ?? {}),
+    preset.themeOverrides["pro-naive-ui"] ?? {},
+  );
+  return merge(colorBase, fontBase);
 }
 
 /**

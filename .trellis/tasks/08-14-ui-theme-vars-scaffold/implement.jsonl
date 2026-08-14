@@ -1,0 +1,5 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ui/frontend/library-conventions.md", "reason": "ui package public-surface + naive peer + build rules"}
+{"file": ".trellis/spec/ui/frontend/index.md", "reason": "ui pre-dev checklist"}
+{"file": ".trellis/tasks/08-14-ui-theme-vars-scaffold/design.md", "reason": "typing mechanism + provider + proof component design"}
+{"file": ".trellis/spec/ui/frontend/library-i18n-contract.md", "reason": "i18n consumption contract to mirror"}

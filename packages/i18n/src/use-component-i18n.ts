@@ -2,7 +2,7 @@ import { inject, provide, type InjectionKey } from "vue";
 import { useI18n, type Composer } from "vue-i18n";
 import {
   emptySnapshot,
-  libraryI18nOverridesKey,
+  libraryOverridesKey,
   selectComponentOverrides,
   type LibraryI18nDescriptor,
   type LibraryI18nOverrides,
@@ -61,12 +61,14 @@ export function createComponentI18n<
 >(options: CreateComponentI18nOptions<LocaleName, Locale>): Composer {
   const { messages, descriptor, componentId } = options;
 
-  // Resolve this library's override snapshot from the shared, libraryId-keyed
-  // registry; absent an entry the frozen empty snapshot renders packaged
-  // defaults. The registry value is loose at the provider boundary, so the
-  // cast here is the consumer-side contract the descriptor's selector enforces.
-  const registry = inject(libraryI18nOverridesKey, {});
-  const snapshot = (registry[descriptor.libraryId] ??
+  // Resolve this library's i18n override snapshot from the shared,
+  // libraryId-keyed registry; absent an entry the frozen empty snapshot
+  // renders packaged defaults. The registry value is loose at the provider
+  // boundary, so the cast here is the consumer-side contract the descriptor's
+  // selector enforces. The registry is a ComputedRef provided by the admin
+  // aggregator; the optional chaining handles a missing provider.
+  const registry = inject(libraryOverridesKey, null);
+  const snapshot = (registry?.value?.[descriptor.libraryId]?.i18n ??
     emptySnapshot) as LibraryI18nOverrides<LocaleName, Locale>;
 
   // Fresh local registry inheriting root locale and fallback locale; the

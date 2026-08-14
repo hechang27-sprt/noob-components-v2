@@ -5,3 +5,11 @@
 @import "tailwindcss/utilities.css" layer(utilities) source(none);
 
 @source ".";
+
+/* UiCard default themeVars. `useUiTheme` overrides layer on top as inline
+   CSS variables when a provider supplies a `noob-naive-ui:ui` theme slice. */
+.ui-card {
+  --ui-card-bg: #ffffff;
+  --ui-card-border-color: #d0d5dd;
+  --ui-card-padding: 1rem;
+}

@@ -17,9 +17,14 @@ import {
   type AdminProviderProps,
 } from "../src/components/admin-provider";
 import {
-  libraryI18nOverridesKey,
+  libraryOverridesKey,
   type LibraryI18nOverridesRegistry,
+  type LibraryOverridesRegistry,
 } from "@noob-naive-ui/i18n";
+import {
+  AdminConfigProvider,
+  type AdminConfigProviderProps,
+} from "../src/components/admin-config-provider";
 import { type AdminI18nSnapshot } from "../src/i18n/plugin";
 import { useAdminShellMenuStore } from "../src/stores/menu";
 import { useAdminShellPreferencesStore } from "../src/stores/shell-preferences";
@@ -211,13 +216,13 @@ describe("AdminProvider", () => {
       {
         key: "default",
         label: { kind: "string", value: "Default" },
-        naiveUiConfig: { common: { primaryColor: "#18a058" } },
+        themeOverrides: { "naive-ui": { common: { primaryColor: "#18a058" } } },
         isDark: false,
       },
       {
         key: "midnight",
         label: { kind: "string", value: "Midnight" },
-        naiveUiConfig: { common: { primaryColor: "#6366f1" } },
+        themeOverrides: { "naive-ui": { common: { primaryColor: "#6366f1" } } },
         isDark: true,
       },
     ];
@@ -246,7 +251,7 @@ describe("AdminProvider", () => {
       fallbackLocale: "en",
       messages: {},
     });
-    const overrides: LibraryI18nOverridesRegistry = {
+    const i18nOverrides: LibraryI18nOverridesRegistry = {
       "noob-naive-ui:admin": {
         en: { AdminShell: { account: { signOut: "Log out" } } },
       },
@@ -254,9 +259,9 @@ describe("AdminProvider", () => {
     const OverrideProbe = defineComponent({
       name: "OverrideProbe",
       setup() {
-        const snapshot = inject(libraryI18nOverridesKey, {})[
-          "noob-naive-ui:admin"
-        ] as AdminI18nSnapshot | undefined;
+        const registry = inject(libraryOverridesKey, null);
+        const snapshot = registry?.value?.["noob-naive-ui:admin"]
+          ?.i18n as AdminI18nSnapshot | undefined;
         const signOut = snapshot?.en?.AdminShell?.account?.signOut ?? "";
         return () => <div data-probe={signOut} />;
       },
@@ -269,7 +274,7 @@ describe("AdminProvider", () => {
           messages={baseMessages}
           menu={menu}
           storeOptions={preferences}
-          overrides={overrides}>
+          i18nOverrides={i18nOverrides}>
           <OverrideProbe />
         </AdminProvider>
       ),
@@ -281,5 +286,120 @@ describe("AdminProvider", () => {
     expect(
       target.querySelector("[data-probe]")?.getAttribute("data-probe"),
     ).toBe("Log out");
+  });
+
+  it("merges a preset ui theme entry + admin i18n into the registry seen by descendants", () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const i18n = createI18n({
+      legacy: false,
+      locale: "en",
+      fallbackLocale: "en",
+      messages: {},
+    });
+    const themes: AdminThemePreset[] = [
+      {
+        key: "default",
+        label: { kind: "string", value: "Default" },
+        themeOverrides: {
+          "naive-ui": { common: { primaryColor: "#18a058" } },
+          "noob-naive-ui:ui": {
+            Card: { "--ui-card-bg": "#0f172a" },
+          },
+        },
+        isDark: false,
+      },
+    ];
+    const RegistryProbe = defineComponent({
+      name: "RegistryProbe",
+      setup() {
+        const registry = inject(libraryOverridesKey, null);
+        const value = registry?.value;
+        const admin = value?.["noob-naive-ui:admin"];
+        const uiEntry = value?.["noob-naive-ui:ui"];
+        // Registry values are loose (unknown) at the provider boundary; narrow
+        // the ui theme entry to the known Card var shape for the assertion.
+        const uiTheme = uiEntry?.theme as
+          | { Card?: { "--ui-card-bg"?: string } }
+          | undefined;
+        return () => (
+          <div
+            data-admin-has-i18n={admin?.i18n !== undefined}
+            data-ui-bg={uiTheme?.Card?.["--ui-card-bg"] ?? ""}
+          />
+        );
+      },
+    });
+    const target = document.createElement("div");
+    document.body.append(target);
+    const app = createApp({
+      setup: () => () => (
+        <AdminProvider
+          messages={baseMessages}
+          menu={menu}
+          storeOptions={preferences}
+          themes={themes}
+          defaultTheme="default"
+          i18nOverrides={{
+            "noob-naive-ui:admin": {
+              en: { AdminShell: { account: { signOut: "Log out" } } },
+            },
+          }}>
+          <RegistryProbe />
+        </AdminProvider>
+      ),
+    });
+    app.use(pinia);
+    app.use(i18n);
+    app.mount(target);
+    mountedApps.push(app);
+    expect(
+      target.querySelector("[data-admin-has-i18n]")?.getAttribute(
+        "data-admin-has-i18n",
+      ),
+    ).toBe("true");
+    expect(
+      target.querySelector("[data-ui-bg]")?.getAttribute("data-ui-bg"),
+    ).toBe("#0f172a");
+  });
+
+  it("provides only its own slice when AdminConfigProvider is used standalone", () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const i18n = createI18n({
+      legacy: false,
+      locale: "en",
+      fallbackLocale: "en",
+      messages: {},
+    });
+    const props: AdminConfigProviderProps = {
+      i18n: { en: { AdminShell: { account: { signOut: "Standalone out" } } } },
+    };
+    const StandaloneProbe = defineComponent({
+      name: "StandaloneProbe",
+      setup() {
+        const registry = inject(libraryOverridesKey, null);
+        const value: LibraryOverridesRegistry = registry?.value ?? {};
+        return () => (
+          <div data-keys={Object.keys(value).join(",")} />
+        );
+      },
+    });
+    const target = document.createElement("div");
+    document.body.append(target);
+    const app = createApp({
+      setup: () => () => (
+        <AdminConfigProvider {...props}>
+          <StandaloneProbe />
+        </AdminConfigProvider>
+      ),
+    });
+    app.use(pinia);
+    app.use(i18n);
+    app.mount(target);
+    mountedApps.push(app);
+    expect(
+      target.querySelector("[data-keys]")?.getAttribute("data-keys"),
+    ).toBe("noob-naive-ui:admin");
   });
 });
