@@ -1,6 +1,6 @@
 {
-  "name": "@noob-naive-ui/admin",
-  "version": "0.0.0",
+  "name": "@noob-naive-ui/registry",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -10,14 +10,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./style.css": "./dist/style.css"
+    }
   },
   "files": [
     "dist"
-  ],
-  "sideEffects": [
-    "**/*.css"
   ],
   "scripts": {
     "build": "vite build",
@@ -26,19 +22,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
-  "peerDependencies": {
-    "naive-ui": "catalog:",
-    "pinia": "catalog:",
-    "pro-naive-ui": "catalog:",
-    "vue": "catalog:",
-    "vue-i18n": "catalog:"
-  },
   "dependencies": {
-    "@noob-naive-ui/i18n": "workspace:*",
-    "@noob-naive-ui/ui": "workspace:*",
-    "@vicons/ionicons5": "^0.13.0",
-    "es-toolkit": "^1.42.0",
-    "zod": "catalog:",
-    "@noob-naive-ui/registry": "workspace:*"
+    "naive-ui": "catalog:",
+    "vue": "catalog:"
   }
 }

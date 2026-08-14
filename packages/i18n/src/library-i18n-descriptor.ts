@@ -1,4 +1,3 @@
-import type { ComputedRef, InjectionKey } from "vue";
 import { objectEntries } from "tsafe/objectEntries";
 
 /**
@@ -35,49 +34,6 @@ export type LibraryI18nSnapshot<
 > = LibraryI18nOverrides<LocaleName, Locale>;
 
 /**
- * App-scoped override registry shared by every component package. Keyed by
- * each package's stable `libraryId`, so a single provider (the admin
- * `AdminProvider` `overrides` prop) can supply overrides for all packages
- * without one provider per package. Each entry is a bare override tree (no
- * `messages` wrapper). The value is deliberately loose at the provider
- * boundary: hosts type each entry with `satisfies <Package>Overrides`, and
- * each package's descriptor re-validates and types its own entry at
- * consumption.
- */
-export interface LibraryI18nOverridesRegistry {
-  [libraryId: string]: unknown;
-}
-
-/**
- * App-scoped override registry shared by every component package, unified
- * across kinds. Keyed by each package's stable `libraryId`; each entry
- * carries the package's i18n override tree under `i18n` and its themeVar
- * override tree under `theme`. Values are deliberately loose (`unknown`) at
- * the provider boundary: hosts type per-package entries with
- * `satisfies <Package>Overrides`, and each package's descriptor re-validates
- * and types its own entry at consumption.
- */
-export interface LibraryOverridesRegistry {
-  [libraryId: string]: {
-    /** The library's i18n override tree, typed at consumption. */
-    i18n?: unknown;
-    /** The library's themeVar override tree, typed at consumption. */
-    theme?: unknown;
-  };
-}
-
-/**
- * The single injection key under which the override registry is provided.
- * Shared across all component packages; consumers look up their own
- * `libraryId` rather than injecting a per-package key. Providers supply a
- * `ComputedRef` (naive-ui's merged-overrides-ref pattern); consumers
- * `inject(key, null)` and read `.value` with optional chaining.
- */
-export const libraryOverridesKey: InjectionKey<
-  ComputedRef<LibraryOverridesRegistry>
-> = Symbol("noob-naive-ui:overrides-registry");
-
-/**
  * The frozen empty override tree every package falls back to when its
  * registry entry is absent. Shared because it is identical for every package.
  */
@@ -106,7 +62,7 @@ export type LibraryI18nComponentSelector<
  * generic parameters pin the package's locale schema so `createComponentI18n`
  * can type its component selector and override fallback per package. Hosts
  * provide the override registry once (e.g. the admin `AdminProvider`
- * `overrides` prop); there is no Vue plugin and no per-package provider.
+ * `i18nOverrides` prop); there is no Vue plugin and no per-package provider.
  *
  * @typeParam LocaleName - Supported packaged locale identifiers.
  * @typeParam Locale - The library's component-first full message schema.

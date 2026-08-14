@@ -2,8 +2,8 @@ import { computed, defineComponent, inject, provide } from "vue";
 import { merge } from "es-toolkit";
 import {
   libraryOverridesKey,
-  type LibraryOverridesRegistry,
-} from "@noob-naive-ui/i18n";
+  type LibraryOverridesRegistryValue,
+} from "@noob-naive-ui/registry";
 import { adminI18n } from "../i18n/plugin";
 import type { AdminLocaleOverrides } from "../i18n/admin-locale";
 import type { AdminThemeOverrides } from "../runtime-contract";
@@ -32,7 +32,7 @@ export interface AdminConfigProviderProps {
 export const AdminConfigProvider = defineComponent(
   (props: AdminConfigProviderProps, { slots }) => {
     const parent = inject(libraryOverridesKey, null);
-    const merged = computed<LibraryOverridesRegistry>(() =>
+    const merged = computed<LibraryOverridesRegistryValue>(() =>
       merge(
         merge({}, parent?.value ?? {}),
         {

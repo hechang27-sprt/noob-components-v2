@@ -18,9 +18,9 @@ import {
 } from "../src/components/admin-provider";
 import {
   libraryOverridesKey,
-  type LibraryI18nOverridesRegistry,
-  type LibraryOverridesRegistry,
-} from "@noob-naive-ui/i18n";
+  type LibraryOverridesRegistryValue,
+  type RegistryI18nOverrides,
+} from "@noob-naive-ui/registry";
 import {
   AdminConfigProvider,
   type AdminConfigProviderProps,
@@ -251,7 +251,7 @@ describe("AdminProvider", () => {
       fallbackLocale: "en",
       messages: {},
     });
-    const i18nOverrides: LibraryI18nOverridesRegistry = {
+    const i18nOverrides: RegistryI18nOverrides = {
       "noob-naive-ui:admin": {
         en: { AdminShell: { account: { signOut: "Log out" } } },
       },
@@ -456,7 +456,7 @@ describe("AdminProvider", () => {
       name: "StandaloneProbe",
       setup() {
         const registry = inject(libraryOverridesKey, null);
-        const value: LibraryOverridesRegistry = registry?.value ?? {};
+        const value: LibraryOverridesRegistryValue = registry?.value ?? {};
         return () => (
           <div data-keys={Object.keys(value).join(",")} />
         );

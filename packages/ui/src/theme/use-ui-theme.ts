@@ -1,5 +1,5 @@
 import { computed, inject } from "vue";
-import { libraryOverridesKey } from "@noob-naive-ui/i18n";
+import { libraryOverridesKey } from "@noob-naive-ui/registry";
 import { noobUiTheme, type NoobUiThemeOverrides, type UiThemeComponents } from "./types";
 
 /**

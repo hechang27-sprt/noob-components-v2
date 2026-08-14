@@ -2,7 +2,7 @@ import { defineComponent, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { NGlobalStyle } from "naive-ui";
 
-import type { LibraryI18nOverridesRegistry } from "@noob-naive-ui/i18n";
+import type { RegistryI18nOverrides } from "@noob-naive-ui/registry";
 import {
   AdminUiConfigProvider,
   noobUiI18n,
@@ -11,6 +11,7 @@ import {
 } from "@noob-naive-ui/ui";
 import type {
   AdminMenuTree,
+  AdminPresetThemeOverrides,
   AdminThemeOverrides,
   AdminThemePreset,
 } from "../runtime-contract";
@@ -52,7 +53,7 @@ export interface AdminProviderProps {
    * through the active `AdminThemePreset.themeOverrides`. Each entry is a
    * bare per-library i18n override tree; type it by importing that package's
    * override type (`AdminLocaleOverrides`, `NoobUiLocaleOverrides`). */
-  i18nOverrides?: LibraryI18nOverridesRegistry;
+  i18nOverrides?: RegistryI18nOverrides;
 }
 
 /**
@@ -127,25 +128,25 @@ export const AdminProvider = defineComponent(
     return () => (
       <AdminConfigProvider
         i18n={
-          props.i18nOverrides?.[adminI18n.libraryId] as
-            | AdminLocaleOverrides
-            | undefined
+          props.i18nOverrides?.[
+            adminI18n.libraryId as keyof RegistryI18nOverrides
+          ] as AdminLocaleOverrides | undefined
         }
         themeOverride={
           provider.activeTheme.value?.themeOverrides?.[
-            adminI18n.libraryId
+            adminI18n.libraryId as keyof AdminPresetThemeOverrides
           ] as AdminThemeOverrides | undefined
         }
       >
         <AdminUiConfigProvider
           i18n={
-            props.i18nOverrides?.[noobUiI18n.libraryId] as
-              | NoobUiLocaleOverrides
-              | undefined
+            props.i18nOverrides?.[
+              noobUiI18n.libraryId as keyof RegistryI18nOverrides
+            ] as NoobUiLocaleOverrides | undefined
           }
           themeOverride={
             provider.activeTheme.value?.themeOverrides?.[
-              noobUiI18n.libraryId
+              noobUiI18n.libraryId as keyof AdminPresetThemeOverrides
             ] as NoobUiThemeOverrides | undefined
           }
         >

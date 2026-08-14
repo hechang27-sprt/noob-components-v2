@@ -37,6 +37,12 @@ export type NoobUiI18nSnapshot = LibraryI18nSnapshot<
 >;
 
 /**
+ * The ui library's full per-locale message schema. No components translate
+ * yet, so the schema is empty; extend it as translating components land.
+ */
+export type NoobUiLocale = Record<never, never>;
+
+/**
  * Locale-keyed, component-addressable partial override tree accepted by the
  * ui package descriptor. With no components registered yet, hosts can only
  * supply empty per-locale slices; the seam ships ahead of the first
@@ -44,5 +50,5 @@ export type NoobUiI18nSnapshot = LibraryI18nSnapshot<
  */
 export type NoobUiLocaleOverrides = LibraryI18nOverrides<
   NoobUiLocaleName,
-  Record<never, never>
+  NoobUiLocale
 >;

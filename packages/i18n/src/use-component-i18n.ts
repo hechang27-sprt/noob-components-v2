@@ -2,11 +2,11 @@ import { inject, provide, type InjectionKey } from "vue";
 import { useI18n, type Composer } from "vue-i18n";
 import {
   emptySnapshot,
-  libraryOverridesKey,
   selectComponentOverrides,
   type LibraryI18nDescriptor,
   type LibraryI18nOverrides,
 } from "./library-i18n-descriptor";
+import { libraryOverridesKey } from "@noob-naive-ui/registry";
 
 /**
  * Options for {@link createComponentI18n}.

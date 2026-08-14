@@ -28,7 +28,8 @@
   },
   "dependencies": {
     "@noob-naive-ui/i18n": "workspace:*",
-    "es-toolkit": "^1.42.0"
+    "es-toolkit": "^1.42.0",
+    "@noob-naive-ui/registry": "workspace:*"
   },
   "peerDependencies": {
     "naive-ui": "catalog:",

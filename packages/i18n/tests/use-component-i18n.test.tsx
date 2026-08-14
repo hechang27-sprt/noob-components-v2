@@ -7,10 +7,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createComponentI18n,
   getComponentI18n,
-  libraryOverridesKey,
   type LibraryI18nDescriptor,
   type LibraryI18nOverrides,
 } from "../src/index";
+import { libraryOverridesKey } from "@noob-naive-ui/registry";
 
 /**
  * Minimal component-first locale schema for the harness library, shaped

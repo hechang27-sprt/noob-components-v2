@@ -2,8 +2,8 @@ import { computed, defineComponent, inject, provide } from "vue";
 import { merge } from "es-toolkit";
 import {
   libraryOverridesKey,
-  type LibraryOverridesRegistry,
-} from "@noob-naive-ui/i18n";
+  type LibraryOverridesRegistryValue,
+} from "@noob-naive-ui/registry";
 import {
   noobUiI18n,
   type NoobUiLocaleOverrides,
@@ -34,7 +34,7 @@ export interface AdminUiConfigProviderProps {
 export const AdminUiConfigProvider = defineComponent(
   (props: AdminUiConfigProviderProps, { slots }) => {
     const parent = inject(libraryOverridesKey, null);
-    const merged = computed<LibraryOverridesRegistry>(() =>
+    const merged = computed<LibraryOverridesRegistryValue>(() =>
       merge(
         merge({}, parent?.value ?? {}),
         {

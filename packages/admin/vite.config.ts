@@ -41,7 +41,8 @@ export default defineConfig({
         "vue",
         "vue-i18n",
         "zod",
-      ],
+      "@noob-naive-ui/registry",
+    ],
     },
   },
   resolve: {

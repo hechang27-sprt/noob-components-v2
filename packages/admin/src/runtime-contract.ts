@@ -1,6 +1,21 @@
 import type { GlobalThemeOverrides, MenuOption } from "naive-ui";
-import type { I18nText, LibraryThemeOverrides } from "@noob-naive-ui/i18n";
-import type { NoobUiThemeOverrides } from "@noob-naive-ui/ui";
+import type { I18nText } from "@noob-naive-ui/i18n";
+import type { RegistryThemeOverrides } from "@noob-naive-ui/registry";
+import type { AdminLocale, AdminLocaleName } from "./i18n/admin-locale";
+
+// Declare the admin library's FULL locale + themeVar types into the
+// framework-wide registry so the derived projections (`RegistryI18nOverrides` /
+// `RegistryThemeOverrides`, and via them `AdminPresetThemeOverrides` /
+// `AdminProviderProps.i18nOverrides`) carry the admin library's override
+// types without hardcoding libraryId elsewhere or pre-partializing here.
+declare module "@noob-naive-ui/registry" {
+  interface LibraryOverridesRegistry {
+    "noob-naive-ui:admin": {
+      locale: Record<AdminLocaleName, AdminLocale>;
+      theme: AdminThemeComponents;
+    };
+  }
+}
 
 export type AdminAuthStatus =
   | { kind: "loading" }
@@ -43,24 +58,19 @@ export type AdminFontSize = "small" | "medium" | "large";
  */
 export type AdminThemeComponents = {};
 
-/** Admin package themeVar overrides, structurally typed by component. */
-export type AdminThemeOverrides = LibraryThemeOverrides<AdminThemeComponents>;
+/** Admin package themeVar overrides, derived from the registry's declared theme schema. */
+export type AdminThemeOverrides = RegistryThemeOverrides["noob-naive-ui:admin"];
 
 /**
- * Per-library themeVar override tree selectable from a theme preset. Theme
- * presets are the sole source of themeVar overrides: naive-ui and pro-naive-ui
- * slices feed the naive-ui provider's `themeOverrides` (pro-naive-ui forwards
- * GlobalThemeOverrides to naive-ui's NConfigProvider, so both merge into the
- * same `naiveUiConfig.themeOverrides`); the admin and ui slices feed their
- * per-package ConfigProviders; the index signature admits 3rd-party libraries.
+ * Per-library themeVar override tree selectable from a theme preset, derived
+ * purely from `LibraryOverridesRegistry` (the theme projection). naive-ui and
+ * pro-naive-ui are preseeded into the registry (GlobalThemeOverrides —
+ * pro-naive-ui forwards them to naive-ui's NConfigProvider, so both merge into
+ * the same `naiveUiConfig.themeOverrides`); admin and ui declare their own
+ * entries via module augmentation. Theme presets are the sole source of
+ * themeVar overrides.
  */
-export type AdminPresetThemeOverrides = {
-  "naive-ui"?: GlobalThemeOverrides;
-  "pro-naive-ui"?: GlobalThemeOverrides;
-  "noob-naive-ui:admin"?: AdminThemeOverrides;
-  "noob-naive-ui:ui"?: NoobUiThemeOverrides;
-  [libraryId: string]: unknown;
-};
+export type AdminPresetThemeOverrides = RegistryThemeOverrides;
 
 /**
  * One named, host-supplied theme preset selectable from the navbar.

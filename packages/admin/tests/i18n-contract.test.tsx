@@ -9,9 +9,9 @@ import { AdminLoginPage } from "../src/components/admin-login-page";
 import { AdminProvider } from "../src/components/admin-provider";
 import {
   libraryOverridesKey,
-  selectComponentOverrides,
-  type LibraryI18nOverridesRegistry,
-} from "@noob-naive-ui/i18n";
+  type RegistryI18nOverrides,
+} from "@noob-naive-ui/registry";
+import { selectComponentOverrides } from "@noob-naive-ui/i18n";
 import { type AdminI18nSnapshot } from "../src/i18n/plugin";
 import type { AdminLocaleOverrides } from "../src/i18n/admin-locale";
 import { useAdminAuthStore } from "../src/stores/auth";
@@ -38,7 +38,7 @@ function mountLoginPage(
   options: {
     locale?: string;
     fallbackLocale?: string;
-    overrides?: LibraryI18nOverridesRegistry;
+    overrides?: RegistryI18nOverrides;
   } = {},
 ) {
   const target = document.createElement("div");
@@ -91,7 +91,7 @@ function mountLoginPage(
  * @returns The snapshot observed through Vue's application provider map.
  */
 function captureProviderSnapshot(
-  overrides: LibraryI18nOverridesRegistry,
+  overrides: RegistryI18nOverrides,
 ): AdminI18nSnapshot {
   let captured: AdminI18nSnapshot | undefined;
   const Capture = defineComponent({
@@ -128,7 +128,7 @@ function captureProviderSnapshot(
 
 describe("admin i18n overrides via AdminProvider", () => {
   it("snapshots caller overrides when provided through the prop", () => {
-    const overrides: LibraryI18nOverridesRegistry = {
+    const overrides: RegistryI18nOverrides = {
       "noob-naive-ui:admin": {
         en: { AdminShell: { account: { signOut: "Installed sign out" } } },
       },
