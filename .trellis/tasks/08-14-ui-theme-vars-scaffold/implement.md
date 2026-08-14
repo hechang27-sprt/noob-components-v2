@@ -2,28 +2,22 @@
 
 Ordered, independently verifiable steps. Validate after each.
 
-## Step 1 — Generalize the i18n registry to kind-namespaced entries (packages/i18n)
+## Step 1 — Scaffold `@noob-naive-ui/registry` (framework-wide override registry)
 
-File `packages/i18n/src/library-i18n-descriptor.ts`:
+New workspace package (clone the i18n package structure: package.json, tsconfig, tsconfig.build, vite.config; add `packages/registry` to `pnpm-workspace.yaml`; add `@noob-naive-ui/registry` path to root + each package tsconfig; declare it a dep of i18n/ui/admin; externalize it in their vite configs). Deps: `vue` + `naive-ui` (type-only `GlobalThemeOverrides`).
 
-- **Retain** `LibraryI18nOverridesRegistry = { [libraryId: string]: unknown }` (i18n-only host-facing type, used by `AdminProviderProps.i18nOverrides`).
-- Add `LibraryOverridesRegistry = { [libraryId: string]: { i18n?: unknown; theme?: unknown } }` (internal injection value).
-- Rename `libraryI18nOverridesKey` → `libraryOverridesKey`; value type becomes `ComputedRef<LibraryOverridesRegistry>`. Providers provide `computed(...)`; consumers read `.value` with `inject(key, null)` + optional chaining.
-- Keep `DeepPartial`, `emptySnapshot` (frozen `{}` — shared fallback for both kinds), `selectComponentOverrides` unchanged.
-- Add theme trio (same file or `library-theme-overrides.ts`): `LibraryThemeOverrides<Components>`, `LibraryThemeDescriptor<Components>`, `selectComponentThemeOverrides(overrides, componentId)` (as in design.md §2).
-- `use-component-i18n.ts` `createComponentI18n`: read `registry?.value?.[descriptor.libraryId]?.i18n ?? emptySnapshot`; `inject(libraryOverridesKey, null)`.
-- `packages/i18n/src/index.ts`: rename `libraryI18nOverridesKey` → `libraryOverridesKey`; **keep `LibraryI18nOverridesRegistry`** export; add `LibraryOverridesRegistry`, `LibraryThemeOverrides`, `LibraryThemeDescriptor`, `selectComponentThemeOverrides`.
+`packages/registry/src/library-overrides-registry.ts`:
+- `LibraryOverridesRegistry` augmentation point, preseeded `"naive-ui"`/`"pro-naive-ui"` as `{ locale: unknown; theme: GlobalThemeOverrides }`. No index signature (so `keyof` stays the known libraryIds).
+- Internal `DeepPartial<T>`; `RegistryI18nOverrides` = `DeepPartial` of each declared `locale`; `RegistryThemeOverrides` = `LibraryThemeOverrides` of each declared `theme`.
+- `LibraryOverridesRegistryValue` (loose `{ i18n?, theme? }` index) + `libraryOverridesKey: InjectionKey<ComputedRef<LibraryOverridesRegistryValue>>`.
 
-**Migrate consumers (exact grep list — `libraryI18nOverridesKey` appears only in):**
-- `packages/admin/src/components/admin-provider.tsx`
-- `packages/admin/tests/admin-provider.test.tsx`
-- `packages/admin/tests/i18n-contract.test.tsx`
-- `packages/i18n/src/index.ts`, `packages/i18n/src/use-component-i18n.ts`, `packages/i18n/src/library-i18n-descriptor.ts`
-- `packages/i18n/tests/use-component-i18n.test.tsx`, `packages/i18n/tests/library-i18n-descriptor.test.ts`
+`packages/registry/src/library-theme-overrides.ts`: theme trio moved from i18n — `LibraryThemeOverrides` + `selectComponentThemeOverrides` internal; `LibraryThemeDescriptor` exported (used by `noobUiTheme`).
 
-Tests: registry provides become `computed(() => ({ "test-library": { i18n: {...} } }))`; assertions read `.value`. Admin tests migrate in Step 3.
+`packages/registry/src/index.ts`: export `libraryOverridesKey`, `LibraryOverridesRegistry`, `LibraryOverridesRegistryValue`, `RegistryI18nOverrides`, `RegistryThemeOverrides`, `LibraryThemeDescriptor`. **Not** `LibraryThemeOverrides`/`selectComponentThemeOverrides`.
 
-**Validate:** `pnpm --filter @noob-naive-ui/i18n typecheck`, `build`, `test`. Admin typecheck may be red until Step 3 — acceptable intermediate.
+**Rewire i18n**: drop the registry + theme trio from `library-i18n-descriptor.ts`; `createComponentI18n` imports `libraryOverridesKey` from `@noob-naive-ui/registry`; i18n index exports i18n-only surface. **`LibraryI18nOverridesRegistry` is eliminated** (replaced by the derived `RegistryI18nOverrides`).
+
+**Validate:** `pnpm --filter @noob-naive-ui/registry typecheck`, `build`, `test`; `pnpm --filter @noob-naive-ui/i18n typecheck`, `test`. (Admin/ui stay red until Steps 3-4 augment + derive.)
 
 ## Step 2 — Admin: `AdminThemePreset.themeOverrides` (per-library)
 
@@ -42,7 +36,14 @@ Tests: registry provides become `computed(() => ({ "test-library": { i18n: {...}
 ## Step 3 — Admin: `AdminProvider` aggregates ConfigProviders; new `AdminConfigProvider`
 
 `packages/admin/src/components/admin-provider.tsx`:
-- `AdminProviderProps.overrides` → **`i18nOverrides?: LibraryI18nOverridesRegistry`** (i18n-only; bare per-library i18n trees, no `{ i18n? }` wrapper).
+- `AdminProviderProps.overrides` → **`i18nOverrides?: RegistryI18nOverrides`** (i18n-only; derived from the registry's i18n projection; bare per-library i18n trees). `AdminThemeOverrides`/`AdminPresetThemeOverrides` derive from `RegistryThemeOverrides` (Step 1/2 + augmentation below). Add the admin augmentation to `runtime-contract.ts`:
+```ts
+declare module "@noob-naive-ui/registry" {
+  interface LibraryOverridesRegistry {
+    "noob-naive-ui:admin": { locale: Record<AdminLocaleName, AdminLocale>; theme: AdminThemeComponents };
+  }
+}
+```
 - **AdminProvider does NOT provide the registry** — it is the aggregator only. Remove the old `structuredClone` `Object.fromEntries` provide + `libraryI18nOverridesKey` import; no `provide(libraryOverridesKey, …)` anywhere in AdminProvider.
 - Render mounts `AdminConfigProvider` + `AdminUiConfigProvider` internally, passing per-package `i18n` + `themeOverride` values. Each `themeOverride` is sourced from `provider.activeTheme.themeOverrides?.[libraryId]` (the sole theme source, re-passed reactively on theme change); the ConfigProviders provide their own slices (nearest-wins). naive-ui/pro-naive-ui preset theme feeds `naiveUiConfig.themeOverrides` (visual path), NOT the registry. Wrapping `ProConfigProvider`/`NGlobalStyle`/slot:
 ```tsx
@@ -61,7 +62,7 @@ Tests: registry provides become `computed(() => ({ "test-library": { i18n: {...}
   </AdminUiConfigProvider>
 </AdminConfigProvider>
 ```
-  The `i18n` reads MUST be boundary-cast `as …LocaleOverrides | undefined`: `props.i18nOverrides` values are `unknown` (`LibraryI18nOverridesRegistry`), and `AdminConfigProviderProps.i18n` is typed per-package — `unknown` is not assignable. Casting only at the prop boundary preserves the loose registry.
+  Both `i18n` and `themeOverride` reads are key-cast `as keyof RegistryI18nOverrides` / `as keyof AdminPresetThemeOverrides` (the derived types are key-only mapped types with no index signature) + value-cast to the per-package override type.
 
 New `packages/admin/src/components/admin-config-provider.tsx`: per-package props (`i18n?: AdminLocaleOverrides`, `themeOverride?: AdminThemeOverrides`), inject-merge-reprovide pattern (as in design.md §4). **Declare `props:` in the `defineComponent` options** — the function-form `defineComponent(fn, { name })` without a `props` option lets attributes fall through to attrs (props become undefined). Export `AdminConfigProvider`, `AdminConfigProviderProps` from `packages/admin/src/index.ts`.
 

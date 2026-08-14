@@ -10,7 +10,7 @@ Continuity for the design grilling on the unified library override mechanism. Th
 
 ## Current settled direction
 
-- ONE unified registry: `LibraryOverridesRegistry = { [libraryId]: { i18n?, theme? } }` under `libraryOverridesKey` (value `ComputedRef<...>`). `LibraryI18nOverridesRegistry` (i18n-only) retained for `AdminProviderProps.i18nOverrides`.
+- Framework-wide override registry in `@noob-naive-ui/registry` (not i18n): `LibraryOverridesRegistry` augmentation point (naive-ui/pro-naive-ui preseeded as `GlobalThemeOverrides`); packages declare FULL `locale`/`theme` types via module augmentation; derived `RegistryI18nOverrides` (DeepPartial) / `RegistryThemeOverrides` (per-component partial) convert internally; `LibraryThemeOverrides` internal. `libraryOverridesKey: ComputedRef<LibraryOverridesRegistryValue>`. `LibraryI18nOverridesRegistry` eliminated; `AdminProviderProps.i18nOverrides = RegistryI18nOverrides`; `AdminPresetThemeOverrides = RegistryThemeOverrides`.
 - `AdminProviderProps.overrides` → `i18nOverrides` (i18n-only, bare per-library i18n trees). Theme presets are the sole themeVar-override source.
 - `AdminProvider` aggregates: render mounts `AdminConfigProvider` + `AdminUiConfigProvider`, each `themeOverride` from `provider.activeTheme.themeOverrides?.[lib]`, `i18n` from `props.i18nOverrides?.[lib]`.
 - Per-package ConfigProviders standalone-capable (inject null → own slice), nearest-wins layering.

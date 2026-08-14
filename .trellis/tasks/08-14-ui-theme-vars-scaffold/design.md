@@ -16,41 +16,46 @@ The i18n mechanism is already a clean namespaced override seam; themeVars should
 
 naive-ui's themeVars typing (`es/card/styles/light.d.ts` + `es/_mixins/use-theme.d.ts`): `CardThemeVars = ReturnType<typeof self>`; `ExtractThemeOverrides<T> = Partial<ExtractThemeVars<T>>`. Exact names survive because the vars type is a concrete object-literal type.
 
-## 2. Unified registry (breaking, in the i18n package)
+## 2. Framework-wide registry (`@noob-naive-ui/registry`)
 
-Two registry types, distinct roles:
+New package `@noob-naive-ui/registry` hosts the framework-wide override
+registry, decoupled from i18n. `LibraryOverridesRegistry` is an **augmentation
+point**: known external libs are preseeded; each noob package declares its
+**FULL** locale + themeVar types via `declare module "@noob-naive-ui/registry"`.
+The registry converts them to override types internally.
 
 ```ts
-/** Host-facing, i18n-only per-library registry (AdminProviderProps.i18nOverrides). */
-export type LibraryI18nOverridesRegistry = { [libraryId: string]: unknown }; // i18n tree per library, RETAINED
+// packages/registry/src/library-overrides-registry.ts
+export interface LibraryOverridesRegistry {
+  "naive-ui": { locale: unknown; theme: GlobalThemeOverrides };
+  "pro-naive-ui": { locale: unknown; theme: GlobalThemeOverrides };
+}
+type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
 
-/** Internal injection value: both kinds, one entry per library. */
-export type LibraryOverridesRegistry = {
-  [libraryId: string]: {
-    i18n?: unknown;   // typed per-package at consumption (LibraryI18nOverrides<...>)
-    theme?: unknown;  // typed per-package at consumption (LibraryThemeOverrides<...>)
-  };
+/** i18n projection: DeepPartial of the declared full locale. */
+export type RegistryI18nOverrides = {
+  [K in keyof LibraryOverridesRegistry]?: LibraryOverridesRegistry[K] extends { locale: infer L } ? DeepPartial<L> : never;
 };
-export const libraryOverridesKey: InjectionKey<ComputedRef<LibraryOverridesRegistry>>;
+/** theme projection: per-component partial of the declared theme schema. */
+export type RegistryThemeOverrides = {
+  [K in keyof LibraryOverridesRegistry]?: LibraryOverridesRegistry[K] extends { theme: infer T } ? LibraryThemeOverrides<T> : never;
+};
+export type LibraryOverridesRegistryValue = { [libraryId: string]: { i18n?: unknown; theme?: unknown } };
+export const libraryOverridesKey: InjectionKey<ComputedRef<LibraryOverridesRegistryValue>>;
 ```
 
-- `libraryI18nOverridesKey` → `libraryOverridesKey` (the injection key now carries both kinds as `ComputedRef`). **`LibraryI18nOverridesRegistry` (i18n-only) is retained** under its original name for `AdminProviderProps.i18nOverrides`.
-- Provided value becomes `ComputedRef` (naive-ui's `mergedThemeOverridesRef` pattern) — providers `provide(computed(...))`, consumers `inject(key, null)` + optional chaining. All test harnesses wrap in `computed`.
-- `createComponentI18n` reads `registry?.value?.[descriptor.libraryId]?.i18n ?? emptySnapshot`.
-
-Theme trio (mirror the i18n trio):
+- `LibraryThemeOverrides` (`{ [K in keyof T]?: Partial<T[K]> }`) is **internal** to the registry package (not exported from the barrel); `LibraryThemeDescriptor` stays exported (the typed handle used by `noobUiTheme`).
+- naive-ui/pro-naive-ui preseed their theme as `GlobalThemeOverrides` (the override form): their theme does not convert through `LibraryThemeOverrides`, and the uniform conversion is a structural no-op for them (Partial idempotence).
+- Per-package augmentation (full types):
 ```ts
-export type LibraryThemeOverrides<Components extends Record<string, unknown>> = {
-  [K in keyof Components]?: Partial<Components[K]>;
-};
-export type LibraryThemeDescriptor<Components extends Record<string, unknown>> = {
-  libraryId: string;
-  readonly __theme?: LibraryThemeOverrides<Components>; // type-level brand only
-};
-export function selectComponentThemeOverrides<Components, ComponentId extends keyof Components & string>(
-  overrides: LibraryThemeOverrides<Components>, componentId: ComponentId,
-): Partial<Components[ComponentId]>;
+declare module "@noob-naive-ui/registry" {
+  interface LibraryOverridesRegistry {
+    "noob-naive-ui:admin": { locale: Record<AdminLocaleName, AdminLocale>; theme: AdminThemeComponents };
+  }
+}
 ```
+- Provided value is `ComputedRef` (naive-ui's `mergedThemeOverridesRef` pattern); consumers `inject(key, null)` + optional chaining; `createComponentI18n` reads `registry?.value?.[descriptor.libraryId]?.i18n ?? emptySnapshot`.
+- `RegistryI18nOverrides["noob-naive-ui:admin"]` ≡ `AdminLocaleOverrides` (DeepPartial of `Record<LocaleName, Locale>` = `Partial<Record<LocaleName, DeepPartial<Locale>>>`). Boundary casts stay at consumption (per user: keep casts).
 
 ## 3. `AdminThemePreset` — per-library themeOverrides
 
@@ -98,7 +103,7 @@ Each provides `{ [libraryId]: { i18n: props.i18n, theme: props.themeOverride } }
 
 ### `AdminProvider` (aggregator)
 
-Keeps an i18n-only prop renamed `overrides` → `i18nOverrides?: LibraryI18nOverridesRegistry` (bare per-library i18n trees — it does not concern theme overrides). **AdminProvider does NOT provide the registry** — it is the aggregator only: its render passes per-package `i18n` + `themeOverride` values to the ConfigProviders mounted internally, which provide their own slices (nearest-wins layering). Theme overrides flow exclusively through the active preset's `themeOverrides` (re-passed reactively on theme change, driving the ConfigProvider `themeOverride` props). The `i18n` reads MUST be boundary-cast `as …LocaleOverrides | undefined`: `props.i18nOverrides` values are `unknown`, and the ConfigProvider `i18n` prop is per-package typed — `unknown` is not assignable. Cast only at the prop boundary (registry stays loose):
+Keeps an i18n-only prop renamed `overrides` → `i18nOverrides?: RegistryI18nOverrides` (derived from the registry's i18n projection — bare per-library i18n trees, does not concern theme overrides). **AdminProvider does NOT provide the registry** — it is the aggregator only: its render passes per-package `i18n` + `themeOverride` values to the ConfigProviders mounted internally, which provide their own slices (nearest-wins layering). Theme overrides flow exclusively through the active preset's `themeOverrides` (re-passed reactively on theme change, driving the ConfigProvider `themeOverride` props). The `i18n` reads MUST be boundary-cast `as …LocaleOverrides | undefined`: `props.i18nOverrides` values are `unknown`, and the ConfigProvider `i18n` prop is per-package typed — `unknown` is not assignable. Cast only at the prop boundary (registry stays loose):
 ```tsx
 return () => (
   <AdminConfigProvider
@@ -124,7 +129,7 @@ The naive-ui/pro-naive-ui preset theme does NOT enter the registry — it feeds 
 ### `src/theme/types.ts`
 ```ts
 export interface UiThemeComponents { Card: UiCardThemeVars; } // extend per component
-export type NoobUiThemeOverrides = LibraryThemeOverrides<UiThemeComponents>;
+export type NoobUiThemeOverrides = RegistryThemeOverrides["noob-naive-ui:ui"];
 export const noobUiTheme: LibraryThemeDescriptor<UiThemeComponents> = { libraryId: "noob-naive-ui:ui" };
 ```
 (`UiCardThemeVars` imported type-only from `../card/ui-card`; no runtime cycle.)
@@ -162,9 +167,10 @@ export const UiCard = defineComponent({
 
 ## 6. Public surface
 
-- `packages/i18n/src/index.ts`: rename `libraryI18nOverridesKey` → `libraryOverridesKey`; **keep `LibraryI18nOverridesRegistry`** (i18n-only, for `AdminProviderProps.i18nOverrides`); add `LibraryOverridesRegistry`, `LibraryThemeOverrides`, `LibraryThemeDescriptor`, `selectComponentThemeOverrides`.
-- `packages/admin/src/index.ts`: add `AdminConfigProvider`, `AdminConfigProviderProps`.
-- `packages/ui/src/index.ts`: add `AdminUiConfigProvider`, `useUiTheme`, `UiCard`, `UiCardThemeVars`, `NoobUiThemeOverrides`, `UiThemeComponents`, `noobUiTheme`; keep existing i18n exports.
+- `packages/registry/src/index.ts`: `libraryOverridesKey`, `LibraryOverridesRegistry` (augmentation point), `LibraryOverridesRegistryValue`, `RegistryI18nOverrides`, `RegistryThemeOverrides`, `LibraryThemeDescriptor`. `LibraryThemeOverrides` + `selectComponentThemeOverrides` stay internal.
+- `packages/i18n/src/index.ts`: i18n-only (`LibraryI18nOverrides`, `LibraryI18nDescriptor`, `selectComponentOverrides`, `emptySnapshot`, `createComponentI18n`, …). `LibraryI18nOverridesRegistry` eliminated.
+- `packages/admin/src/index.ts`: add `AdminConfigProvider`, `AdminConfigProviderProps`. `AdminThemeOverrides`/`AdminPresetThemeOverrides` derive from `RegistryThemeOverrides`.
+- `packages/ui/src/index.ts`: add `AdminUiConfigProvider`, `useUiTheme`, `UiCard`, `UiCardThemeVars`, `NoobUiThemeOverrides` (derived), `UiThemeComponents`, `noobUiTheme`; keep existing i18n exports.
 
 ## 7. Compatibility & risks
 
