@@ -1,13 +1,8 @@
-import { computed, defineComponent, provide, watch } from "vue";
+import { defineComponent, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { NGlobalStyle } from "naive-ui";
-import { merge } from "es-toolkit";
 
-import {
-  libraryOverridesKey,
-  type LibraryI18nOverridesRegistry,
-  type LibraryOverridesRegistry,
-} from "@noob-naive-ui/i18n";
+import type { LibraryI18nOverridesRegistry } from "@noob-naive-ui/i18n";
 import {
   AdminUiConfigProvider,
   noobUiI18n,
@@ -70,38 +65,13 @@ export interface AdminProviderProps {
  */
 export const AdminProvider = defineComponent(
   (props: AdminProviderProps, { slots }) => {
-    // 0. Provide the shared, libraryId-keyed override registry under the
-    // injection key every package's `createComponentI18n` / `useUiTheme` reads,
-    // so hosts no longer install a per-package plugin or provider. The base
-    // layer carries (a) the i18n-only `i18nOverrides` entries (each a bare
-    // per-library i18n tree, wrapped `{ i18n }`) and (b) the active theme
-    // preset's per-library themeVar overrides (as `{ theme }`), EXCLUDING the
-    // libraryIds owned by the ConfigProviders mounted below (admin, ui), whose
-    // slices layer on top via the nearest-wins merge. Must precede child setup
-    // (AdminShell/AdminLoginPage). Theme overrides never enter via
-    // `i18nOverrides` — theme presets are their sole source.
+    // 0. AdminProvider is the AGGREGATOR only: it owns host wiring and passes
+    // per-package values (i18n + themeOverride) to the ConfigProviders
+    // mounted in its render, which provide their own slices of the shared
+    // override registry. AdminProvider itself never provides the registry.
+    // Theme overrides flow exclusively through the active preset's
+    // themeOverrides; `i18nOverrides` is i18n-only.
     const provider = useAdminProvider();
-    const ownedLibraryIds: Record<string, true> = {
-      [adminI18n.libraryId]: true,
-      [noobUiI18n.libraryId]: true,
-    };
-    const baseRegistry = computed<LibraryOverridesRegistry>(() => {
-      const base: LibraryOverridesRegistry = {};
-      for (const [libraryId, i18n] of Object.entries(
-        props.i18nOverrides ?? {},
-      )) {
-        if (!ownedLibraryIds[libraryId])
-          base[libraryId] = { i18n: structuredClone(i18n) };
-      }
-      for (const [libraryId, theme] of Object.entries(
-        provider.activeTheme.value?.themeOverrides ?? {},
-      )) {
-        if (!ownedLibraryIds[libraryId])
-          base[libraryId] = { ...base[libraryId], theme };
-      }
-      return base;
-    });
-    provide(libraryOverridesKey, baseRegistry);
     // 1. Resolve the package-owned stores before configuring them, plus the
     // consumption surface that derives the render config (naiveUiConfig).
     const preferences = useAdminShellPreferencesStore();
@@ -145,15 +115,15 @@ export const AdminProvider = defineComponent(
       { immediate: true },
     );
 
-    // 7. Render the aggregated config providers + naive-ui config provider. The
-    // per-package ConfigProviders layer their own slices (admin i18n + preset
-    // theme; ui i18n + preset theme) over the base registry via the
-    // nearest-wins merge, so hosts compose only `AdminProvider`. Each
-    // `themeOverride` is sourced from the active preset's `themeOverrides` (the
-    // sole theme source); the `i18n` reads are boundary-cast because
-    // `i18nOverrides` values are loose `unknown` while the ConfigProvider `i18n`
-    // prop is per-package typed. The naive-ui base theme + merged overrides are
-    // already resolved into `naiveUiConfig` by the composable.
+    // 7. Render the aggregated config providers + naive-ui config provider.
+    // AdminProvider passes per-package values (i18n + themeOverride) to the
+    // ConfigProviders, which provide their own slices of the shared override
+    // registry, so hosts compose only `AdminProvider`. Each `themeOverride` is
+    // sourced from the active preset's `themeOverrides` (the sole theme source,
+    // reactively re-passed on theme change); the `i18n` reads are boundary-cast
+    // because `i18nOverrides` values are loose `unknown` while the ConfigProvider
+    // `i18n` prop is per-package typed. The naive-ui base theme + merged
+    // overrides are already resolved into `naiveUiConfig` by the composable.
     return () => (
       <AdminConfigProvider
         i18n={

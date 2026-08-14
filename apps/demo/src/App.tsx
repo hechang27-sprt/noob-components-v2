@@ -10,7 +10,6 @@ import { RouterView } from "vue-router";
 import { i18n } from "./i18n";
 import demoMessages from "./locales/demo.json";
 import type { DemoNavKey } from "./routes";
-import type { AdminLocaleOverrides } from "@noob-naive-ui/admin";
 import {
   demoDefaultDarkTheme,
   demoDefaultTheme,
@@ -132,7 +131,7 @@ export default defineComponent(
           "noob-naive-ui:admin": {
             en: { AdminShell: { account: { signOut: "Log out" } } },
             "zh-CN": { AdminShell: { account: { signOut: "退出" } } },
-          } satisfies AdminLocaleOverrides,
+          },
         }}>
         <RouterView />
       </AdminProvider>

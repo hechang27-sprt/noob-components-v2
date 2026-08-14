@@ -98,10 +98,7 @@ Each provides `{ [libraryId]: { i18n: props.i18n, theme: props.themeOverride } }
 
 ### `AdminProvider` (aggregator)
 
-Keeps an i18n-only prop renamed `overrides` → `i18nOverrides?: LibraryI18nOverridesRegistry` (bare per-library i18n trees — it does not concern theme overrides). Two responsibilities:
-
-1. **Provides a base registry** = merge of (a) `props.i18nOverrides` entries (as `{ i18n: tree }`) and (b) the active preset's `themeOverrides` entries (as `{ theme }`), **excluding the libraryIds owned by mounted ConfigProviders** (`adminI18n.libraryId`, `noobUiI18n.libraryId`). Base i18n untouched. naive-ui/pro-naive-ui/3rd-party preset theme lands in base (naive-ui is prop-driven via `naiveUiConfig`; the registry entry is uniform carry, no consumer reads it). Theme overrides never enter via `i18nOverrides`.
-2. **Render mounts the ConfigProviders internally** (hosts never compose them), sourcing each `themeOverride` from the active preset's `themeOverrides` (the sole theme source). The `i18n` reads MUST be boundary-cast `as …LocaleOverrides | undefined`: `props.i18nOverrides` values are `unknown`, and the ConfigProvider `i18n` prop is per-package typed — `unknown` is not assignable. Cast only at the prop boundary (registry stays loose):
+Keeps an i18n-only prop renamed `overrides` → `i18nOverrides?: LibraryI18nOverridesRegistry` (bare per-library i18n trees — it does not concern theme overrides). **AdminProvider does NOT provide the registry** — it is the aggregator only: its render passes per-package `i18n` + `themeOverride` values to the ConfigProviders mounted internally, which provide their own slices (nearest-wins layering). Theme overrides flow exclusively through the active preset's `themeOverrides` (re-passed reactively on theme change, driving the ConfigProvider `themeOverride` props). The `i18n` reads MUST be boundary-cast `as …LocaleOverrides | undefined`: `props.i18nOverrides` values are `unknown`, and the ConfigProvider `i18n` prop is per-package typed — `unknown` is not assignable. Cast only at the prop boundary (registry stays loose):
 ```tsx
 return () => (
   <AdminConfigProvider
@@ -120,6 +117,7 @@ return () => (
   </AdminConfigProvider>
 );
 ```
+The naive-ui/pro-naive-ui preset theme does NOT enter the registry — it feeds `naiveUiConfig.themeOverrides` (prop-driven via ProConfigProvider), the visual path. The registry carries only the admin + ui slices provided by the ConfigProviders.
 
 ## 5. ui package — theme typing, composable, proof component
 

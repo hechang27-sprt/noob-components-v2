@@ -43,22 +43,8 @@ Tests: registry provides become `computed(() => ({ "test-library": { i18n: {...}
 
 `packages/admin/src/components/admin-provider.tsx`:
 - `AdminProviderProps.overrides` → **`i18nOverrides?: LibraryI18nOverridesRegistry`** (i18n-only; bare per-library i18n trees, no `{ i18n? }` wrapper).
-- Setup provides base registry = merge of (a) `props.i18nOverrides` entries wrapped **`{ i18n: tree }`** (bare tree must be wrapped — the entry shape is `{ i18n?, theme? }`, and the consumer reads `registry.value[lib].i18n`) + (b) active preset `themeOverrides` entries (as `{ theme }`), **excluding `adminI18n.libraryId` + `noobUiI18n.libraryId`** (import `adminI18n` from `../i18n/plugin`, `noobUiI18n` from `@noob-naive-ui/ui`). naive-ui/pro-naive-ui/3rd-party preset theme lands in base. Remove old `structuredClone` `Object.fromEntries` provide + `libraryI18nOverridesKey` import. Use es-toolkit `merge`.
-```ts
-const registry = computed<LibraryOverridesRegistry>(() => {
-  const owned = new Set([adminI18n.libraryId, noobUiI18n.libraryId]);
-  const base: LibraryOverridesRegistry = {};
-  for (const [libraryId, i18n] of Object.entries(props.i18nOverrides ?? {})) {
-    if (!owned.has(libraryId)) base[libraryId] = { i18n };   // wrap bare tree
-  }
-  for (const [libraryId, theme] of Object.entries(provider.activeTheme.value?.themeOverrides ?? {})) {
-    if (!owned.has(libraryId)) base[libraryId] = { ...base[libraryId], theme };
-  }
-  return base;
-});
-provide(libraryOverridesKey, registry);
-```
-- Render mounts `AdminConfigProvider` + `AdminUiConfigProvider` internally, sourcing each `themeOverride` from `provider.activeTheme.themeOverrides?.[libraryId]` alone (the sole theme source, no merge) and `i18n` from `props.i18nOverrides?.[libraryId]`, wrapping `ProConfigProvider`/`NGlobalStyle`/slot:
+- **AdminProvider does NOT provide the registry** — it is the aggregator only. Remove the old `structuredClone` `Object.fromEntries` provide + `libraryI18nOverridesKey` import; no `provide(libraryOverridesKey, …)` anywhere in AdminProvider.
+- Render mounts `AdminConfigProvider` + `AdminUiConfigProvider` internally, passing per-package `i18n` + `themeOverride` values. Each `themeOverride` is sourced from `provider.activeTheme.themeOverrides?.[libraryId]` (the sole theme source, re-passed reactively on theme change); the ConfigProviders provide their own slices (nearest-wins). naive-ui/pro-naive-ui preset theme feeds `naiveUiConfig.themeOverrides` (visual path), NOT the registry. Wrapping `ProConfigProvider`/`NGlobalStyle`/slot:
 ```tsx
 <AdminConfigProvider
   i18n={props.i18nOverrides?.[adminI18n.libraryId] as AdminLocaleOverrides | undefined}
@@ -77,9 +63,9 @@ provide(libraryOverridesKey, registry);
 ```
   The `i18n` reads MUST be boundary-cast `as …LocaleOverrides | undefined`: `props.i18nOverrides` values are `unknown` (`LibraryI18nOverridesRegistry`), and `AdminConfigProviderProps.i18n` is typed per-package — `unknown` is not assignable. Casting only at the prop boundary preserves the loose registry.
 
-New `packages/admin/src/components/admin-config-provider.tsx`: per-package props (`i18n?: AdminLocaleOverrides`, `themeOverride?: AdminThemeOverrides`), inject-merge-reprovide pattern (as in design.md §4). Export `AdminConfigProvider`, `AdminConfigProviderProps` from `packages/admin/src/index.ts`.
+New `packages/admin/src/components/admin-config-provider.tsx`: per-package props (`i18n?: AdminLocaleOverrides`, `themeOverride?: AdminThemeOverrides`), inject-merge-reprovide pattern (as in design.md §4). **Declare `props:` in the `defineComponent` options** — the function-form `defineComponent(fn, { name })` without a `props` option lets attributes fall through to attrs (props become undefined). Export `AdminConfigProvider`, `AdminConfigProviderProps` from `packages/admin/src/index.ts`.
 
-Tests: `admin-provider.test.tsx` — `i18nOverrides` passed to `AdminProvider` only; descendants see merged registry (admin i18n + a ui theme entry from the preset survive layering). `i18n-contract.test.tsx` — i18n override entries bare per-library trees via `i18nOverrides`. Add one test mounting `AdminConfigProvider` standalone (no `AdminProvider`) asserting its slice is provided and the merged value contains only the admin libraryId.
+Tests: `admin-provider.test.tsx` — `i18nOverrides` passed to `AdminProvider` only; descendants see the merged registry (admin i18n + a ui theme entry from the preset survive layering); a theme-switch reactivity test asserts the ui `themeOverride` slice re-provides when the active preset changes (probe must read the registry INSIDE the render, not capture at setup). `i18n-contract.test.tsx` — i18n override entries bare per-library trees via `i18nOverrides`. Add one test mounting `AdminConfigProvider` standalone (no `AdminProvider`) asserting its slice is provided and the merged value contains only the admin libraryId.
 
 **Validate:** admin typecheck, run admin tests.
 

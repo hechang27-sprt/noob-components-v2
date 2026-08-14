@@ -363,6 +363,83 @@ describe("AdminProvider", () => {
     ).toBe("#0f172a");
   });
 
+  it("re-provides the ui themeOverride slice when the active theme changes", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const i18n = createI18n({
+      legacy: false,
+      locale: "en",
+      fallbackLocale: "en",
+      messages: {},
+    });
+    const themes: AdminThemePreset[] = [
+      {
+        key: "default",
+        label: { kind: "string", value: "Default" },
+        themeOverrides: {
+          "noob-naive-ui:ui": { Card: { "--ui-card-bg": "#ffffff" } },
+        },
+        isDark: false,
+      },
+      {
+        key: "ocean",
+        label: { kind: "string", value: "Ocean" },
+        themeOverrides: {
+          "noob-naive-ui:ui": { Card: { "--ui-card-bg": "#0ea5e9" } },
+        },
+        isDark: false,
+      },
+    ];
+    const ThemeProbe = defineComponent({
+      name: "ThemeProbe",
+      setup() {
+        const registry = inject(libraryOverridesKey, null);
+        // Read the registry value INSIDE the render so the probe tracks it
+        // reactively (reading at setup would capture a stale snapshot).
+        return () => {
+          // Registry values are loose (unknown); narrow the ui theme entry to
+          // the known Card var shape for the assertion.
+          const uiTheme = registry?.value?.["noob-naive-ui:ui"]?.theme as
+            | { Card?: { "--ui-card-bg"?: string } }
+            | undefined;
+          return (
+            <div data-color={uiTheme?.Card?.["--ui-card-bg"] ?? ""} />
+          );
+        };
+      },
+    });
+    const target = document.createElement("div");
+    document.body.append(target);
+    const app = createApp({
+      setup: () => () => (
+        <AdminProvider
+          messages={baseMessages}
+          menu={menu}
+          storeOptions={preferences}
+          themes={themes}
+          defaultTheme="default">
+          <ThemeProbe />
+        </AdminProvider>
+      ),
+    });
+    app.use(pinia);
+    app.use(i18n);
+    app.mount(target);
+    mountedApps.push(app);
+    const el = target.querySelector<HTMLElement>("[data-color]");
+    // Initial: the default preset's ui theme slice is provided.
+    expect(el?.getAttribute("data-color")).toBe("#ffffff");
+    // Switch the active theme the way `setTheme` does: pin the mode to the
+    // preset's polarity AND set the key (resolveThemePreset ignores the picked
+    // key while mode is "system"). AdminProvider re-renders and passes the new
+    // themeOverride prop, so the ui slice must update.
+    const prefs = useAdminShellPreferencesStore(pinia).preferences;
+    prefs.themeMode = "light";
+    prefs.themeKey = "ocean";
+    await nextTick();
+    expect(el?.getAttribute("data-color")).toBe("#0ea5e9");
+  });
+
   it("provides only its own slice when AdminConfigProvider is used standalone", () => {
     const pinia = createPinia();
     setActivePinia(pinia);
