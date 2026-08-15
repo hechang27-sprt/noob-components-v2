@@ -1,5 +1,6 @@
 import type { ComputedRef, InjectionKey } from "vue";
 import type { GlobalThemeOverrides } from "naive-ui";
+import type { NaiveUiLocale } from "./naive-ui-locale";
 import type { LibraryThemeOverrides } from "./library-theme-overrides";
 
 /**
@@ -27,7 +28,13 @@ import type { LibraryThemeOverrides } from "./library-theme-overrides";
  * override form, not a component-keyed schema): their theme does not convert
  * through `LibraryThemeOverrides` (naive-ui's override shape differs from a
  * per-component var map), so the preseed carries the already-override type and
- * the uniform conversion is a structural no-op for them.
+ * the uniform conversion is a structural no-op for them. Their `locale` is the
+ * composed `NaiveUiLocale` ({@link ./naive-ui-locale}) — the pack half in
+ * `createLocale`'s `NPartialLocale` override form (same structural no-op
+ * story), the date half the full `NDateLocale` pack. The derived
+ * `RegistryI18nOverrides` projection is therefore the host's naive-ui locale
+ * override tree, consumed by the admin's `naiveUiConfig` (`createLocale` for
+ * the pack, `merge` for the date pack).
  *
  * Deliberately has NO string index signature: `keyof LibraryOverridesRegistry`
  * is exactly the known libraryIds, so the derived projections stay per-library
@@ -35,8 +42,8 @@ import type { LibraryThemeOverrides } from "./library-theme-overrides";
  * {@link LibraryOverridesRegistryValue}'s loose index.
  */
 export interface LibraryOverridesRegistry {
-  "naive-ui": { locale: unknown; theme: GlobalThemeOverrides };
-  "pro-naive-ui": { locale: unknown; theme: GlobalThemeOverrides };
+  "naive-ui": { locale: NaiveUiLocale; theme: GlobalThemeOverrides };
+  "pro-naive-ui": { locale: NaiveUiLocale; theme: GlobalThemeOverrides };
 }
 
 /**
@@ -50,8 +57,10 @@ export type DeepPartial<T> = {
 /**
  * i18n projection of the registry: per-library locale override types. For a
  * declared `locale: Record<LocaleName, Locale>`, this is
- * `Partial<Record<LocaleName, DeepPartial<Locale>>>` — structurally the
- * library's `LibraryI18nOverrides` override tree.
+ * `Partial<Record<LocaleName, DeepPartial<Locale>>>` — the library's i18n
+ * override tree. Per-library derivation helpers (locale names, full schema,
+ * admissible keys, the `NonNullable` tree) live in
+ * `library-i18n-overrides.ts`.
  */
 export type RegistryI18nOverrides = {
   [K in keyof LibraryOverridesRegistry]?: LibraryOverridesRegistry[K] extends {

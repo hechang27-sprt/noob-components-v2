@@ -3,24 +3,13 @@ import { useI18n } from "vue-i18n";
 import { NGlobalStyle } from "naive-ui";
 
 import type { RegistryI18nOverrides } from "@noob-naive-ui/registry";
-import {
-  AdminUiConfigProvider,
-  noobUiI18n,
-  type NoobUiLocaleOverrides,
-  type NoobUiThemeOverrides,
-} from "@noob-naive-ui/ui";
-import type {
-  AdminMenuTree,
-  AdminPresetThemeOverrides,
-  AdminThemeOverrides,
-  AdminThemePreset,
-} from "../runtime-contract";
+import { AdminUiConfigProvider, noobUiI18n } from "@noob-naive-ui/ui";
+import type { AdminMenuTree, AdminThemePreset } from "../runtime-contract";
 import type { AdminShellPreferencesStoreOptions } from "../runtime/shell-preferences";
 import { useAdminProvider } from "../use-admin-provider";
 import { useAdminShellMenuStore } from "../stores/menu";
 import { useAdminShellPreferencesStore } from "../stores/shell-preferences";
 import { adminI18n } from "../i18n/plugin";
-import type { AdminLocaleOverrides } from "../i18n/admin-locale";
 import { ProConfigProvider } from "pro-naive-ui";
 import { AdminConfigProvider } from "./admin-config-provider";
 
@@ -52,7 +41,11 @@ export interface AdminProviderProps {
    * i18n-only: it never concerns themeVar overrides, which flow exclusively
    * through the active `AdminThemePreset.themeOverrides`. Each entry is a
    * bare per-library i18n override tree; type it by importing that package's
-   * override type (`AdminLocaleOverrides`, `NoobUiLocaleOverrides`). */
+   * override type (`AdminLocaleOverrides`, `NoobUiLocaleOverrides`). The
+   * preseeded `naive-ui` entry carries the naive-ui locale override tree
+   * (`NaiveUiLocaleOverrides` — pack in `createLocale`'s `NPartialLocale`
+   * form, date pack full), merged over the preference-resolved base packs in
+   * `naiveUiConfig`. */
   i18nOverrides?: RegistryI18nOverrides;
 }
 
@@ -72,7 +65,9 @@ export const AdminProvider = defineComponent(
     // override registry. AdminProvider itself never provides the registry.
     // Theme overrides flow exclusively through the active preset's
     // themeOverrides; `i18nOverrides` is i18n-only.
-    const provider = useAdminProvider();
+    const provider = useAdminProvider({
+      naiveUiLocaleOverrides: props.i18nOverrides?.["naive-ui"],
+    });
     // 1. Resolve the package-owned stores before configuring them, plus the
     // consumption surface that derives the render config (naiveUiConfig).
     const preferences = useAdminShellPreferencesStore();
@@ -127,27 +122,13 @@ export const AdminProvider = defineComponent(
     // overrides are already resolved into `naiveUiConfig` by the composable.
     return () => (
       <AdminConfigProvider
-        i18n={
-          props.i18nOverrides?.[
-            adminI18n.libraryId as keyof RegistryI18nOverrides
-          ] as AdminLocaleOverrides | undefined
-        }
-        themeOverride={
-          provider.activeTheme.value?.themeOverrides?.[
-            adminI18n.libraryId as keyof AdminPresetThemeOverrides
-          ] as AdminThemeOverrides | undefined
-        }
+        i18n={props.i18nOverrides?.[adminI18n]}
+        themeOverride={provider.activeTheme.value?.themeOverrides?.[adminI18n]}
       >
         <AdminUiConfigProvider
-          i18n={
-            props.i18nOverrides?.[
-              noobUiI18n.libraryId as keyof RegistryI18nOverrides
-            ] as NoobUiLocaleOverrides | undefined
-          }
+          i18n={props.i18nOverrides?.[noobUiI18n]}
           themeOverride={
-            provider.activeTheme.value?.themeOverrides?.[
-              noobUiI18n.libraryId as keyof AdminPresetThemeOverrides
-            ] as NoobUiThemeOverrides | undefined
+            provider.activeTheme.value?.themeOverrides?.[noobUiI18n]
           }
         >
           <ProConfigProvider {...provider.naiveUiConfig.value}>

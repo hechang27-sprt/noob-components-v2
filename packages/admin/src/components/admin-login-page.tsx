@@ -57,7 +57,7 @@ export const AdminLoginPage = defineComponent(
     // override slice second, so overrides win at the leaf.
     const { t } = createComponentI18n({
       messages: adminLoginPageMessages,
-      descriptor: adminI18n,
+      libraryId: adminI18n,
       componentId: "AdminLoginPage",
     });
 

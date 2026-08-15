@@ -148,7 +148,7 @@ export const AdminShell = defineComponent(
     // slice second, so overrides win at the leaf.
     const { t } = createComponentI18n({
       messages: adminShellMessages,
-      descriptor: adminI18n,
+      libraryId: adminI18n,
       componentId: "AdminShell",
     });
 

@@ -7,10 +7,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createComponentI18n,
   getComponentI18n,
-  type LibraryI18nDescriptor,
-  type LibraryI18nOverrides,
+  type CreateComponentI18nOptions,
 } from "../src/index";
-import { libraryOverridesKey } from "@noob-naive-ui/registry";
+import {
+  libraryOverridesKey,
+  type RegistryI18nOverrides,
+} from "@noob-naive-ui/registry";
 
 /**
  * Minimal component-first locale schema for the harness library, shaped
@@ -27,12 +29,22 @@ interface TestLocale {
 
 type TestLocaleName = "en" | "zh-CN";
 
-type TestOverrides = LibraryI18nOverrides<TestLocaleName, TestLocale>;
+/**
+ * The harness library declares its locale schema into the framework-wide
+ * registry exactly like a component package (module augmentation); the
+ * composable derives the schema from the registry entry, so no separate
+ * descriptor handle exists.
+ */
+declare module "@noob-naive-ui/registry" {
+  interface LibraryOverridesRegistry {
+    "test-library": {
+      locale: Record<TestLocaleName, TestLocale>;
+      theme: {};
+    };
+  }
+}
 
-/** The harness library's typed i18n descriptor (libraryId + pinned schema). */
-const testDescriptor: LibraryI18nDescriptor<TestLocaleName, TestLocale> = {
-  libraryId: "test-library",
-};
+type TestOverrides = NonNullable<RegistryI18nOverrides["test-library"]>;
 
 /** Packaged defaults a library component ships with. */
 const packagedDefaults: Readonly<Record<TestLocaleName, unknown>> = {
@@ -45,7 +57,7 @@ const Probe = defineComponent({
   setup() {
     const composer = createComponentI18n({
       messages: packagedDefaults,
-      descriptor: testDescriptor,
+      libraryId: "test-library",
       componentId: "Greeter",
     });
     return () => (
@@ -64,7 +76,7 @@ const HostKeyProbe = defineComponent({
   setup() {
     const composer = createComponentI18n({
       messages: packagedDefaults,
-      descriptor: testDescriptor,
+      libraryId: "test-library",
       componentId: "Greeter",
     });
     return () => <div data-host-key={composer.t("hostOnly.title")} />;
@@ -95,7 +107,7 @@ const InnerProvider = defineComponent({
   setup() {
     createComponentI18n({
       messages: innerDefaults,
-      descriptor: testDescriptor,
+      libraryId: "test-library",
       componentId: "Greeter",
     });
     return () => <ComposerConsumer />;
@@ -107,7 +119,7 @@ const NestedProviders = defineComponent({
   setup() {
     createComponentI18n({
       messages: packagedDefaults,
-      descriptor: testDescriptor,
+      libraryId: "test-library",
       componentId: "Greeter",
     });
     return () => <InnerProvider />;
@@ -155,6 +167,30 @@ function mount(
   mountedApps.push(app);
   return { container: target, i18n };
 }
+
+describe("createComponentI18n type-level contract", () => {
+  it("rejects an unknown component id at compile time", () => {
+    // Type-checked only (a const assignment never invokes the composable):
+    // @ts-expect-error unknown component id must be rejected
+    const _bad: CreateComponentI18nOptions<"test-library", TestLocaleName, TestLocale> = { messages: packagedDefaults, libraryId: "test-library", componentId: "Nope" };
+  });
+
+  it("requires every packaged locale in messages (no silent narrowing)", () => {
+    // @ts-expect-error a partial messages object must not narrow the locale union
+    const _bad: CreateComponentI18nOptions<"test-library", TestLocaleName, TestLocale> = { messages: { en: {} }, libraryId: "test-library", componentId: "Greeter" };
+  });
+
+  it("rejects a naive-ui call with an invalid component id and incomplete messages", () => {
+    // The preseeded naive-ui entry now declares a typed locale schema
+    // (NaiveUiLocale), so it IS an admissible library key — but its derived
+    // schema makes a real createComponentI18n call meaningless (naive-ui texts
+    // are consumed by naive-ui's own locale context, not vue-i18n). The
+    // assignment below is still rejected: componentId must be a key of the
+    // derived schema and messages must carry every derived locale.
+    // @ts-expect-error naive-ui's derived schema rejects an arbitrary component id / partial messages
+    const _bad: CreateComponentI18nOptions<"naive-ui"> = { messages: {}, libraryId: "naive-ui", componentId: "Button" };
+  });
+});
 
 describe("createComponentI18n", () => {
   it("renders packaged defaults when no overrides are provided", () => {

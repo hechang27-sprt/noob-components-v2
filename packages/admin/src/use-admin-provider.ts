@@ -5,11 +5,13 @@ import { computed, toRef, type ComputedRef, type Ref } from "vue";
 
 import {
   COMPONENT_SIZE_OPTIONS,
+  mergeAdminNaiveUiLocaleOverrides,
   mergeAdminNaiveUiThemeOverrides,
   resolveAdminNaiveUiLocale,
   resolveDefaultNaiveUiTheme,
   resolveThemePreset,
   type AdminNaiveUiConfig,
+  type NaiveUiLocaleOverrides,
 } from "./runtime/naive-ui-config";
 import {
   createDefaultAdminShellPreferences,
@@ -99,6 +101,23 @@ export interface AdminProviderApi {
 }
 
 /**
+ * Options for {@link useAdminProvider}.
+ */
+export interface UseAdminProviderOptions {
+  /**
+   * Host-supplied naive-ui locale override tree, sourced from the shared
+   * override registry's i18n projection
+   * (`AdminProvider.i18nOverrides["naive-ui"]`). Merged over the
+   * preference-resolved base packs in `naiveUiConfig` (naive-ui's
+   * `createLocale` for the pack, `merge` for the date pack). Only the
+   * `AdminProvider` instance supplies this — nested consumers (AdminShell)
+   * resolve the same base packs, and naive-ui packs are consumed through
+   * naive-ui's own locale context, not vue-i18n.
+   */
+  naiveUiLocaleOverrides?: NaiveUiLocaleOverrides;
+}
+
+/**
  * Curated read/re-expose API over the admin package's Pinia stores.
  *
  * Consumers (host apps, shell chrome, demo pages) should not import the
@@ -109,9 +128,13 @@ export interface AdminProviderApi {
  * performs no `provide`/`inject` and owns no setup-scope mutable state beyond
  * the derived computeds.
  *
+ * @param options - Optional host naive-ui locale overrides (registry i18n
+ * slice for `naive-ui`).
  * @returns The {@link AdminProviderApi} consumption surface.
  */
-export function useAdminProvider(): AdminProviderApi {
+export function useAdminProvider(
+  options: UseAdminProviderOptions = {},
+): AdminProviderApi {
   const store = useAdminShellPreferencesStore();
   const menu = useAdminShellMenuStore();
 
@@ -156,8 +179,10 @@ export function useAdminProvider(): AdminProviderApi {
 
   const naiveUiConfig = computed<AdminNaiveUiConfig>(() => {
     const preset = activeTheme.value;
-    const { nLocale, nDateLocale } =
-      resolveAdminNaiveUiLocale(locale.value, fallbackLocale.value) ?? {};
+    const base = resolveAdminNaiveUiLocale(locale.value, fallbackLocale.value);
+    const merged = base
+      ? mergeAdminNaiveUiLocaleOverrides(base, options.naiveUiLocaleOverrides)
+      : undefined;
     return {
       theme: preset
         ? preset.isDark
@@ -165,8 +190,8 @@ export function useAdminProvider(): AdminProviderApi {
           : null
         : resolveDefaultNaiveUiTheme(themeMode.value, systemUsesDark.value),
       themeOverrides: mergeAdminNaiveUiThemeOverrides(fontSize.value, preset),
-      locale: nLocale ?? null,
-      dateLocale: nDateLocale ?? null,
+      locale: merged?.nLocale ?? null,
+      dateLocale: merged?.nDateLocale ?? null,
       componentOptions: COMPONENT_SIZE_OPTIONS[fontSize.value],
     };
   });

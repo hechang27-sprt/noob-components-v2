@@ -19,7 +19,7 @@ import type { AdminThemeOverrides } from "../runtime-contract";
  * so the nearest provider wins for its subtree.
  */
 export interface AdminConfigProviderProps {
-  /** Admin package locale overrides (`LibraryI18nOverrides<AdminLocaleName, AdminLocale>`). */
+  /** Admin package locale overrides (the registry's i18n projection for `noob-naive-ui:admin`). */
   i18n?: AdminLocaleOverrides;
   /** Admin package themeVar overrides; an empty seam until admin ships theme components. */
   themeOverride?: AdminThemeOverrides;
@@ -36,7 +36,7 @@ export const AdminConfigProvider = defineComponent(
       merge(
         merge({}, parent?.value ?? {}),
         {
-          [adminI18n.libraryId]: {
+          [adminI18n]: {
             i18n: props.i18n,
             theme: props.themeOverride,
           },

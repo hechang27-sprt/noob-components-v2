@@ -5,10 +5,6 @@ export type { CreateComponentI18nOptions } from "./use-component-i18n";
 export {
   emptySnapshot,
   selectComponentOverrides,
-  type LibraryI18nComponentSelector,
-  type LibraryI18nDescriptor,
-  type LibraryI18nOverrides,
-  type LibraryI18nSnapshot,
-} from "./library-i18n-descriptor";
+} from "./use-component-i18n";
 export { useGlobalI18nSync } from "./use-global-i18n-sync";
 export type { UseGlobalI18nSyncOptions } from "./use-global-i18n-sync";

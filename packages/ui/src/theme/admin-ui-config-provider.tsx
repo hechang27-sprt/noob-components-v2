@@ -38,7 +38,7 @@ export const AdminUiConfigProvider = defineComponent(
       merge(
         merge({}, parent?.value ?? {}),
         {
-          [noobUiI18n.libraryId]: {
+          [noobUiI18n]: {
             i18n: props.i18n,
             theme: props.themeOverride,
           },

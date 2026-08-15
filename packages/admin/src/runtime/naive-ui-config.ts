@@ -1,4 +1,5 @@
 import {
+  createLocale,
   darkTheme,
   dateEnUS,
   dateZhCN,
@@ -11,6 +12,7 @@ import {
   type NLocale,
 } from "naive-ui";
 import { merge } from "es-toolkit";
+import type { RegistryI18nOverrides } from "@noob-naive-ui/registry";
 
 import type {
   AdminFontSize,
@@ -53,6 +55,42 @@ const NAIVE_UI_LOCALES: Record<AdminLocaleName, NaiveUiLocale> = {
   en: { nLocale: enUS, nDateLocale: dateEnUS },
   "zh-CN": { nLocale: zhCN, nDateLocale: dateZhCN },
 };
+
+/**
+ * Host-supplied naive-ui locale override tree, derived from the registry's
+ * `NaiveUiLocale` preseed (`locale` in `createLocale`'s `NPartialLocale`
+ * override form, `dateLocale` the full `NDateLocale` pack). Hosts write it
+ * under `AdminProvider.i18nOverrides["naive-ui"]`.
+ */
+export type NaiveUiLocaleOverrides = NonNullable<
+  RegistryI18nOverrides["naive-ui"]
+>;
+
+/**
+ * Merges host naive-ui locale overrides over the preference-resolved base
+ * pack. The pack half uses naive-ui's own `createLocale` (lodash deep merge
+ * of `NPartialLocale` over the base `NLocale` — naive-ui's official
+ * partial-over-base seam); the date half has no naive-ui helper, so it is
+ * deep-merged with es-toolkit `merge` (naive-ui accepts full packs only).
+ *
+ * @param base - The preference-resolved base packs.
+ * @param overrides - The host's registry-supplied naive-ui locale override
+ * tree, or undefined to keep the base packs untouched.
+ * @returns The merged packs (complete, naive-ui-assignable).
+ */
+export function mergeAdminNaiveUiLocaleOverrides(
+  base: { nLocale: NLocale; nDateLocale: NDateLocale },
+  overrides: NaiveUiLocaleOverrides | undefined,
+): { nLocale: NLocale; nDateLocale: NDateLocale } {
+  return {
+    nLocale: overrides?.locale
+      ? createLocale(overrides.locale, base.nLocale)
+      : base.nLocale,
+    nDateLocale: overrides?.dateLocale
+      ? merge(merge({}, base.nDateLocale), overrides.dateLocale)
+      : base.nDateLocale,
+  };
+}
 
 /**
  * Resolves the naive-ui locale object for an active locale, falling back to

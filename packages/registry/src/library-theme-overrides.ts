@@ -1,6 +1,6 @@
 /**
- * Theme-vars pair for one component library, mirroring the i18n descriptor
- * trio in `library-i18n-descriptor.ts`. Component libraries (e.g. the ui
+ * Theme-vars pair for one component library, mirroring the i18n derivation
+ * machinery in `library-i18n-overrides.ts`. Component libraries (e.g. the ui
  * package) declare per-component themeVars with exact `--n-*` names preserved
  * in the type, and a typed descriptor pins that schema so consumers can
  * override a component's vars with structural typing (unknown names are

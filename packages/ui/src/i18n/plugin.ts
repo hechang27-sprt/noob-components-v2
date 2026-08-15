@@ -1,8 +1,4 @@
-import type {
-  LibraryI18nDescriptor,
-  LibraryI18nOverrides,
-  LibraryI18nSnapshot,
-} from "@noob-naive-ui/i18n";
+import type { RegistryI18nOverrides } from "@noob-naive-ui/registry";
 
 /** Supported packaged locale identifiers for ui package components. */
 export type NoobUiLocaleName = "en" | "zh-CN";
@@ -18,22 +14,16 @@ export type NoobUiLocaleName = "en" | "zh-CN";
 export type NoobUiComponentId = never;
 
 /**
- * The ui package's i18n descriptor, produced by the shared factory. The
- * factory owns the injection key, the empty snapshot, and the generic
- * component slice selector; this module only pins the ui locale schema
- * (empty component set today).
+ * The ui package's stable library key under which hosts provide ui overrides
+ * in the shared override registry. The `LibraryOverridesRegistry` module
+ * augmentation declares the FULL ui locale schema, so `createComponentI18n`
+ * derives it from this key alone — there is no separate descriptor handle.
  */
-export const noobUiI18n: LibraryI18nDescriptor<
-  NoobUiLocaleName,
-  Record<never, never>
-> = {
-  libraryId: "noob-naive-ui:ui",
-};
+export const noobUiI18n = "noob-naive-ui:ui" as const;
 
 /** The ui package's immutable, application-scoped override snapshot. */
-export type NoobUiI18nSnapshot = LibraryI18nSnapshot<
-  NoobUiLocaleName,
-  Record<never, never>
+export type NoobUiI18nSnapshot = NonNullable<
+  RegistryI18nOverrides["noob-naive-ui:ui"]
 >;
 
 /**
@@ -44,11 +34,11 @@ export type NoobUiLocale = Record<never, never>;
 
 /**
  * Locale-keyed, component-addressable partial override tree accepted by the
- * ui package descriptor. With no components registered yet, hosts can only
- * supply empty per-locale slices; the seam ships ahead of the first
- * translating component.
+ * ui package. With no components registered yet, hosts can only supply empty
+ * per-locale slices; the seam ships ahead of the first translating component.
+ * Derived from the framework-wide registry (the ui augmentation), so the
+ * partial-tree machinery lives in exactly one place.
  */
-export type NoobUiLocaleOverrides = LibraryI18nOverrides<
-  NoobUiLocaleName,
-  NoobUiLocale
+export type NoobUiLocaleOverrides = NonNullable<
+  RegistryI18nOverrides["noob-naive-ui:ui"]
 >;

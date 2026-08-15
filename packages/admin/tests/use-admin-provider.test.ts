@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { darkTheme } from "naive-ui";
+import { darkTheme, dateEnUS, enUS } from "naive-ui";
 import { createPinia, setActivePinia, type Pinia } from "pinia";
 import { createApp, defineComponent, type App } from "vue";
 import { afterEach, describe, expect, it } from "vitest";
@@ -8,10 +8,14 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   useAdminProvider,
   type AdminProviderApi,
+  type UseAdminProviderOptions,
 } from "../src/use-admin-provider";
 import { useAdminShellMenuStore } from "../src/stores/menu";
 import type { AdminThemePreset } from "../src/runtime-contract";
 import { useAdminShellPreferencesStore } from "../src/stores/shell-preferences";
+import {
+  mergeAdminNaiveUiLocaleOverrides,
+} from "../src/runtime/naive-ui-config";
 
 /** Retains mounted apps until cleanup prevents DOM and Pinia state leakage. */
 const mountedApps: App[] = [];
@@ -56,14 +60,17 @@ function configureStores(pinia: Pinia): void {
  * Mounts a tiny component that resolves `useAdminProvider()` during setup and
  * returns the API object (setup runs synchronously during mount).
  */
-function mountApi(pinia: Pinia): AdminProviderApi {
+function mountApi(
+  pinia: Pinia,
+  options?: UseAdminProviderOptions,
+): AdminProviderApi {
   let api!: AdminProviderApi;
   const target = document.createElement("div");
   document.body.append(target);
   const app = createApp(
     defineComponent({
       setup() {
-        api = useAdminProvider();
+        api = useAdminProvider(options);
         return () => null;
       },
     }),
@@ -304,5 +311,58 @@ describe("useAdminProvider", () => {
     // A stored key whose polarity no longer matches falls back to the default.
     preferences.replacePreferences({ themeMode: "dark", themeKey: "ocean" });
     expect(api.activeTheme.value?.key).toBe("midnight");
+  });
+});
+
+
+describe("naive-ui locale overrides", () => {
+  it("merges a partial pack over the base via createLocale, keeping untouched fields", () => {
+    const base = { nLocale: enUS, nDateLocale: dateEnUS };
+    const merged = mergeAdminNaiveUiLocaleOverrides(base, {
+      locale: { Empty: { description: "Nothing here" } },
+    });
+    expect(merged.nLocale.Empty.description).toBe("Nothing here");
+    // Untouched sections survive from the base pack.
+    expect(merged.nLocale.Pagination).toEqual(enUS.Pagination);
+    expect(merged.nDateLocale).toEqual(base.nDateLocale);
+  });
+
+  it("merges a partial date pack over the base", () => {
+    const base = { nLocale: enUS, nDateLocale: dateEnUS };
+    const merged = mergeAdminNaiveUiLocaleOverrides(base, {
+      dateLocale: { name: "custom-date" },
+    });
+    expect(merged.nDateLocale.name).toBe("custom-date");
+    // es-toolkit merge deep-clones the nested date-fns Locale object.
+    expect(merged.nDateLocale.locale).toEqual(dateEnUS.locale);
+    expect(merged.nLocale).toBe(enUS);
+  });
+
+  it("returns the base packs untouched when no overrides are supplied", () => {
+    const base = { nLocale: enUS, nDateLocale: dateEnUS };
+    const merged = mergeAdminNaiveUiLocaleOverrides(base, undefined);
+    expect(merged.nLocale).toBe(enUS);
+    expect(merged.nDateLocale).toBe(dateEnUS);
+  });
+
+  it("surfaces merged naive-ui locale packs in naiveUiConfig", () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    configureStores(pinia);
+
+    const api = mountApi(pinia, {
+      naiveUiLocaleOverrides: {
+        locale: { Empty: { description: "Nothing here" } },
+        dateLocale: { name: "custom-date" },
+      },
+    });
+
+    expect(api.naiveUiConfig.value.locale?.Empty?.description).toBe(
+      "Nothing here",
+    );
+    expect(api.naiveUiConfig.value.dateLocale?.name).toBe("custom-date");
+    expect(api.naiveUiConfig.value.locale?.Pagination).toEqual(
+      enUS.Pagination,
+    );
   });
 });

@@ -205,9 +205,6 @@ importers:
       '@noob-naive-ui/registry':
         specifier: workspace:*
         version: link:../registry
-      tsafe:
-        specifier: ^1.8.12
-        version: 1.8.12
       vue:
         specifier: 'catalog:'
         version: 3.5.40(typescript@7.0.2)
