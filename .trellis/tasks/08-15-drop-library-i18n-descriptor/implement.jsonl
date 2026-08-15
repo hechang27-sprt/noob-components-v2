@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ui/frontend/library-i18n-contract.md", "reason": "The i18n contract this task rewrites (\u00a72 signatures, \u00a73 contracts) \u2014 implementer needs the current contract text to keep the rewrite faithful."}
+{"file": ".trellis/spec/ui/frontend/library-conventions.md", "reason": "Library public-surface and build conventions for the i18n barrel changes and tsafe dependency removal."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Change spans package boundaries (registry/i18n/admin/ui) \u2014 boundary contract review."}
+{"file": ".trellis/tasks/08-15-drop-library-i18n-descriptor/research/type-proof.md", "reason": "Verified signature contract, TS generic-site degradation gotcha, and full touch-point inventory."}

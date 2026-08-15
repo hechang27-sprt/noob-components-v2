@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/ui/frontend/library-i18n-contract.md", "reason": "Contract the change must satisfy after rewrite (correctness of the descriptor-less model)."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-package consistency check (registry/i18n/admin/ui/demo)."}
+{"file": ".trellis/spec/admin/frontend/runtime-contract.md", "reason": "Admin public-API discipline for the AdminLocaleOverrides/AdminI18nSnapshot/adminI18n changes."}
+{"file": ".trellis/spec/admin/frontend/tsx-components-and-tests.md", "reason": "AdminProvider render + admin tests touch component/test conventions."}
+{"file": ".trellis/tasks/08-15-drop-library-i18n-descriptor/research/type-proof.md", "reason": "The verified signature contract to check implementation against."}
