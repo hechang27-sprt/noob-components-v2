@@ -4,18 +4,12 @@
 
 Apply this contract when `@noob-naive-ui/ui`, `@noob-naive-ui/admin`, or a source-consuming workspace application adds package-owned localized component text.
 
-The host owns one global Composition API Vue I18n instance, including active locale and fallback locale. Translating library components own fresh local Composers so identical component keys cannot collide globally. The package descriptor names the injection key, empty snapshot, and component slice selector; hosts provide an immutable startup snapshot of partial message overrides under that key.
+The host owns one global Composition API Vue I18n instance, including active locale and fallback locale. Translating library components own fresh local Composers so identical component keys cannot collide globally. Each package declares its FULL locale schema once in the framework-wide override registry (`LibraryOverridesRegistry` module augmentation); hosts provide an override tree for that library under the shared `libraryOverridesKey`.
 
 ## 2. Signatures
 
 ```ts
-interface LibraryI18nSnapshot is derived from the locale schema; a descriptor
-is just a typed handle carrying the libraryId and pinning the schema.
-const libraryI18n: LibraryI18nDescriptor<LocaleName, Locale> = {
- libraryId: "noob-naive-ui:admin", // stable per-library identifier
-}
-
-// One shared framework-wide override registry (keyed by libraryId, entry
+// The framework-wide override registry (keyed by libraryId, entry
 // { i18n?, theme? }) lives in @noob-naive-ui/registry and is provided as a
 // ComputedRef by the per-package ConfigProviders (AdminConfigProvider /
 // AdminUiConfigProvider), mounted internally by the admin AdminProvider
@@ -23,16 +17,25 @@ const libraryI18n: LibraryI18nDescriptor<LocaleName, Locale> = {
 // per-package provider. Hosts supply i18n overrides through the AdminProvider
 // `i18nOverrides` prop (typed as the registry's i18n projection); themeVar
 // overrides flow exclusively through the active AdminThemePreset.themeOverrides.
-app.provide(libraryOverridesKey, computed(() => ({ [libraryI18n.libraryId]: { i18n: packageOverrides } })))
+app.provide(libraryOverridesKey, computed(() => ({ [libraryI18n]: { i18n: packageOverrides } })))
+
+// Each package declares its FULL locale schema once, via module augmentation
+// into LibraryOverridesRegistry (`locale: Record<LocaleName, Locale>`); the
+// registry derives the override tree (`RegistryI18nOverridesFor<"…">`) and
+// the locale-schema helpers (`RegistryLocaleName` / `RegistryLocale` /
+// `RegistryI18nLibraryKey`) from that single declaration — there is no
+// per-package descriptor handle.
+const libraryI18n = "noob-naive-ui:admin" // stable per-library identifier
 
 // Shared factory (packages/i18n): fresh local Composer inheriting the host's
 // root locale and fallback, merged packaged defaults then the component's
 // override slice, fallbackRoot enabled so host-global keys resolve through
 // the local Composer. Each call creates a NEW Composer (not idempotent) and
-// provides it to descendants.
+// provides it to descendants. The locale schema is derived from the registry
+// entry named by `libraryId`; `componentId` is typed as a key of that schema.
 const composer = createComponentI18n({
  messages: componentMessages, // locale-first packaged defaults
- descriptor: libraryI18n, // factory descriptor: libraryId + empty snapshot + selector
+ libraryId: libraryI18n, // registry key; augmentation pins the schema
  componentId: "ComponentName", // resource file stem, selects the slice
 })
 
@@ -61,9 +64,9 @@ app.use(createPinia()).use(i18n) // host global i18n, empty messages
 
 ## 3. Contracts
 
-- The host must install one `createI18n({ legacy: false })` instance before package components mount. The host owns both active and fallback locale. Package descriptors never create a Composer, configure fallback, or register global messages.
+- The host must install one `createI18n({ legacy: false })` instance before package components mount. The host owns both active and fallback locale. Package code never creates a global Composer, configures fallback, or registers global messages.
 - The preference store is the one-way active-locale authority: hydrated preference -> global Composer -> inheriting local Composers. `AdminShell` owns the ongoing store → Composer synchronization via an immediate watcher; the host seeds the Composer with the hydrated preference at startup so pre-auth screens render the restored locale before `AdminShell` mounts. Neither Composer belongs in serializable Pinia state.
-- Shared i18n logic lives in the internal `@noob-naive-ui/i18n` package (`packages/i18n`): the `I18nText` primitives (`I18nText`, `i18nTextSchema`, `resolveI18nText`), the composables `createComponentI18n`, `getComponentI18n`, and `useGlobalI18nSync`, and the shared i18n primitives `emptySnapshot` (frozen), and `selectComponentOverrides(messages, componentId)`. The framework-wide override registry (`libraryOverridesKey`, the `LibraryOverridesRegistry` augmentation point, derived `RegistryI18nOverrides`/`RegistryThemeOverrides`) lives in `@noob-naive-ui/registry`; each package declares its FULL locale + themeVar types via module augmentation, converted to override types internally. A package's descriptor is a typed handle `const libraryI18n: LibraryI18nDescriptor<LocaleName, Locale> = { libraryId }` — only the `libraryId` differs per package; there is no factory. Consuming packages keep public the aliases they need (`adminI18n` descriptor, `AdminI18nSnapshot` type). Hosts supply package text overrides through the `AdminProvider` `i18nOverrides` prop (typed as the registry's i18n projection `RegistryI18nOverrides`); `AdminProvider` provides nothing itself (aggregator only) — its render mounts `AdminConfigProvider` and `AdminUiConfigProvider`, which provide their own slices of the shared `libraryOverridesKey` registry (a `ComputedRef`) via es-toolkit `merge` (nearest-wins, no defensive copies). There is no Vue plugin and no per-package provider. `createComponentI18n` consumes the descriptor via `{ messages, descriptor, componentId }` — there is no `plugin` option; no per-package override-key, empty-snapshot, or selector customization.
+- Shared i18n logic lives in the internal `@noob-naive-ui/i18n` package (`packages/i18n`): the `I18nText` primitives (`I18nText`, `i18nTextSchema`, `resolveI18nText`), the composables `createComponentI18n`, `getComponentI18n`, and `useGlobalI18nSync`, and the shared i18n primitives `emptySnapshot` (frozen), and `selectComponentOverrides(messages, componentId)`. The framework-wide override registry (`libraryOverridesKey`, the `LibraryOverridesRegistry` augmentation point, derived `RegistryI18nOverrides`/`RegistryThemeOverrides`, and the i18n derivation helpers `RegistryLocaleName`/`RegistryLocale`/`RegistryI18nLibraryKey` in `library-i18n-overrides.ts`) lives in `@noob-naive-ui/registry`; each package declares its FULL locale + themeVar types via module augmentation, converted to override types internally. There is no per-package descriptor: a package's library key is a literal const (`const adminI18n = "noob-naive-ui:admin" as const`), and the locale schema is derived from its registry entry. Consuming packages keep public the aliases they need (`adminI18n` key, `AdminI18nSnapshot` type, both `NonNullable<RegistryI18nOverrides["noob-naive-ui:admin"]>`). Hosts supply package text overrides through the `AdminProvider` `i18nOverrides` prop (typed as the registry's i18n projection `RegistryI18nOverrides`); `AdminProvider` provides nothing itself (aggregator only) — its render mounts `AdminConfigProvider` and `AdminUiConfigProvider`, which provide their own slices of the shared `libraryOverridesKey` registry (a `ComputedRef`) via es-toolkit `merge` (nearest-wins, no defensive copies). There is no Vue plugin and no per-package provider. `createComponentI18n` consumes `{ messages, libraryId, componentId }` — `libraryId` is constrained to registry keys with a declared locale schema, `componentId` is typed as a key of the declared locale schema, and `messages` must carry every packaged locale; there is no `plugin` option; no per-package override-key, empty-snapshot, or selector customization. The preseeded naive-ui/pro-naive-ui entries declare `NaiveUiLocale` (`NPartialLocale` pack + full `NDateLocale`) and are therefore admissible keys — but a `createComponentI18n` call for them is semantically meaningless (naive-ui texts are consumed by naive-ui's own locale context); hosts override naive-ui's locale instead via `AdminProvider.i18nOverrides["naive-ui"]`, which `naiveUiConfig` merges over the preference-resolved base packs (`createLocale` for the pack, `merge` for the date).
 - Displayable tab titles use the shared `I18nText` discriminated union (`{ kind: "string"; value: string }` or `{ kind: "i18n"; key: string; named?: Record<string, string | number | boolean> }`). `i18n`-kind labels resolve against the host global Composer at render time, so open AND history-restored tabs follow locale switches. The navigation adapter persists the label as its I18nText representation via `i18nTextSchema`; `named` values persist with history state and must stay JSON-serializable primitives.
 - Descriptors handed to the navigation adapter must be plain data. `structuredClone` throws `DOMException: Proxy object could not be cloned` on reactive objects, and tab records live in a reactive map — snapshot them to plain copies (`{ ...nav }`, plain label with copied `named`) before requesting navigation.
 - Every translating component creates its registry via `createComponentI18n`: a fresh local Composer, packaged defaults merged first, then only its own override slice, provided to descendants. A descendant resolves the nearest ancestor composer through `getComponentI18n` (which throws when none exists). `fallbackRoot` stays true so keys absent from the package registry — host-authored tab labels and other host-global messages — resolve through the same local Composer.
@@ -137,7 +140,9 @@ composer.fallbackLocale.value = packageFallback
 ```ts
 // Correct: self-contained public schema, locale-first component resource,
 // host fallback inheritance, and a fresh isolated local message registry —
-// obtained through the shared composable.
+// obtained through the shared composable. The locale schema is declared once
+// in the package's LibraryOverridesRegistry augmentation; the composable
+// derives it from `libraryId`.
 export interface ComponentMessages {
   title: string
   description: string
@@ -150,7 +155,7 @@ const componentMessages = {
 
 const composer = createComponentI18n({
   messages: componentMessages,
-  descriptor: packageI18n,
+  libraryId: packageI18n, // registry key; augmentation pins the schema
   componentId: "ComponentName",
 })
 ```
