@@ -53,7 +53,9 @@ seeding moved into the `AdminProvider` component mounted by `App.tsx` — see
 ## Presentation root (`src/App.tsx`)
 
 `DemoApp` mounts the package-owned **`AdminProvider`** as the root provider
-(which renders the `NConfigProvider` internally) around `RouterView`, supplying:
+(which aggregates `AdminConfigProvider`/`AdminUiConfigProvider` and renders a
+`ProConfigProvider` — the naive-ui config — internally) around `RouterView`,
+supplying:
 
 - `messages={demoMessages}` — the per-locale demo resources
   (`src/locales/demo.json`), seeded into the host global Composer by the
@@ -69,12 +71,15 @@ seeding moved into the `AdminProvider` component mounted by `App.tsx` — see
   polarity defaults, configured into the store's runtime blob by the provider
   (`configureThemePresets`) and rendered by the navbar theme dropdown
   (`src/themes.ts`, see [Theme presets](#theme-presets-srcthemests) below);
-- `overrides={{ "noob-naive-ui:admin": { en: { AdminShell: { account: { signOut:
+- `i18nOverrides={{ "noob-naive-ui:admin": { en: { AdminShell: { account: { signOut:
   "Log out" } } }, "zh-CN": { AdminShell: { account: { signOut: "退出" } } } }
-  satisfies AdminLocaleOverrides }}` — the shared libraryId-keyed override
-  registry (the component-based replacement for the former per-package
+  satisfies AdminLocaleOverrides }}` — the registry's i18n projection keyed by
+  libraryId (the component-based replacement for the former per-package
   `app.use(adminI18nPlugin, { messages })` install; each entry is typed with
-  that package's override type).
+  that package's override type). `AdminProvider` passes the admin slice to
+  `AdminConfigProvider`, which provides it into the shared `libraryOverridesKey`
+  registry; the `"naive-ui"` slice (if any) is merged into `naiveUiConfig`'s
+  locale packs.
 
 The host component still owns the browser-level wiring that the provider does
 not:
@@ -140,7 +145,12 @@ light `default` (#18a058), `ocean` (#2563eb), `sunset` (#f97316); dark
 `midnight` (#6366f1), `forest` (#22c55e), `crimson` (#ef4444). Each preset's
 `label` is an `I18nText` i18n key (`themes.*` in `src/locales/demo.json`) so
 names localize with the active language; dark presets override the base dark
-surfaces (`bodyColor`, `cardColor`, etc.) so each theme reads distinctly.
+surfaces (`bodyColor`, `cardColor`, etc.) so each theme reads distinctly. Each
+preset carries its color overrides per-library as
+`themeOverrides: { "naive-ui": GlobalThemeOverrides }` — the per-library
+`RegistryThemeOverrides` shape from `@noob-naive-ui/registry`
+([registry package](../packages/registry.md)), which
+`mergeAdminNaiveUiThemeOverrides` merges with the font-size tier.
 `demoDefaultTheme = "default"` and `demoDefaultDarkTheme = "midnight"` are the
 polarity defaults resolved while the stored theme mode is `"system"` — the
 browser color scheme picks between them until the user selects a preset

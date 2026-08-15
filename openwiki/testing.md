@@ -26,14 +26,16 @@ Suite inventory (test-file counts from `grep` of `it(` blocks):
 | admin | `tests/auth-store.test.ts` | auth store lifecycle, restoration, login/logout, race containment (19 `it`) |
 | admin | `tests/admin-login-page.test.tsx` | login form submission, non-login states, error surface (4 `it`) |
 | admin | `tests/shell-preferences.test.ts` | hydration, persistence, normalization, storage-failure safety (6 `it`) |
-| admin | `tests/admin-provider.test.tsx` | AdminProvider: Composer seeding/re-seeding, store init, menu config, theme-preset config, NConfigProvider render, override provision (7 `it`) |
-| admin | `tests/use-admin-provider.test.ts` | composable projection, action delegation, pure-projection invariant, naiveUiConfig/proLayoutConfig derivation, active theme-preset resolution + override merging (5 `it`) |
-| admin | `tests/i18n-contract.test.tsx` | shared-registry overrides via the `AdminProvider` `overrides` prop: defensive snapshot, slice selection, removed-plugin guard, defaults, fallback (6 `it`) |
+| admin | `tests/admin-provider.test.tsx` | AdminProvider (aggregator): Composer seeding/re-seeding, store init, menu config, theme-preset config, NConfigProvider render, registry override provision, ui-slice merging + standalone AdminConfigProvider (10 `it`) |
+| admin | `tests/use-admin-provider.test.ts` | composable projection, action delegation, pure-projection invariant, naiveUiConfig/proLayoutConfig derivation, active theme-preset resolution + override merging, naive-ui locale pack merging (9 `it`) |
+| admin | `tests/i18n-contract.test.tsx` | registry overrides via the `AdminProvider` `i18nOverrides` prop: defensive snapshot, slice selection, removed-plugin guard, defaults, fallback (6 `it`) |
 | admin | `tests/json-locale-types.test.ts` | codegen correctness, stability, drift, watch path (15 `it`) |
 | i18n | `tests/i18n-text.test.ts` | I18nText schema + resolution (8 `it`) |
-| i18n | `tests/library-i18n-descriptor.test.ts` | shared registry + descriptor primitives: frozen empty snapshot, per-component slice selection, descriptor from just a libraryId, single shared key (5 `it`) |
-| i18n | `tests/use-component-i18n.test.tsx` | packaged defaults, override merge through the shared registry key, fallbackRoot, host-key resolution, nearest-composer (7 `it`) |
+| i18n | `tests/library-i18n-selector.test.ts` | shared selector primitives: frozen empty snapshot, per-component slice selection, empty-tree selection (3 `it`) |
+| i18n | `tests/use-component-i18n.test.tsx` | packaged defaults, override merge through the shared registry key, fallbackRoot, host-key resolution, nearest-composer, compile-time component-id/locale validation (10 `it`) |
 | i18n | `tests/use-global-i18n-sync.test.tsx` | one-way locale sync (3 `it`) |
+| registry | `tests/library-overrides-registry.test.ts` | shared `libraryOverridesKey`, preseeded naive-ui/pro-naive-ui locale schema, typed theme descriptor without runtime brand (3 `it`) |
+| ui | `tests/use-ui-theme.test.tsx` | `useUiTheme` + `AdminUiConfigProvider`: Card slice as inline CSS vars, provider-less fallback, exact `--ui-card-*` typing (3 `it`) |
 | prototype | `tests/i18n-contract.test.ts` | plugin snapshot, slices, card locale ownership (4 `it`) |
 
 ## Harness conventions
@@ -59,11 +61,13 @@ Suite inventory (test-file counts from `grep` of `it(` blocks):
   `configureStores()` (initialize + menu configure) is the consumer-owned step
   the composable must never perform itself.
 - **i18n suites** — mount under a host-owned global `createI18n`; override
-  snapshots are supplied through the shared `libraryI18nOverridesKey` registry
-  (harness `app.provide(libraryI18nOverridesKey, { "test-library": ... })`, or
-  the admin `AdminProvider` `overrides` prop in admin suites) — there is no
-  per-package plugin install anymore; assertions read rendered `data-*`
-  attributes.
+  snapshots are supplied through the shared `libraryOverridesKey` registry from
+  `@noob-naive-ui/registry` (harness `app.provide(libraryOverridesKey, {
+  "test-library": ... })`, or the admin `AdminProvider` `i18nOverrides` prop in
+  admin suites). Packages declare their locale/theme schema into
+  `LibraryOverridesRegistry` via module augmentation in the harness, mirroring
+  how the packages themselves augment it — there is no per-package plugin install
+  anymore; assertions read rendered `data-*` attributes.
 
 ## Narrowest validation per change area
 
@@ -76,7 +80,9 @@ Suite inventory (test-file counts from `grep` of `it(` blocks):
 | Auth store / login page | `pnpm --filter @noob-naive-ui/admin test tests/auth-store.test.ts tests/admin-login-page.test.tsx` |
 | Preferences persistence / naive-ui config / theme presets | `pnpm --filter @noob-naive-ui/admin test tests/shell-preferences.test.ts tests/use-admin-provider.test.ts` |
 | AdminProvider / useAdminProvider / provider refactor | `pnpm --filter @noob-naive-ui/admin test tests/admin-provider.test.tsx tests/use-admin-provider.test.ts tests/shell-preferences.test.ts` |
-| Admin i18n registry / override prop | `pnpm --filter @noob-naive-ui/admin test tests/i18n-contract.test.tsx tests/admin-provider.test.tsx` (plus `pnpm --filter @noob-naive-ui/i18n test` for the shared registry) |
+| Admin i18n registry / override prop | `pnpm --filter @noob-naive-ui/admin test tests/i18n-contract.test.tsx tests/admin-provider.test.tsx` (plus `pnpm --filter @noob-naive-ui/registry test` and `pnpm --filter @noob-naive-ui/i18n test` for the shared primitives) |
+| Registry schema / projections / key | `pnpm --filter @noob-naive-ui/registry test tests/library-overrides-registry.test.ts` |
+| ui theme/i18n surface / UiCard | `pnpm --filter @noob-naive-ui/ui test tests/use-ui-theme.test.tsx` (+ `pnpm --filter @noob-naive-ui/ui typecheck` for the typed override surface) |
 | Locale JSON changes (admin) | regenerate `locale-types.generated.ts`, then `pnpm --filter @noob-naive-ui/admin typecheck && pnpm --filter @noob-naive-ui/admin test tests/i18n-contract.test.tsx` |
 | Locale-type codegen changes | `pnpm --filter @noob-naive-ui/admin test tests/json-locale-types.test.ts` |
 | i18n package changes | `pnpm --filter @noob-naive-ui/i18n test` |

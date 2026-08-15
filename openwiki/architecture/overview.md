@@ -24,8 +24,9 @@ apps/
   admin-starter/   package "admin-starter" — placeholder, not scaffolded (dev script prints a stub)
   demo/            package "demo" — backend-free host application (Vite dev/build)
 packages/
-  i18n/            @noob-naive-ui/i18n — shared i18n override registry/descriptors + component i18n registry
-  ui/              @noob-naive-ui/ui — empty i18n descriptor + Tailwind stylesheet (theme bridge removed)
+  registry/        @noob-naive-ui/registry — framework-wide override registry schema + shared libraryOverridesKey
+  i18n/            @noob-naive-ui/i18n — component i18n registry + I18nText + global locale sync (registry-based)
+  ui/              @noob-naive-ui/ui — UiCard + component-first themeVar schema + AdminUiConfigProvider/useUiTheme (registry-based)
   admin/           @noob-naive-ui/admin — router-neutral admin shell, login page, stores, naive-ui config
   admin-vue-router/@noob-naive-ui/admin-vue-router — Vue Router lifecycle integration (registry, navigation adapter, plugin-owned router)
   prototype-i18n-verification/ @noob-naive-ui/prototype-i18n-verification — PrototypeCard + standalone i18n plugin
@@ -41,12 +42,16 @@ docs/
 
 ```mermaid
 flowchart LR
+    REG["@noob-naive-ui/registry"]
     I18N["@noob-naive-ui/i18n"]
     UI["@noob-naive-ui/ui"]
     ADMIN["@noob-naive-ui/admin"]
     ROUTER["@noob-naive-ui/admin-vue-router"]
     PROTO["@noob-naive-ui/prototype-i18n-verification"]
     DEMO["apps/demo host"]
+    REG --> I18N
+    REG --> UI
+    REG --> ADMIN
     I18N --> UI
     I18N --> ADMIN
     I18N --> ROUTER
@@ -56,13 +61,22 @@ flowchart LR
     DEMO --> ROUTER
     DEMO --> I18N
     DEMO --> PROTO
+    DEMO --> REG
 ```
 
-- `@noob-naive-ui/i18n` is the foundation: it depends only on `vue`, `vue-i18n`,
-  `zod`, and `tsafe`. Every other package either consumes it directly
-  (admin, ui, admin-vue-router) or re-implements its contract standalone
-  (prototype-i18n-verification).
-- `@noob-naive-ui/admin` depends on `i18n` and `ui` and on Naive UI,
+- `@noob-naive-ui/registry` is the type-level foundation: it declares the
+  framework-wide override registry schema (`LibraryOverridesRegistry`), the
+  derived i18n/theme projections, the preseeded `naive-ui`/`pro-naive-ui`
+  entries, and the single shared `libraryOverridesKey` injection key. It depends
+  only on `vue` (types) and `naive-ui` (types); every component package declares
+  its own locale + themeVar schema via module augmentation (see
+  [registry package](../packages/registry.md)).
+- `@noob-naive-ui/i18n` depends on `vue`, `vue-i18n`, `zod`, and
+  `@noob-naive-ui/registry`. It consumes the registry's i18n projection to type
+  `createComponentI18n` override slices. Every other package either consumes it
+  directly (admin, ui, admin-vue-router) or re-implements its contract
+  standalone (prototype-i18n-verification).
+- `@noob-naive-ui/admin` depends on `i18n`, `registry`, and `ui` and on Naive UI,
   `pro-naive-ui`, Pinia, and `@vicons/ionicons5`. It **never imports
   vue-router** (router-neutrality is an invariant, enforced by `external` lists
   and by design).
@@ -87,9 +101,12 @@ enabled). Output lands in `dist/index.js` + `dist/index.d.ts` plus optional CSS.
 **Dependency externalization**: every package build externalizes its runtime
 dependencies (workspace and third-party) via `rolldownOptions.external`, so
 `dist/index.js` never bundles them. `@noob-naive-ui/admin` externalizes
-`@vicons/ionicons5`, `@noob-naive-ui/i18n`, `@noob-naive-ui/ui`, `naive-ui`,
+`@vicons/ionicons5`, `@noob-naive-ui/i18n`, `@noob-naive-ui/registry`,
+`@noob-naive-ui/ui`, `naive-ui`,
 `pinia`, `pro-naive-ui`, `vue`, `vue-i18n`, and `zod`; `@noob-naive-ui/ui`
-externalizes `@noob-naive-ui/i18n`, `naive-ui`, `vue`, and `vue-i18n`. The same
+externalizes `@noob-naive-ui/i18n`, `@noob-naive-ui/registry`, `naive-ui`, `vue`,
+and `vue-i18n`; `@noob-naive-ui/registry` externalizes `vue` and `naive-ui`. The
+same
 `external` lists double as the router-neutrality enforcement for admin (no
 `vue-router` entry means a stray admin import would be bundled, breaking the
 invariant).

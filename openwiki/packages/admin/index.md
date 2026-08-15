@@ -1,9 +1,9 @@
 # Files
 
 - [Admin Authentication — Auth Store and Login Page](auth.md) - The admin package's frontend-only authentication state machine, host-effect configuration, restoration readiness, and the AdminLoginPage presentation that renders it.
-- [Admin i18n — Descriptor, Locale Typing, and Resources](i18n.md) - How the admin package pins the shared i18n descriptor and locale schema, and how hosts override AdminShell and AdminLoginPage messages through the libraryId-keyed override registry.
+- [Admin i18n — Library Key, Locale Typing, and Resources](i18n.md) - How the admin package pins its locale schema into the framework-wide override registry, and how hosts override AdminShell and AdminLoginPage messages through the AdminProvider i18nOverrides prop.
 - [@noob-naive-ui/admin](overview.md) - The router-neutral Admin package — public barrel, runtime contracts, stores, shell components, naive-ui configuration, and i18n wiring that hosts configure and AdminShell consumes.
 - [Admin Shell Preferences and Naive UI Configuration](preferences.md) - The persisted local display preferences store (theme mode, font size, locale, sidebar), its localStorage schema and hydration, and the derived NConfigProvider/ProLayout props.
-- [AdminProvider and useAdminProvider — Host Root Provider](provider.md) - The props-driven admin root provider component and its consumption composable — store initialization, menu configuration, global Composer seeding, i18n override provision, and derived Naive UI config.
+- [AdminProvider, AdminConfigProvider, and useAdminProvider — Host Root Providers](provider.md) - The props-driven admin root provider component (and its per-package config provider sibling) plus the consumption composable — store initialization, menu configuration, global Composer seeding, registry override provision, and derived Naive UI config.
 - [Admin Navigation and Menu Runtime Stores](runtime-stores.md) - The configure-once Pinia stores holding the non-serializable router-neutral navigation controller and the host-supplied menu tree, and how admin-vue-router binds into them.
 - [Admin Shell — Layout and Page-Instance State Machine](shell.md) - AdminShell's ProLayout composition, the router-neutral tab state machine (open/activate/close/heal), the tabbar and navbar controls, and the descendant context contract.
