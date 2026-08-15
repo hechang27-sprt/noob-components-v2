@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 43
-- **Last Active**: 2026-08-14
+- **Total Sessions**: 44
+- **Last Active**: 2026-08-15
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1552 | Active |
+| `journal-1.md` | ~1592 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 44 | 2026-08-15 | Drop library-i18n-descriptor; registry-keyed createComponentI18n + naive-ui locale via registry | `1b6296fc`, `0b93ad87`, `ef1f14d3`, `9ec94e97`, `dc30e307` | `-` |
 | 43 | 2026-08-14 | Silence vue-i18n fallback warnings in demo | `ed3c87e1` | `-` |
 | 42 | 2026-08-13 | Multi theme presets in AdminProvider + navbar theme dropdown | klmyzqtq | `-` |
 | 41 | 2026-08-13 | Single shared i18n override registry; drop i18n factory | `c7482cda` | `i18n-override-registry` |

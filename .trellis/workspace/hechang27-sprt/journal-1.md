@@ -1550,3 +1550,43 @@ Fixed persistent 'Not found ... key in zh/en' and 'Fall back to translate ... wi
 ### Next Steps
 
 - None (small config fix; already committed).
+
+
+## Session 44: Drop library-i18n-descriptor; registry-keyed createComponentI18n + naive-ui locale via registry
+
+**Date**: 2026-08-15
+**Task**: Drop library-i18n-descriptor; registry-keyed createComponentI18n + naive-ui locale via registry
+
+### Summary
+
+Deleted packages/i18n/src/library-i18n-descriptor.ts; createComponentI18n now derives its locale schema from the LibraryOverridesRegistry augmentation via a libraryId argument. Registry package hosts the i18n derivation (RegistryLocaleName/RegistryLocale/RegistryI18nLibraryKey in library-i18n-overrides.ts, mirror of library-theme-overrides.ts) and the naive-ui locale preseed (NaiveUiLocale = { locale: NPartialLocale; dateLocale: NDateLocale }). Package override aliases inline NonNullable<RegistryI18nOverrides[...]>; adminI18n/noobUiI18n became literal consts; AdminProvider render casts removed; tsafe dropped from i18n. naive-ui locale overrides flow through AdminProvider.i18nOverrides["naive-ui"] and are merged into naiveUiConfig (createLocale for the pack, es-toolkit merge for the date pack).
+
+### Main Changes
+
+- registry: new library-i18n-overrides.ts (RegistryLocaleName/RegistryLocale/RegistryI18nLibraryKey) + naive-ui-locale.ts (NaiveUiLocale preseed for naive-ui/pro-naive-ui; NPartialLocale chosen over NLocale because the registry DeepPartial mangles function leaves — empirically verified).
+- i18n: library-i18n-descriptor.ts deleted; createComponentI18n re-keyed over LibraryOverridesRegistry (libraryId: K + derived LocaleName/Locale defaults + NoInfer); emptySnapshot/selectComponentOverrides absorbed into use-component-i18n.ts; tsafe removed.
+- admin/ui: override aliases inlined as NonNullable<RegistryI18nOverrides["..."]>; adminI18n/noobUiI18n literal consts; AdminProvider i18n/themeOverride casts removed.
+- naive-ui locale: mergeAdminNaiveUiLocaleOverrides (createLocale + merge) + useAdminProvider({ naiveUiLocaleOverrides }) + AdminProvider pass-through of i18nOverrides["naive-ui"].
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1b6296fc` | (see git log) |
+| `0b93ad87` | (see git log) |
+| `ef1f14d3` | (see git log) |
+| `9ec94e97` | (see git log) |
+| `dc30e307` | (see git log) |
+
+### Testing
+
+- [OK] registry 3, i18n 24, ui 3, admin 94 (incl. 4 naive-ui locale merge tests) — all green; typecheck/build/test for registry/i18n/ui/admin, admin-vue-router, demo, tsc -b --noEmit, oxlint; GitNexus impact LOW/MEDIUM with intended symbols only.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- openwiki regeneration (references removed LibraryI18nDescriptor).
+- Symmetry follow-up: fold LibraryThemeDescriptor/noobUiTheme the same way (registry-keyed theme schema).
