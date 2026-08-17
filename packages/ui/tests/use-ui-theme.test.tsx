@@ -4,7 +4,7 @@ import { createApp, type App } from "vue";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { AdminUiConfigProvider } from "../src/theme/admin-ui-config-provider";
-import { UiCard, type UiCardThemeVars } from "../src/card/ui-card";
+import { UiCard, type UiCardThemeVars } from "../src/components/card/ui-card";
 import type { ThemeCssVarsFor } from "@noob-naive-ui/registry";
 import type { NoobUiThemeOverrides } from "../src/theme/types";
 import { useUiTheme } from "../src/theme/use-ui-theme";

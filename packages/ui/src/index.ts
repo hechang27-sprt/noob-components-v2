@@ -19,4 +19,4 @@ export {
   type NoobUiThemeOverrides,
   type UiThemeComponents,
 } from "./theme/types";
-export { UiCard, type UiCardThemeVars } from "./card/ui-card";
+export { UiCard, type UiCardThemeVars } from "./components/card/ui-card";

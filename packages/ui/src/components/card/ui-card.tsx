@@ -1,5 +1,5 @@
 import { computed, defineComponent, type CSSProperties } from "vue";
-import { useUiTheme } from "../theme/use-ui-theme";
+import { useUiTheme } from "../../theme/use-ui-theme";
 
 /**
  * The Card's themeVar schema in camelCase (naive-ui's convention). `useUiTheme`

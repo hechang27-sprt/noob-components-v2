@@ -3,7 +3,7 @@ import type {
   RegistryThemeOverrides,
 } from "@noob-naive-ui/registry";
 import type { NoobUiLocale, NoobUiLocaleName } from "../i18n/plugin";
-import type { UiCardThemeVars } from "../card/ui-card";
+import type { UiCardThemeVars } from "../components/card/ui-card";
 
 // Declare the ui library's FULL locale + themeVar types into the framework-
 // wide registry so the derived projections (`RegistryI18nOverrides` /
