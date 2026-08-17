@@ -20,8 +20,19 @@
         "./packages/admin-vue-router/src/index.ts"
       ],
       "@noob-naive-ui/i18n": ["./packages/i18n/src/index.ts"],
+      "@noob-naive-ui/prototype-i18n-verification": [
+        "./packages/prototype-i18n-verification/src/index.ts"
+      ],
       "@noob-naive-ui/registry": ["./packages/registry/src/index.ts"],
-      "@noob-naive-ui/ui": ["./packages/ui/src/index.ts"]
+      "@noob-naive-ui/ui": ["./packages/ui/src/index.ts"],
+      "@noob/admin": ["./packages/admin/src/index.ts"],
+      "@noob/admin-vue-router": ["./packages/admin-vue-router/src/index.ts"],
+      "@noob/i18n": ["./packages/i18n/src/index.ts"],
+      "@noob/prototype-i18n-verification": [
+        "./packages/prototype-i18n-verification/src/index.ts"
+      ],
+      "@noob/registry": ["./packages/registry/src/index.ts"],
+      "@noob/ui": ["./packages/ui/src/index.ts"]
     }
   },
   "include": [

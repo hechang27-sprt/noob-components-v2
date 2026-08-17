@@ -1,10 +1,5 @@
 {
   "extends": "../../tsconfig.library.json",
-  "compilerOptions": {
-    "paths": {
-      "@noob-naive-ui/i18n": ["../i18n/src/index.ts"],
-      "@noob-naive-ui/registry": ["../registry/src/index.ts"]
-    }
-  },
+  "compilerOptions": {},
   "include": ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts", "tests/**/*.tsx"]
 }

@@ -27,7 +27,15 @@ export default defineConfig({
         replacement: resolve(__dirname, "../i18n/src/index.ts"),
       },
       {
+        find: /^@noob\/i18n$/,
+        replacement: resolve(__dirname, "../i18n/src/index.ts"),
+      },
+      {
         find: /^@noob-naive-ui\/registry$/,
+        replacement: resolve(__dirname, "../registry/src/index.ts"),
+      },
+      {
+        find: /^@noob\/registry$/,
         replacement: resolve(__dirname, "../registry/src/index.ts"),
       },
     ],
