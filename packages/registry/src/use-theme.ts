@@ -28,13 +28,13 @@ type StripHyphen<S extends string> = S extends `-${infer Rest}` ? Rest : S;
  * ergonomic camelCase (the naive-ui convention, e.g. `{ borderColor: string }`)
  * while the emitted variables carry the library + component prefix.
  *
- * @typeParam LibraryPrefix - The library's CSS prefix segment (ui: `"ui"`).
+ * @typeParam LibraryPrefix - The library's CSS prefix segment (ui: `"noob-ui"`).
  * @typeParam Component - The component key (the theme schema's member).
  * @typeParam Vars - The declared camelCase themeVar schema.
  *
  * @example
- * `ThemeCssVarsFor<"ui", "Card", { borderColor: string }>` →
- * `{ "--ui-card-border-color": string }`
+ * `ThemeCssVarsFor<"noob-ui", "Card", { borderColor: string }>` →
+ * `{ "--noob-ui-card-border-color": string }`
  */
 export type ThemeCssVarsFor<
   LibraryPrefix extends string,
@@ -47,6 +47,19 @@ export type ThemeCssVarsFor<
 /** The component-first themeVar schema declared by one registry library. */
 type ThemeOf<LibraryId extends keyof LibraryOverridesRegistry> =
   LibraryOverridesRegistry[LibraryId]["theme"];
+
+/** The converted `--…` record shape emitted by {@link useTheme}. */
+type CssVarsOf<
+  LibraryId extends keyof LibraryOverridesRegistry,
+  ComponentId extends keyof ThemeOf<LibraryId> & string,
+  CssPrefix extends string,
+> = Partial<
+  ThemeCssVarsFor<
+    CssPrefix,
+    ComponentId,
+    ThemeOf<LibraryId>[ComponentId] & object
+  >
+>;
 
 /**
  * camelCase → kebab-case at runtime, mirroring the type-level `KebabCase` +
@@ -77,20 +90,31 @@ export interface UseThemeOptions<
 > {
   /** The library's registry key under which its theme slice lives. */
   libraryId: LibraryId;
-  /** The library's CSS prefix segment (e.g. `"ui"` → `--ui-card-…`). */
+  /** The library's CSS prefix segment (e.g. `"noob-ui"` → `--noob-ui-card-…`). */
   cssPrefix: CssPrefix;
   /** The component whose themeVars are requested. */
   componentId: ComponentId;
+  /**
+   * The component's declared camelCase defaults. They are converted alongside
+   * overrides and merged underneath them (override wins per key), so a
+   * provider-less consumer still receives its own defaults as CSS variables
+   * (the return is then never `undefined`).
+   */
+  defaults?: Partial<ThemeOf<LibraryId>[ComponentId] & object>;
 }
 
 /**
- * Reads one component's themeVar override slice from the shared unified
- * registry (`libraryId` → `theme` → component) and converts it to CSS custom
+ * Reads one component's themeVar slice from the shared unified registry
+ * (`libraryId` → `theme` → component) and converts it to CSS custom
  * properties: each declared camelCase key becomes
  * `--<cssPrefix>-<component-kebab>-<key-kebab>` (e.g. `borderColor` with
- * `cssPrefix: "ui"` and `componentId: "Card"` → `--ui-card-border-color`).
- * Provider-less → `undefined` → the component falls back to its own defaults
- * (no throw), unlike naive-ui's `useTheme`.
+ * `cssPrefix: "noob-ui"` and `componentId: "Card"` →
+ * `--noob-ui-card-border-color`).
+ *
+ * Provider-less → `undefined` (the component falls back to its own defaults,
+ * no throw), unless `defaults` is provided — then the defaults are converted
+ * and merged first, with provider overrides layered on top, and the result is
+ * never `undefined`. Unlike naive-ui's `useTheme`.
  *
  * The `as … | undefined` cast is the registry read boundary: `.theme` is
  * `unknown` (`LibraryOverridesRegistry` entry) and indexing `unknown` is a TS
@@ -109,44 +133,52 @@ export function useTheme<
   ComponentId extends keyof ThemeOf<LibraryId> & string,
   CssPrefix extends string,
 >(
+  options: UseThemeOptions<LibraryId, ComponentId, CssPrefix> & {
+    defaults: Partial<ThemeOf<LibraryId>[ComponentId] & object>;
+  },
+): ComputedRef<CssVarsOf<LibraryId, ComponentId, CssPrefix>>;
+export function useTheme<
+  LibraryId extends keyof LibraryOverridesRegistry,
+  ComponentId extends keyof ThemeOf<LibraryId> & string,
+  CssPrefix extends string,
+>(
   options: UseThemeOptions<LibraryId, ComponentId, CssPrefix>,
-): ComputedRef<
-  | Partial<
-      ThemeCssVarsFor<
-        CssPrefix,
-        ComponentId,
-        ThemeOf<LibraryId>[ComponentId] & object
-      >
-    >
-  | undefined
-> {
+): ComputedRef<CssVarsOf<LibraryId, ComponentId, CssPrefix> | undefined>;
+export function useTheme<
+  LibraryId extends keyof LibraryOverridesRegistry,
+  ComponentId extends keyof ThemeOf<LibraryId> & string,
+  CssPrefix extends string,
+>(
+  options: UseThemeOptions<LibraryId, ComponentId, CssPrefix>,
+): ComputedRef<CssVarsOf<LibraryId, ComponentId, CssPrefix> | undefined> {
   const registry = inject(libraryOverridesKey, null);
   return computed(() => {
+    const cssVars: Record<string, string> = {};
     // Registry values are loose (unknown) at the provider boundary; cast the
     // library's theme tree once here, then index by component so the exact
     // camelCase var names survive for the conversion below (unknown names
-    // were already rejected at the host override prop boundary).
+    // were already rejected at the host override prop boundary). Defaults
+    // (also camelCase) are merged first so provider overrides win per key.
+    const add = (values: object | undefined) => {
+      if (!values) return;
+      for (const [name, value] of Object.entries(values)) {
+        if (typeof value === "string") {
+          cssVars[
+            `--${options.cssPrefix}-${kebabCase(options.componentId)}-${kebabCase(name)}`
+          ] = value;
+        }
+      }
+    };
+    add(options.defaults);
     const theme = registry?.value?.[options.libraryId]?.theme as
       | Record<string, Record<string, string>>
       | undefined;
-    const slice = theme?.[options.componentId];
-    if (!slice) return undefined;
-    const cssVars: Record<string, string> = {};
-    for (const [name, value] of Object.entries(slice)) {
-      if (value !== undefined) {
-        cssVars[
-          `--${options.cssPrefix}-${kebabCase(options.componentId)}-${kebabCase(name)}`
-        ] = value;
-      }
+    add(theme?.[options.componentId]);
+    if (Object.keys(cssVars).length === 0 && options.defaults === undefined) {
+      return undefined;
     }
     // The runtime key build mirrors the type-level conversion exactly, so the
     // cast to the derived `--…` record is a boundary cast.
-    return cssVars as Partial<
-      ThemeCssVarsFor<
-        CssPrefix,
-        ComponentId,
-        ThemeOf<LibraryId>[ComponentId] & object
-      >
-    >;
+    return cssVars as CssVarsOf<LibraryId, ComponentId, CssPrefix>;
   });
 }

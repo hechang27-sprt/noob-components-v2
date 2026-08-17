@@ -1,12 +1,12 @@
-import { computed, defineComponent, type CSSProperties } from "vue";
+import { defineComponent, type CSSProperties } from "vue";
 import { useUiTheme } from "../../theme/use-ui-theme";
 
 /**
  * The Card's themeVar schema in camelCase (naive-ui's convention). `useUiTheme`
- * converts each key to its `--ui-card-…` CSS custom property automatically
- * (`borderColor` → `--ui-card-border-color`), so `NoobUiThemeOverrides.Card`
- * autocompletes `borderColor`-style names and rejects raw `--ui-…` names.
- * Defaults live in `src/style.css` under `.ui-card`.
+ * converts each key to its `--noob-ui-card-…` CSS custom property automatically
+ * (`borderColor` → `--noob-ui-card-border-color`), so
+ * `NoobUiThemeOverrides.Card` autocompletes `borderColor`-style names and
+ * rejects raw `--noob-ui-…` names.
  */
 export type UiCardThemeVars = {
   background: string;
@@ -27,17 +27,21 @@ declare module "@noob-naive-ui/ui" {
 }
 
 /**
- * Proof component: reads its own themeVar slice via `useUiTheme("Card")` and
- * binds the overrides as inline CSS variables on its root. Provider-less, it
- * renders the `.ui-card` defaults from the package's compiled CSS.
+ * Proof component: reads its own themeVar slice via `useUiTheme("Card")` with
+ * its declared defaults, so the root always receives the `--noob-ui-card-…`
+ * CSS variables (defaults merged under any provider override). No stylesheet
+ * defaults are needed.
  */
 export const UiCard = defineComponent({
   name: "UiCard",
   setup(_, { slots }) {
-    const overrides = useUiTheme("Card");
-    const style = computed(() => overrides.value ?? {});
+    const overrides = useUiTheme("Card", {
+      background: "#ffffff",
+      borderColor: "#d0d5dd",
+      padding: "1rem",
+    });
     return () => (
-      <div class="ui-card" style={style.value as CSSProperties}>
+      <div class="ui-card" style={overrides.value as CSSProperties}>
         {slots.default?.()}
       </div>
     );

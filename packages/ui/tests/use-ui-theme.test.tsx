@@ -15,7 +15,7 @@ import { useUiTheme } from "../src/theme/use-ui-theme";
 const valid: NoobUiThemeOverrides = { Card: { borderColor: "red" } };
 const invalid: NoobUiThemeOverrides = {
   // @ts-expect-error -- raw CSS var names are not part of the declared schema
-  Card: { "--ui-card-border-color": "x" },
+  Card: { "--noob-ui-card-border-color": "x" },
 };
 const invalid2: NoobUiThemeOverrides = {
   // @ts-expect-error -- unknown camelCase var name is rejected
@@ -24,19 +24,26 @@ const invalid2: NoobUiThemeOverrides = {
 void invalid;
 void invalid2;
 
-// Type-level: useUiTheme's output carries the converted `--ui-card-…` names.
+// Type-level: useUiTheme's output carries the converted `--noob-ui-card-…` names.
 type CardOverride = ReturnType<typeof useUiTheme<"Card">>["value"];
 const output = undefined as unknown as CardOverride;
-const convertedKey: string | undefined = output?.["--ui-card-border-color"];
+const convertedKey: string | undefined =
+  output?.["--noob-ui-card-border-color"];
 void convertedKey;
 // The converted record has no camelCase keys.
 // @ts-expect-error -- converted output carries CSS var names, not camelCase
 const _bad: CardOverride = { borderColor: "red" };
-// Sanity: the conversion is the declared schema mapped to `--ui-card-…`,
+// Sanity: the conversion is the declared schema mapped to `--noob-ui-card-…`,
 // via the registry's reusable ThemeCssVarsFor.
-type CardCssVars = Partial<ThemeCssVarsFor<"ui", "Card", UiCardThemeVars>>;
+type CardCssVars = Partial<ThemeCssVarsFor<"noob-ui", "Card", UiCardThemeVars>>;
 const _same: CardCssVars | undefined = output;
 void _same;
+
+// Type-level: passing defaults makes the output never `undefined`.
+const withDefaults = useUiTheme("Card", { background: "#fff" });
+// @ts-expect-error defaults make the output never undefined
+const _badDefaults: (typeof withDefaults)["value"] = undefined;
+void _badDefaults;
 
 /** Retains mounted apps until cleanup prevents DOM leakage. */
 const mountedApps: App[] = [];
@@ -73,16 +80,28 @@ function mountCard(themeOverride?: NoobUiThemeOverrides): HTMLElement {
 }
 
 describe("useUiTheme + AdminUiConfigProvider", () => {
-  it("binds a camelCase Card override as the converted `--ui-card-…` CSS var", () => {
+  it("binds a camelCase Card override as the converted `--noob-ui-card-…` CSS var, merged over defaults", () => {
     const target = mountCard({ Card: { borderColor: "red" } });
     const el = target.querySelector<HTMLElement>(".ui-card");
-    expect(el?.style.getPropertyValue("--ui-card-border-color")).toBe("red");
+    expect(el?.style.getPropertyValue("--noob-ui-card-border-color")).toBe(
+      "red",
+    );
+    // defaults still present underneath the override
+    expect(el?.style.getPropertyValue("--noob-ui-card-background")).toBe(
+      "#ffffff",
+    );
   });
 
-  it("renders no inline style vars without a provider", () => {
+  it("renders provider-less defaults as inline CSS vars", () => {
     const target = mountCard();
     const el = target.querySelector<HTMLElement>(".ui-card");
-    expect(el?.style.getPropertyValue("--ui-card-border-color")).toBe("");
+    expect(el?.style.getPropertyValue("--noob-ui-card-background")).toBe(
+      "#ffffff",
+    );
+    expect(el?.style.getPropertyValue("--noob-ui-card-border-color")).toBe(
+      "#d0d5dd",
+    );
+    expect(el?.style.getPropertyValue("--noob-ui-card-padding")).toBe("1rem");
   });
 
   it("keeps camelCase names in the typed override surface", () => {

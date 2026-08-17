@@ -17,9 +17,9 @@ describe("shared override registry", () => {
       background: string;
       borderColor: string;
     }
-    type CssVars = ThemeCssVarsFor<"ui", "Card", CardVars>;
-    type Background = CssVars["--ui-card-background"];
-    type BorderColor = CssVars["--ui-card-border-color"];
+    type CssVars = ThemeCssVarsFor<"noob-ui", "Card", CardVars>;
+    type Background = CssVars["--noob-ui-card-background"];
+    type BorderColor = CssVars["--noob-ui-card-border-color"];
     // @ts-expect-error the converted record has no camelCase keys
     type _Bad = CssVars["borderColor"];
     void (null as unknown as Background);

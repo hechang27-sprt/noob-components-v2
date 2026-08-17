@@ -17,8 +17,8 @@ declare module "@noob-naive-ui/registry" {
   }
 }
 
-/** CSS custom-property prefix for the ui library (`--ui-…`). */
-export const noobUiCssPrefix = "ui" as const;
+/** CSS custom-property prefix for the ui library (`--noob-ui-…`). */
+export const noobUiCssPrefix = "noob-ui" as const;
 
 /**
  * Component-first themeVar schema for ui package components — the empty
@@ -34,9 +34,9 @@ export const noobUiCssPrefix = "ui" as const;
  * ```
  *
  * The merged interface drives `NoobUiThemeOverrides.Card` (autocompletes
- * `borderColor`-style names and rejects raw `--ui-…` names) and
+ * `borderColor`-style names and rejects raw `--noob-ui-…` names) and
  * `useUiTheme`'s component key. `useUiTheme` (registry `useTheme`) converts
- * overrides to `--ui-<component>-<kebab-case>` CSS custom properties.
+ * overrides to `--noob-ui-<component>-<kebab-case>` CSS custom properties.
  */
 export interface UiThemeComponents {}
 
