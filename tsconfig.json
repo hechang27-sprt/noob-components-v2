@@ -32,7 +32,15 @@
         "./packages/prototype-i18n-verification/src/index.ts"
       ],
       "@noob/registry": ["./packages/registry/src/index.ts"],
-      "@noob/ui": ["./packages/ui/src/index.ts"]
+      "@noob/ui": ["./packages/ui/src/index.ts"],
+      "~/ui/*": ["./packages/ui/src/*"],
+      "~/registry/*": ["./packages/registry/src/*"],
+      "~/i18n/*": ["./packages/i18n/src/*"],
+      "~/admin/*": ["./packages/admin/src/*"],
+      "~/admin-vue-router/*": ["./packages/admin-vue-router/src/*"],
+      "~/prototype-i18n-verification/*": [
+        "./packages/prototype-i18n-verification/src/*"
+      ]
     }
   },
   "include": [

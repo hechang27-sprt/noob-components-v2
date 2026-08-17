@@ -26,6 +26,22 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: "~/admin",
+        replacement: resolve(__dirname, "../admin/src"),
+      },
+      {
+        find: "~/ui",
+        replacement: resolve(__dirname, "../ui/src"),
+      },
+      {
+        find: "~/i18n",
+        replacement: resolve(__dirname, "../i18n/src"),
+      },
+      {
+        find: "~/registry",
+        replacement: resolve(__dirname, "../registry/src"),
+      },
+      {
         find: /^@noob-naive-ui\/admin$/,
         replacement: resolve(__dirname, "../admin/src/index.ts"),
       },

@@ -32,6 +32,37 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: "~/demo",
+        replacement: resolve(__dirname, "src/"),
+      },
+      {
+        find: "~/admin",
+        replacement: resolve(__dirname, "../../packages/admin/src/"),
+      },
+      {
+        find: "~/ui",
+        replacement: resolve(__dirname, "../../packages/ui/src/"),
+      },
+      {
+        find: /^~\/i18n\//,
+        replacement: resolve(__dirname, "../../packages/i18n/src/"),
+      },
+      {
+        find: "~/registry",
+        replacement: resolve(__dirname, "../../packages/registry/src/"),
+      },
+      {
+        find: "~/admin-vue-router",
+        replacement: resolve(__dirname, "../../packages/admin-vue-router/src/"),
+      },
+      {
+        find: /^~\/prototype-i18n-verification\//,
+        replacement: resolve(
+          __dirname,
+          "../../packages/prototype-i18n-verification/src/",
+        ),
+      },
+      {
         find: /^@noob-naive-ui\/admin-vue-router$/,
         replacement: resolve(
           __dirname,
