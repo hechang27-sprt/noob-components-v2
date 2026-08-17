@@ -15,6 +15,7 @@ export {
 } from "./theme/admin-ui-config-provider";
 export { useUiTheme } from "./theme/use-ui-theme";
 export {
+  noobUiCssPrefix,
   noobUiTheme,
   type NoobUiThemeOverrides,
   type UiThemeComponents,

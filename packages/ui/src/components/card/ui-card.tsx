@@ -15,6 +15,18 @@ export type UiCardThemeVars = {
 };
 
 /**
+ * Registers the Card themeVar schema into the ui package's shared
+ * `UiThemeComponents` hook (the empty mergeable interface in
+ * `src/theme/types.ts`). This is what makes `NoobUiThemeOverrides.Card`
+ * autocomplete `borderColor`-style names and `useUiTheme("Card")` typecheck.
+ */
+declare module "@noob-naive-ui/ui" {
+  interface UiThemeComponents {
+    Card: UiCardThemeVars;
+  }
+}
+
+/**
  * Proof component: reads its own themeVar slice via `useUiTheme("Card")` and
  * binds the overrides as inline CSS variables on its root. Provider-less, it
  * renders the `.ui-card` defaults from the package's compiled CSS.

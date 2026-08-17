@@ -3,7 +3,6 @@ import type {
   RegistryThemeOverrides,
 } from "@noob-naive-ui/registry";
 import type { NoobUiLocale, NoobUiLocaleName } from "../i18n/plugin";
-import type { UiCardThemeVars } from "../components/card/ui-card";
 
 // Declare the ui library's FULL locale + themeVar types into the framework-
 // wide registry so the derived projections (`RegistryI18nOverrides` /
@@ -22,16 +21,24 @@ declare module "@noob-naive-ui/registry" {
 export const noobUiCssPrefix = "ui" as const;
 
 /**
- * Component-first themeVar schema for ui package components. Extend per
- * component; each entry declares the component's themeVars in camelCase
- * (naive-ui's convention), so `NoobUiThemeOverrides.Card` autocompletes
- * `borderColor`-style names and rejects unknown keys — raw `--ui-…` names
- * are NOT declared. `useUiTheme` (registry `useTheme`) converts the overrides
- * to `--ui-<component>-<kebab-case>` CSS custom properties.
+ * Component-first themeVar schema for ui package components — the empty
+ * augmentation hook. Each component declares its own camelCase themeVar
+ * schema into this interface via module augmentation targeting
+ * `@noob-naive-ui/ui`:
+ *
+ * ```ts
+ * // ui-card.tsx
+ * declare module "@noob-naive-ui/ui" {
+ *   interface UiThemeComponents { Card: UiCardThemeVars; }
+ * }
+ * ```
+ *
+ * The merged interface drives `NoobUiThemeOverrides.Card` (autocompletes
+ * `borderColor`-style names and rejects raw `--ui-…` names) and
+ * `useUiTheme`'s component key. `useUiTheme` (registry `useTheme`) converts
+ * overrides to `--ui-<component>-<kebab-case>` CSS custom properties.
  */
-export interface UiThemeComponents {
-  Card: UiCardThemeVars;
-}
+export interface UiThemeComponents {}
 
 /** Typed per-component themeVar overrides for the ui package, derived from the registry. */
 export type NoobUiThemeOverrides = RegistryThemeOverrides["noob-naive-ui:ui"];
