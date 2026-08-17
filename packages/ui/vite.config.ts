@@ -6,11 +6,7 @@ import { defineConfig } from "vitest/config";
 import dts from "unplugin-dts/vite";
 
 export default defineConfig({
-  plugins: [
-    tailwindcss(),
-    vueJsx(),
-    dts({ tsconfigPath: "./tsconfig.build.json" }),
-  ],
+  plugins: [tailwindcss(), vueJsx(), dts({ tsconfigPath: "./tsconfig.build.json" })],
   build: {
     lib: {
       entry: resolve(__dirname, "src/index.ts"),
@@ -19,22 +15,13 @@ export default defineConfig({
       cssFileName: "style",
     },
     rolldownOptions: {
-      external: [
-        "@noob-naive-ui/i18n",
-        "es-toolkit",
-        "naive-ui",
-        "vue",
-        "vue-i18n",
-        "@noob-naive-ui/registry",
-      ],
+      external: ["@noob-naive-ui/i18n", "es-toolkit", "naive-ui", "vue", "vue-i18n",
+      "@noob-naive-ui/registry",
+    ],
     },
   },
   resolve: {
     alias: [
-      {
-        find: "~/ui",
-        replacement: resolve(__dirname, "src"),
-      },
       {
         find: /^@noob-naive-ui\/i18n$/,
         replacement: resolve(__dirname, "../i18n/src/index.ts"),

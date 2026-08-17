@@ -41,28 +41,12 @@ export default defineConfig({
         "vue",
         "vue-i18n",
         "zod",
-        "@noob-naive-ui/registry",
-      ],
+      "@noob-naive-ui/registry",
+    ],
     },
   },
   resolve: {
     alias: [
-      {
-        find: "~/admin",
-        replacement: resolve(__dirname, "src/"),
-      },
-      {
-        find: "~/ui",
-        replacement: resolve(__dirname, "../ui/src/"),
-      },
-      {
-        find: /^~\/i18n\//,
-        replacement: resolve(__dirname, "../i18n/src/"),
-      },
-      {
-        find: "~/registry",
-        replacement: resolve(__dirname, "../registry/src/"),
-      },
       {
         find: /^@noob-naive-ui\/i18n$/,
         replacement: resolve(__dirname, "../i18n/src/index.ts"),
