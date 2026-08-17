@@ -1,4 +1,5 @@
 import { defineComponent, type CSSProperties } from "vue";
+import type { ThemeVarValue } from "@noob-naive-ui/registry";
 import { useUiTheme } from "../../theme/use-ui-theme";
 
 /**
@@ -11,7 +12,8 @@ import { useUiTheme } from "../../theme/use-ui-theme";
 export type UiCardThemeVars = {
   background: string;
   borderColor: string;
-  padding: string;
+  /** Scales with the active font-size tier (size-keyed value). */
+  padding: ThemeVarValue;
 };
 
 /**
@@ -38,7 +40,7 @@ export const UiCard = defineComponent({
     const overrides = useUiTheme("Card", {
       background: "#ffffff",
       borderColor: "#d0d5dd",
-      padding: "1rem",
+      padding: { small: "0.75rem", medium: "1rem", large: "1.25rem" },
     });
     return () => (
       <div class="ui-card" style={overrides.value as CSSProperties}>

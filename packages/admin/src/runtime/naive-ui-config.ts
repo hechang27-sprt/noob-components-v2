@@ -12,7 +12,10 @@ import {
   type NLocale,
 } from "naive-ui";
 import { merge } from "es-toolkit";
-import type { RegistryI18nOverrides } from "@noob-naive-ui/registry";
+import {
+  resolveThemeVarValue,
+  type RegistryI18nOverrides,
+} from "@noob-naive-ui/registry";
 
 import type {
   AdminFontSize,
@@ -252,15 +255,24 @@ export const COMPONENT_SIZE_OPTIONS: Record<
  * naive-ui sets `body { font-size: 14px }` statically (it is not driven by
  * `themeOverrides`), so naive-ui cannot scale plain HTML content itself. Hosts
  * apply this value to their root element (e.g. `document.documentElement`) so
- * `rem`-based content scales with the preference. It mirrors the naive-ui
- * component font from `FONT_SIZE_OVERRIDES` so the 13/14/16px mapping lives in
- * one place.
+ * `rem`-based content scales with the preference. It derives from the same
+ * merged override tree as the naive-ui provider (see
+ * {@link mergeAdminNaiveUiThemeOverrides}), so the preset's font config
+ * (`fontSizeOverrides`, or font values set directly in `themeOverrides`)
+ * overrides the built-in `FONT_SIZE_OVERRIDES` default tier; the 13/14/16px
+ * mapping lives in one place.
  *
  * @param size - The active font-size preference tier.
+ * @param preset - The active theme preset, or undefined when none applies.
  * @returns The matching CSS font-size, defaulting to 14px when absent.
  */
-export function resolveAdminNaiveBaseFontSize(size: AdminFontSize): string {
-  return FONT_SIZE_OVERRIDES[size].common?.fontSize ?? "14px";
+export function resolveAdminNaiveBaseFontSize(
+  size: AdminFontSize,
+  preset?: AdminThemePreset,
+): string {
+  return (
+    mergeAdminNaiveUiThemeOverrides(size, preset).common?.fontSize ?? "14px"
+  );
 }
 
 /**
@@ -281,38 +293,66 @@ export function resolveDefaultNaiveUiTheme(
 }
 
 /**
- * Merges the active theme preset's font-size overrides (or the built-in
- * `FONT_SIZE_OVERRIDES` tier) with the preset's own color overrides, so both
- * the size tier and the preset colors apply together.
+ * Recursively resolves size-keyed leaves (`ThemeVarValue`) in a naive-ui
+ * override tree against the active font size, reusing the registry's leaf
+ * resolver. Plain objects are walked; other values pass through untouched.
+ * naivue-ui override sections nest plain objects, so a size-keyed value is
+ * only ever a leaf (a `{ small, medium, large }` record).
+ *
+ * @param value - A naive-ui override tree (any depth).
+ * @param size - The active font-size tier.
+ * @returns The resolved tree with concrete string leaves.
+ */
+function resolveSizeKeyedThemeOverrides(
+  value: unknown,
+  size: AdminFontSize,
+): unknown {
+  const resolvedLeaf = resolveThemeVarValue(value, size);
+  if (resolvedLeaf !== undefined) return resolvedLeaf;
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const resolved: Record<string, unknown> = {};
+    for (const [key, child] of Object.entries(value)) {
+      resolved[key] = resolveSizeKeyedThemeOverrides(child, size);
+    }
+    return resolved;
+  }
+  return value;
+}
+
+/**
+ * Merges the active theme preset's overrides over the built-in font-size
+ * default tier, so the preset's font config and colors apply together.
  *
  * naive-ui `GlobalThemeOverrides` nests component sections (`common`, per
  * component keys) with plain-object leaves, so a shallow spread would let the
  * preset's `common` block replace the font-size `common` block wholesale and
- * drop `fontSize`; es-toolkit `merge` deep-merges instead. The font-size layer
- * is the *source* so it takes precedence: without a preset `fontSizeOverrides`
- * entry the built-in hardcoded default font size wins over any font-size
- * values the preset sets directly in `themeOverrides["naive-ui"]`.
+ * drop `fontSize`; es-toolkit `merge` deep-merges instead.
  *
- * The naive-ui and pro-naive-ui slices both carry naive-ui `GlobalThemeOverrides`
- * (pro-naive-ui forwards its themeOverrides to naive-ui's NConfigProvider, so
- * the two merge into the same naive-ui provider's themeOverrides).
+ * `FONT_SIZE_OVERRIDES` is only the DEFAULT tier: the preset's own
+ * `themeOverrides` slices — including size-keyed values
+ * (`ThemeVarValue`, e.g. `common.fontSize: { small: "13px", medium: "14px",
+ * large: "16px" }`) — are merged over it and then resolved against the active
+ * size, so per-font-size naive-ui configuration lives in `themeOverrides`
+ * like every other library's. The naive-ui and pro-naive-ui slices both carry
+ * naive-ui override trees (pro-naive-ui forwards its themeOverrides to
+ * naive-ui's NConfigProvider, so the two merge into the same naive-ui
+ * provider's themeOverrides).
  *
  * @param size - Active font-size tier.
  * @param preset - The active theme preset, or undefined when none applies.
- * @returns Deep-merged `themeOverrides` for the naive-ui provider.
+ * @returns Deep-merged, size-resolved `themeOverrides` for the naive-ui provider.
  */
 export function mergeAdminNaiveUiThemeOverrides(
   size: AdminFontSize,
   preset: AdminThemePreset | undefined,
 ): GlobalThemeOverrides {
   if (!preset) return FONT_SIZE_OVERRIDES[size];
-  const fontBase =
-    preset.fontSizeOverrides?.[size] ?? FONT_SIZE_OVERRIDES[size];
-  const colorBase = merge(
+  const presetTheme = merge(
     merge({}, preset.themeOverrides["naive-ui"] ?? {}),
     preset.themeOverrides["pro-naive-ui"] ?? {},
   );
-  return merge(colorBase, fontBase);
+  const merged = merge(FONT_SIZE_OVERRIDES[size], presetTheme);
+  return resolveSizeKeyedThemeOverrides(merged, size) as GlobalThemeOverrides;
 }
 
 /**

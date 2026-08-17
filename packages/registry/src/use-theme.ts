@@ -1,6 +1,11 @@
 import { computed, inject, type ComputedRef } from "vue";
 import { libraryOverridesKey } from "./library-overrides-registry";
 import type { LibraryOverridesRegistry } from "./library-overrides-registry";
+import {
+  DEFAULT_THEME_FONT_SIZE,
+  themeFontSizeKey,
+  type AdminFontSize,
+} from "./theme-font-size";
 
 /**
  * camelCase → kebab-case at the type level. Non-letter characters (digits,
@@ -28,6 +33,10 @@ type StripHyphen<S extends string> = S extends `-${infer Rest}` ? Rest : S;
  * ergonomic camelCase (the naive-ui convention, e.g. `{ borderColor: string }`)
  * while the emitted variables carry the library + component prefix.
  *
+ * Every emitted value is a `string`: declared values may be size-keyed
+ * (`ThemeVarValue`), but `useTheme` resolves them against the active font
+ * size before binding.
+ *
  * @typeParam LibraryPrefix - The library's CSS prefix segment (ui: `"noob-ui"`).
  * @typeParam Component - The component key (the theme schema's member).
  * @typeParam Vars - The declared camelCase themeVar schema.
@@ -41,7 +50,7 @@ export type ThemeCssVarsFor<
   Component extends string,
   Vars extends object,
 > = {
-  [K in keyof Vars as `--${LibraryPrefix}-${StripHyphen<KebabCase<Component>>}-${KebabCase<K & string>}`]: Vars[K];
+  [K in keyof Vars as `--${LibraryPrefix}-${StripHyphen<KebabCase<Component>>}-${KebabCase<K & string>}`]: string;
 };
 
 /** The component-first themeVar schema declared by one registry library. */
@@ -74,6 +83,36 @@ function kebabCase(value: string): string {
 }
 
 /**
+ * Resolves one themeVar value to its CSS string: plain strings pass through;
+ * per-font-size records pick the active tier (falling back to the default
+ * tier when the active one is absent). Malformed values are skipped.
+ *
+ * Exported so other resolvers (e.g. the admin's naive-ui theme merge) reuse
+ * the same size-keyed semantics.
+ *
+ * @param value - The declared value (`ThemeVarValue` shape; runtime is loose).
+ * @param fontSize - The active font-size tier, or undefined for the default.
+ * @returns The resolved CSS value, or undefined when unresolvable.
+ */
+export function resolveThemeVarValue(
+  value: unknown,
+  fontSize: AdminFontSize | undefined,
+): string | undefined {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object") {
+    const record = value as Partial<Record<AdminFontSize, string>>;
+    const tier = fontSize ?? DEFAULT_THEME_FONT_SIZE;
+    const resolved =
+      record[tier] ??
+      (tier === DEFAULT_THEME_FONT_SIZE
+        ? undefined
+        : record[DEFAULT_THEME_FONT_SIZE]);
+    return typeof resolved === "string" ? resolved : undefined;
+  }
+  return undefined;
+}
+
+/**
  * Options for {@link useTheme}.
  *
  * @typeParam LibraryId - The library's registry key; its declared `theme`
@@ -98,7 +137,8 @@ export interface UseThemeOptions<
    * The component's declared camelCase defaults. They are converted alongside
    * overrides and merged underneath them (override wins per key), so a
    * provider-less consumer still receives its own defaults as CSS variables
-   * (the return is then never `undefined`).
+   * (the return is then never `undefined`). Values may be size-keyed
+   * (`ThemeVarValue`), resolved against the active font size.
    */
   defaults?: Partial<ThemeOf<LibraryId>[ComponentId] & object>;
 }
@@ -110,6 +150,11 @@ export interface UseThemeOptions<
  * `--<cssPrefix>-<component-kebab>-<key-kebab>` (e.g. `borderColor` with
  * `cssPrefix: "noob-ui"` and `componentId: "Card"` →
  * `--noob-ui-card-border-color`).
+ *
+ * Size-keyed values (`string | Record<AdminFontSize, string>`) resolve against
+ * the injected active font size (`themeFontSizeKey`, provided by the admin
+ * package; default tier medium), so one override tree scales across font-size
+ * preferences.
  *
  * Provider-less → `undefined` (the component falls back to its own defaults,
  * no throw), unless `defaults` is provided — then the defaults are converted
@@ -152,6 +197,9 @@ export function useTheme<
   options: UseThemeOptions<LibraryId, ComponentId, CssPrefix>,
 ): ComputedRef<CssVarsOf<LibraryId, ComponentId, CssPrefix> | undefined> {
   const registry = inject(libraryOverridesKey, null);
+  // The active font-size tier (admin provides it); size-keyed values resolve
+  // against it, defaulting to the medium tier when no provider is mounted.
+  const fontSize = inject(themeFontSizeKey, null);
   return computed(() => {
     const cssVars: Record<string, string> = {};
     // Registry values are loose (unknown) at the provider boundary; cast the
@@ -159,19 +207,21 @@ export function useTheme<
     // camelCase var names survive for the conversion below (unknown names
     // were already rejected at the host override prop boundary). Defaults
     // (also camelCase) are merged first so provider overrides win per key.
+    // Both may carry size-keyed values, resolved against the active tier.
     const add = (values: object | undefined) => {
       if (!values) return;
       for (const [name, value] of Object.entries(values)) {
-        if (typeof value === "string") {
+        const resolved = resolveThemeVarValue(value, fontSize?.value);
+        if (resolved !== undefined) {
           cssVars[
             `--${options.cssPrefix}-${kebabCase(options.componentId)}-${kebabCase(name)}`
-          ] = value;
+          ] = resolved;
         }
       }
     };
     add(options.defaults);
     const theme = registry?.value?.[options.libraryId]?.theme as
-      | Record<string, Record<string, string>>
+      | Record<string, Record<string, unknown>>
       | undefined;
     add(theme?.[options.componentId]);
     if (Object.keys(cssVars).length === 0 && options.defaults === undefined) {

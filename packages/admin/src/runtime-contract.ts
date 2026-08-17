@@ -1,6 +1,14 @@
-import type { GlobalThemeOverrides, MenuOption } from "naive-ui";
+import type { MenuOption } from "naive-ui";
 import type { I18nText } from "@noob-naive-ui/i18n";
-import type { RegistryThemeOverrides } from "@noob-naive-ui/registry";
+import type {
+  AdminFontSize,
+  RegistryThemeOverrides,
+} from "@noob-naive-ui/registry";
+
+// The font-size tier union lives in the registry so themeVar values can key
+// on it (`ThemeVarValue = string | Record<AdminFontSize, string>`); re-export
+// under the historical admin name so existing imports keep working.
+export type { AdminFontSize } from "@noob-naive-ui/registry";
 import type { AdminLocale, AdminLocaleName } from "./i18n/admin-locale";
 
 // Declare the admin library's FULL locale + themeVar types into the
@@ -50,7 +58,6 @@ export type AdminRouteKey = string;
 export type AdminMenuTree = MenuOption[];
 
 export type AdminThemeMode = "light" | "dark" | "system";
-export type AdminFontSize = "small" | "medium" | "large";
 
 /**
  * Open registry of admin package theme components; empty until admin ships
@@ -75,26 +82,22 @@ export type AdminPresetThemeOverrides = RegistryThemeOverrides;
 /**
  * One named, host-supplied theme preset selectable from the navbar.
  *
- * `isDark` fixes the preset's polarity (base `darkTheme` vs light), while
- * `themeOverrides` carries the preset's per-library themeVar overrides. The
- * naive-ui/pro-naive-ui slices are merged on top of the font-size overrides.
- * `label` is resolved reactively at render time so preset names stay
- * locale-aware.
+ * `isDark` fixes the preset's polarity (base `darkTheme` vs light);
+ * `themeOverrides` carries the preset's per-library themeVar overrides and may
+ * use size-keyed values (`ThemeVarValue`) in ANY library slice — the
+ * naive-ui/pro-naive-ui slices resolve against the active font size in the
+ * naive-ui merge (over the built-in `FONT_SIZE_OVERRIDES` default tier), and
+ * noob-package slices (ui, admin) resolve in `useTheme` — so font-size
+ * configuration is just size-keyed values in `themeOverrides`. `label` is
+ * resolved reactively at render time so preset names stay locale-aware.
  */
 export type AdminThemePreset = {
   /** Stable, unique preset identity used as the persisted selection and dropdown value. */
   key: string;
   /** Display label, resolved against the nearest Composer at render time. */
   label: I18nText;
-  /** Per-library themeVar overrides applied on top of the font-size overrides. */
+  /** Per-library themeVar overrides (may carry size-keyed values). */
   themeOverrides: AdminPresetThemeOverrides;
-  /**
-   * Optional per-font-size override layers replacing the built-in
-   * `FONT_SIZE_OVERRIDES` for this preset. When absent, the built-in
-   * hardcoded default font size takes precedence over any font-size values
-   * set directly in `themeOverrides["naive-ui"]`.
-   */
-  fontSizeOverrides?: Record<AdminFontSize, GlobalThemeOverrides>;
   /** True renders the preset on the naive-ui dark base theme. */
   isDark: boolean;
 };

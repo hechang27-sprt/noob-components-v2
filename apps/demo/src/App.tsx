@@ -88,14 +88,18 @@ export default defineComponent(
 
     /**
      * Applies the preference base font to the root element so `rem`-based
-     * content scales with the font-size preference.
+     * content scales with the font-size preference. The active preset's font
+     * config (fontSizeOverrides / direct font values) overrides the built-in
+     * default tier.
      *
      * @param size - The current font-size preference tier.
      * @returns Nothing after setting the root font-size.
      */
     function applyBaseFontSize(size: typeof provider.fontSize.value): void {
-      document.documentElement.style.fontSize =
-        resolveAdminNaiveBaseFontSize(size);
+      document.documentElement.style.fontSize = resolveAdminNaiveBaseFontSize(
+        size,
+        provider.activeTheme.value,
+      );
     }
 
     provider.setSystemUsesDark(systemThemeQuery.matches);

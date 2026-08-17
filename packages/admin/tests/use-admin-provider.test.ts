@@ -13,9 +13,7 @@ import {
 import { useAdminShellMenuStore } from "../src/stores/menu";
 import type { AdminThemePreset } from "../src/runtime-contract";
 import { useAdminShellPreferencesStore } from "../src/stores/shell-preferences";
-import {
-  mergeAdminNaiveUiLocaleOverrides,
-} from "../src/runtime/naive-ui-config";
+import { mergeAdminNaiveUiLocaleOverrides } from "../src/runtime/naive-ui-config";
 
 /** Retains mounted apps until cleanup prevents DOM and Pinia state leakage. */
 const mountedApps: App[] = [];
@@ -257,19 +255,25 @@ describe("useAdminProvider", () => {
       {
         key: "default",
         label: { kind: "string", value: "Default" },
-        themeOverrides: { "naive-ui": {
-          common: { primaryColor: "#18a058", fontSize: "99px" } },
+        themeOverrides: {
+          "naive-ui": {
+            common: { primaryColor: "#18a058", fontSize: "99px" },
+          },
         },
         isDark: false,
       },
       {
         key: "ocean",
         label: { kind: "string", value: "Ocean" },
-        themeOverrides: { "naive-ui": { common: { primaryColor: "#2563eb" } } },
-        fontSizeOverrides: {
-          small: { common: { fontSize: "12px" } },
-          medium: { common: { fontSize: "18px" } },
-          large: { common: { fontSize: "22px" } },
+        themeOverrides: {
+          "naive-ui": {
+            common: {
+              primaryColor: "#2563eb",
+              // Per-font-size naive-ui configuration lives in themeOverrides
+              // as size-keyed values (resolved against the active tier).
+              fontSize: { small: "12px", medium: "18px", large: "22px" },
+            },
+          },
         },
         isDark: false,
       },
@@ -287,11 +291,11 @@ describe("useAdminProvider", () => {
     expect(api.activeTheme.value?.key).toBe("default");
     expect(api.naiveUiConfig.value.theme).toBeNull();
     expect(api.naiveUiConfig.value.themeOverrides).toMatchObject({
-      common: { fontSize: "14px", primaryColor: "#18a058" },
+      common: { fontSize: "99px", primaryColor: "#18a058" },
     });
-    // Without `fontSizeOverrides` the built-in "14px" tier beats the preset's
-    // direct "99px" font value.
-    expect(api.naiveUiConfig.value.themeOverrides.common?.fontSize).not.toBe(
+    // FONT_SIZE_OVERRIDES is only the default: the preset's direct font value
+    // ("99px") overrides the built-in "14px" tier.
+    expect(api.naiveUiConfig.value.themeOverrides.common?.fontSize).toBe(
       "99px",
     );
 
@@ -313,7 +317,6 @@ describe("useAdminProvider", () => {
     expect(api.activeTheme.value?.key).toBe("midnight");
   });
 });
-
 
 describe("naive-ui locale overrides", () => {
   it("merges a partial pack over the base via createLocale, keeping untouched fields", () => {
@@ -361,8 +364,6 @@ describe("naive-ui locale overrides", () => {
       "Nothing here",
     );
     expect(api.naiveUiConfig.value.dateLocale?.name).toBe("custom-date");
-    expect(api.naiveUiConfig.value.locale?.Pagination).toEqual(
-      enUS.Pagination,
-    );
+    expect(api.naiveUiConfig.value.locale?.Pagination).toEqual(enUS.Pagination);
   });
 });

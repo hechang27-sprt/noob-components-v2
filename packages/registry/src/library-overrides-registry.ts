@@ -2,6 +2,7 @@ import type { ComputedRef, InjectionKey } from "vue";
 import type { GlobalThemeOverrides } from "naive-ui";
 import type { NaiveUiLocale } from "./naive-ui-locale";
 import type { LibraryThemeOverrides } from "./library-theme-overrides";
+import type { ThemeVarValue } from "./theme-font-size";
 
 /**
  * Framework-wide override registry schema, shared by every component package
@@ -24,11 +25,14 @@ import type { LibraryThemeOverrides } from "./library-theme-overrides";
  * }
  * ```
  *
- * naive-ui / pro-naive-ui declare their theme as `GlobalThemeOverrides` (the
- * override form, not a component-keyed schema): their theme does not convert
- * through `LibraryThemeOverrides` (naive-ui's override shape differs from a
+ * naive-ui / pro-naive-ui declare their theme as `ResolvableGlobalThemeOverrides`
+ * (the override form, not a component-keyed schema — every string leaf widened
+ * to `ThemeVarValue`): their theme does not convert through
+ * `LibraryThemeOverrides` (naive-ui's override shape differs from a
  * per-component var map), so the preseed carries the already-override type and
- * the uniform conversion is a structural no-op for them. Their `locale` is the
+ * the uniform conversion is a structural no-op for them. Size-keyed leaves are
+ * resolved by the admin's naive-ui merge against the active font size. Their
+ * `locale` is the
  * composed `NaiveUiLocale` ({@link ./naive-ui-locale}) — the pack half in
  * `createLocale`'s `NPartialLocale` override form (same structural no-op
  * story), the date half the full `NDateLocale` pack. The derived
@@ -41,9 +45,33 @@ import type { LibraryThemeOverrides } from "./library-theme-overrides";
  * typed. Undeclared/3rd-party libraries are admitted at runtime via
  * {@link LibraryOverridesRegistryValue}'s loose index.
  */
+/**
+ * `GlobalThemeOverrides` with every string leaf widened to {@link ThemeVarValue}
+ * (`string | Record<AdminFontSize, string>`), so hosts can express per-font-size
+ * values directly in a naive-ui/pro-naive-ui override slice. Consumers resolve
+ * the leaves against the active font size before binding (the admin's
+ * `mergeAdminNaiveUiThemeOverrides` does this while merging).
+ *
+ * Implemented as a deep recursive widening (not a one-level mapped type):
+ * `GlobalThemeOverrides` is an intersection, and indexing it with a generic
+ * key degrades to `{}`; recursing over concrete accesses instead keeps every
+ * section/var name intact.
+ */
+type DeepThemeVarValue<T> = T extends string
+  ? ThemeVarValue
+  : T extends object
+    ? { [K in keyof T]: DeepThemeVarValue<T[K]> }
+    : T;
+
+export type ResolvableGlobalThemeOverrides =
+  DeepThemeVarValue<GlobalThemeOverrides>;
+
 export interface LibraryOverridesRegistry {
-  "naive-ui": { locale: NaiveUiLocale; theme: GlobalThemeOverrides };
-  "pro-naive-ui": { locale: NaiveUiLocale; theme: GlobalThemeOverrides };
+  "naive-ui": { locale: NaiveUiLocale; theme: ResolvableGlobalThemeOverrides };
+  "pro-naive-ui": {
+    locale: NaiveUiLocale;
+    theme: ResolvableGlobalThemeOverrides;
+  };
 }
 
 /**

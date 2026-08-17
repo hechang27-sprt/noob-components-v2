@@ -1,8 +1,11 @@
-import { defineComponent, watch } from "vue";
+import { defineComponent, provide, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { NGlobalStyle } from "naive-ui";
 
-import type { RegistryI18nOverrides } from "@noob-naive-ui/registry";
+import {
+  themeFontSizeKey,
+  type RegistryI18nOverrides,
+} from "@noob-naive-ui/registry";
 import { AdminUiConfigProvider, noobUiI18n } from "@noob-naive-ui/ui";
 import type { AdminMenuTree, AdminThemePreset } from "../runtime-contract";
 import type { AdminShellPreferencesStoreOptions } from "../runtime/shell-preferences";
@@ -73,6 +76,11 @@ export const AdminProvider = defineComponent(
     const preferences = useAdminShellPreferencesStore();
     const menu = useAdminShellMenuStore();
 
+    // 1b. Provide the active font-size tier so registry `useTheme` consumers
+    //     (ui components and their size-keyed themeVars) resolve against the
+    //     preference without knowing it themselves.
+    provide(themeFontSizeKey, provider.fontSize);
+
     // 2. The host global Composer; the host must `app.use(i18n)` before mount.
     const composer = useI18n({ useScope: "global" });
 
@@ -123,14 +131,12 @@ export const AdminProvider = defineComponent(
     return () => (
       <AdminConfigProvider
         i18n={props.i18nOverrides?.[adminI18n]}
-        themeOverride={provider.activeTheme.value?.themeOverrides?.[adminI18n]}
-      >
+        themeOverride={provider.activeTheme.value?.themeOverrides?.[adminI18n]}>
         <AdminUiConfigProvider
           i18n={props.i18nOverrides?.[noobUiI18n]}
           themeOverride={
             provider.activeTheme.value?.themeOverrides?.[noobUiI18n]
-          }
-        >
+          }>
           <ProConfigProvider {...provider.naiveUiConfig.value}>
             <NGlobalStyle />
             {slots.default?.()}

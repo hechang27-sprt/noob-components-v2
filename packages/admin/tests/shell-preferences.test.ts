@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 
 import { resolveAdminNaiveBaseFontSize } from "../src";
+import type { AdminThemePreset } from "../src/runtime-contract";
 import { useAdminShellPreferencesStore } from "../src/stores/shell-preferences";
 
 const STORAGE_KEY = "@noob-naive-ui/admin:shell-preferences";
@@ -172,6 +173,36 @@ describe("useAdminShellPreferencesStore", () => {
     expect(resolveAdminNaiveBaseFontSize("small")).toBe("13px");
     expect(resolveAdminNaiveBaseFontSize("medium")).toBe("14px");
     expect(resolveAdminNaiveBaseFontSize("large")).toBe("16px");
+  });
+
+  it("lets the active preset's font config override the default base font", () => {
+    // A font-only preset: size-keyed values in themeOverrides, no colors.
+    const fontOnlyPreset: AdminThemePreset = {
+      key: "large-text",
+      label: { kind: "string", value: "Large text" },
+      isDark: false,
+      themeOverrides: {
+        "naive-ui": {
+          common: {
+            fontSize: { small: "13px", medium: "14px", large: "20px" },
+          },
+        },
+      },
+    };
+    expect(resolveAdminNaiveBaseFontSize("large", fontOnlyPreset)).toBe("20px");
+    // Other tiers resolve their own size-keyed value (falling back to the
+    // built-in default when the preset does not set one).
+    expect(resolveAdminNaiveBaseFontSize("medium", fontOnlyPreset)).toBe(
+      "14px",
+    );
+    // Plain font values in themeOverrides also beat the default.
+    const direct: AdminThemePreset = {
+      key: "direct",
+      label: { kind: "string", value: "Direct" },
+      isDark: false,
+      themeOverrides: { "naive-ui": { common: { fontSize: "18px" } } },
+    };
+    expect(resolveAdminNaiveBaseFontSize("medium", direct)).toBe("18px");
   });
 
   it("treats storage adapter failures as no persistence", () => {

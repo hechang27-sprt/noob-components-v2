@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
 
-import { createApp, type App } from "vue";
+import { createApp, provide, ref, type App } from "vue";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { themeFontSizeKey } from "@noob-naive-ui/registry";
 import { AdminUiConfigProvider } from "../src/theme/admin-ui-config-provider";
 import { UiCard, type UiCardThemeVars } from "../src/components/card/ui-card";
 import type { ThemeCssVarsFor } from "@noob-naive-ui/registry";
@@ -56,23 +57,30 @@ afterEach(() => {
 
 /**
  * Mounts a UiCard, optionally under an AdminUiConfigProvider carrying a ui
- * themeOverride slice.
+ * themeOverride slice and/or an injected font-size tier.
  *
  * @param themeOverride - Optional ui themeVar override slice (camelCase).
+ * @param fontSize - Optional active font-size tier (size-keyed resolution).
  * @returns The mounted container.
  */
-function mountCard(themeOverride?: NoobUiThemeOverrides): HTMLElement {
+function mountCard(
+  themeOverride?: NoobUiThemeOverrides,
+  fontSize?: "small" | "medium" | "large",
+): HTMLElement {
   const target = document.createElement("div");
   document.body.append(target);
   const app = createApp({
-    setup: () => () =>
-      themeOverride ? (
-        <AdminUiConfigProvider themeOverride={themeOverride}>
+    setup: () => {
+      if (fontSize) provide(themeFontSizeKey, ref(fontSize));
+      return () =>
+        themeOverride ? (
+          <AdminUiConfigProvider themeOverride={themeOverride}>
+            <UiCard />
+          </AdminUiConfigProvider>
+        ) : (
           <UiCard />
-        </AdminUiConfigProvider>
-      ) : (
-        <UiCard />
-      ),
+        );
+    },
   });
   app.mount(target);
   mountedApps.push(app);
@@ -102,6 +110,32 @@ describe("useUiTheme + AdminUiConfigProvider", () => {
       "#d0d5dd",
     );
     expect(el?.style.getPropertyValue("--noob-ui-card-padding")).toBe("1rem");
+  });
+
+  it("resolves size-keyed vars against the injected font-size tier", () => {
+    // No provider -> the default (medium) tier applies.
+    const medium = mountCard();
+    const mediumEl = medium.querySelector<HTMLElement>(".ui-card");
+    expect(mediumEl?.style.getPropertyValue("--noob-ui-card-padding")).toBe(
+      "1rem",
+    );
+
+    // An injected large tier picks the large value.
+    const large = mountCard(undefined, "large");
+    const largeEl = large.querySelector<HTMLElement>(".ui-card");
+    expect(largeEl?.style.getPropertyValue("--noob-ui-card-padding")).toBe(
+      "1.25rem",
+    );
+
+    // Size-keyed overrides also resolve (large tier).
+    const overridden = mountCard(
+      { Card: { padding: { small: "2rem", medium: "2.5rem", large: "3rem" } } },
+      "large",
+    );
+    const overriddenEl = overridden.querySelector<HTMLElement>(".ui-card");
+    expect(overriddenEl?.style.getPropertyValue("--noob-ui-card-padding")).toBe(
+      "3rem",
+    );
   });
 
   it("keeps camelCase names in the typed override surface", () => {
