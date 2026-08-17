@@ -18,10 +18,16 @@ declare module "@noob-naive-ui/registry" {
   }
 }
 
+/** CSS custom-property prefix for the ui library (`--ui-…`). */
+export const noobUiCssPrefix = "ui" as const;
+
 /**
  * Component-first themeVar schema for ui package components. Extend per
- * component; each entry declares the component's exact `--n-*` var names so
- * `NoobUiThemeOverrides.Card` autocompletes them and rejects unknown keys.
+ * component; each entry declares the component's themeVars in camelCase
+ * (naive-ui's convention), so `NoobUiThemeOverrides.Card` autocompletes
+ * `borderColor`-style names and rejects unknown keys — raw `--ui-…` names
+ * are NOT declared. `useUiTheme` (registry `useTheme`) converts the overrides
+ * to `--ui-<component>-<kebab-case>` CSS custom properties.
  */
 export interface UiThemeComponents {
   Card: UiCardThemeVars;

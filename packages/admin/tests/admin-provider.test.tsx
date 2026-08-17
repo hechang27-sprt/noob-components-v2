@@ -260,8 +260,9 @@ describe("AdminProvider", () => {
       name: "OverrideProbe",
       setup() {
         const registry = inject(libraryOverridesKey, null);
-        const snapshot = registry?.value?.["noob-naive-ui:admin"]
-          ?.i18n as AdminI18nSnapshot | undefined;
+        const snapshot = registry?.value?.["noob-naive-ui:admin"]?.i18n as
+          | AdminI18nSnapshot
+          | undefined;
         const signOut = snapshot?.en?.AdminShell?.account?.signOut ?? "";
         return () => <div data-probe={signOut} />;
       },
@@ -304,7 +305,7 @@ describe("AdminProvider", () => {
         themeOverrides: {
           "naive-ui": { common: { primaryColor: "#18a058" } },
           "noob-naive-ui:ui": {
-            Card: { "--ui-card-bg": "#0f172a" },
+            Card: { background: "#0f172a" },
           },
         },
         isDark: false,
@@ -320,12 +321,12 @@ describe("AdminProvider", () => {
         // Registry values are loose (unknown) at the provider boundary; narrow
         // the ui theme entry to the known Card var shape for the assertion.
         const uiTheme = uiEntry?.theme as
-          | { Card?: { "--ui-card-bg"?: string } }
+          | { Card?: { background?: string } }
           | undefined;
         return () => (
           <div
             data-admin-has-i18n={admin?.i18n !== undefined}
-            data-ui-bg={uiTheme?.Card?.["--ui-card-bg"] ?? ""}
+            data-ui-bg={uiTheme?.Card?.background ?? ""}
           />
         );
       },
@@ -354,9 +355,9 @@ describe("AdminProvider", () => {
     app.mount(target);
     mountedApps.push(app);
     expect(
-      target.querySelector("[data-admin-has-i18n]")?.getAttribute(
-        "data-admin-has-i18n",
-      ),
+      target
+        .querySelector("[data-admin-has-i18n]")
+        ?.getAttribute("data-admin-has-i18n"),
     ).toBe("true");
     expect(
       target.querySelector("[data-ui-bg]")?.getAttribute("data-ui-bg"),
@@ -377,7 +378,7 @@ describe("AdminProvider", () => {
         key: "default",
         label: { kind: "string", value: "Default" },
         themeOverrides: {
-          "noob-naive-ui:ui": { Card: { "--ui-card-bg": "#ffffff" } },
+          "noob-naive-ui:ui": { Card: { background: "#ffffff" } },
         },
         isDark: false,
       },
@@ -385,7 +386,7 @@ describe("AdminProvider", () => {
         key: "ocean",
         label: { kind: "string", value: "Ocean" },
         themeOverrides: {
-          "noob-naive-ui:ui": { Card: { "--ui-card-bg": "#0ea5e9" } },
+          "noob-naive-ui:ui": { Card: { background: "#0ea5e9" } },
         },
         isDark: false,
       },
@@ -400,11 +401,9 @@ describe("AdminProvider", () => {
           // Registry values are loose (unknown); narrow the ui theme entry to
           // the known Card var shape for the assertion.
           const uiTheme = registry?.value?.["noob-naive-ui:ui"]?.theme as
-            | { Card?: { "--ui-card-bg"?: string } }
+            | { Card?: { background?: string } }
             | undefined;
-          return (
-            <div data-color={uiTheme?.Card?.["--ui-card-bg"] ?? ""} />
-          );
+          return <div data-color={uiTheme?.Card?.background ?? ""} />;
         };
       },
     });
@@ -457,9 +456,7 @@ describe("AdminProvider", () => {
       setup() {
         const registry = inject(libraryOverridesKey, null);
         const value: LibraryOverridesRegistryValue = registry?.value ?? {};
-        return () => (
-          <div data-keys={Object.keys(value).join(",")} />
-        );
+        return () => <div data-keys={Object.keys(value).join(",")} />;
       },
     });
     const target = document.createElement("div");
@@ -475,8 +472,8 @@ describe("AdminProvider", () => {
     app.use(i18n);
     app.mount(target);
     mountedApps.push(app);
-    expect(
-      target.querySelector("[data-keys]")?.getAttribute("data-keys"),
-    ).toBe("noob-naive-ui:admin");
+    expect(target.querySelector("[data-keys]")?.getAttribute("data-keys")).toBe(
+      "noob-naive-ui:admin",
+    );
   });
 });

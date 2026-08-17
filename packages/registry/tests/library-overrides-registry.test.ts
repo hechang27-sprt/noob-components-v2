@@ -4,11 +4,26 @@ import {
   libraryOverridesKey,
   type LibraryThemeDescriptor,
   type RegistryI18nLibraryKey,
+  type ThemeCssVarsFor,
 } from "../src/index";
 
 describe("shared override registry", () => {
   it("exposes one shared injection key", () => {
     expect(typeof libraryOverridesKey).toBe("symbol");
+  });
+
+  it("converts a declared camelCase themeVar schema to CSS custom properties", () => {
+    interface CardVars {
+      background: string;
+      borderColor: string;
+    }
+    type CssVars = ThemeCssVarsFor<"ui", "Card", CardVars>;
+    type Background = CssVars["--ui-card-background"];
+    type BorderColor = CssVars["--ui-card-border-color"];
+    // @ts-expect-error the converted record has no camelCase keys
+    type _Bad = CssVars["borderColor"];
+    void (null as unknown as Background);
+    void (null as unknown as BorderColor);
   });
 
   it("preseeds naive-ui / pro-naive-ui with a typed locale override schema", () => {

@@ -2,14 +2,16 @@ import { computed, defineComponent, type CSSProperties } from "vue";
 import { useUiTheme } from "../theme/use-ui-theme";
 
 /**
- * The Card's exact themeVar names, preserved as literal keys in type info so
- * `NoobUiThemeOverrides.Card` autocompletes them and rejects unknown names.
+ * The Card's themeVar schema in camelCase (naive-ui's convention). `useUiTheme`
+ * converts each key to its `--ui-card-…` CSS custom property automatically
+ * (`borderColor` → `--ui-card-border-color`), so `NoobUiThemeOverrides.Card`
+ * autocompletes `borderColor`-style names and rejects raw `--ui-…` names.
  * Defaults live in `src/style.css` under `.ui-card`.
  */
 export type UiCardThemeVars = {
-  "--ui-card-bg": string;
-  "--ui-card-border-color": string;
-  "--ui-card-padding": string;
+  background: string;
+  borderColor: string;
+  padding: string;
 };
 
 /**
