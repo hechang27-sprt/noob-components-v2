@@ -52,3 +52,27 @@ Hypothesis C CONFIRMED with a correction:
   threshold); B's theme number (688 ms) is a confirmed REAL switch.
 - Machines: this box traces @30 tabs reproduce the bug (default ~500-770 ms
   size/theme); user confirms vdom fast / vapor-layout slow manually.
+
+## W1 CONSERVATIVE TEST (perf-vapor-layout, 2026-08-26) - CONFIRMED
+
+Converted ONLY the tab strip region to vdom inside perf-vapor-layout
+(UiCardTabs + UiCardTab + AdminShellTabbar + AdminTabStrip; vapor AdminShell
+and shell-route wrapper unchanged). 30 tabs, same harness:
+
+| variant | size flush | theme flush |
+|---|---|---|
+| B vapor tab region (before) | ~16 ms | **688 ms** |
+| B + vdom tab region (W1) | ~11 ms | **60 ms** |
+| A all-vdom reference | 12.5 ms | 39 ms |
+
+=> The tab strip was responsible for ~10/11 of the theme-switch lag; the
+residual 60 ms vs A's 39 ms = the other naive crossings in the vapor layout
+(sidebar NMenu, navbar islands, page).
+
+Implementation notes (bite the next person who converts):
+- VAPOR->vdom slot direction drops children: a vapor parent feeding its
+  default slot into a vdom child = empty region. The WHOLE repeated region
+  (strip + tabs + naive buttons) must move together.
+- VDOM options-form `setup()` must RETURN A RENDER FUNCTION
+  (`() => <JSX/>`); returning VNodes directly renders nothing + warns
+  "setup() should not return VNodes directly".
