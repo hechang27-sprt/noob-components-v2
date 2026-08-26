@@ -72,3 +72,53 @@ with naive components interleaved everywhere; 30 per-tab naive buttons).
 - https://github.com/tusen-ai/naive-ui/issues/6999
 - https://github.com/tusen-ai/naive-ui/pull/7522, /8127
 - https://github.com/vuejs/vue-jsx-vapor (interop docs: vuejsx.dev)
+
+# Strategic framing: is Vapor "pointless" without vapor-native component libs?
+
+Open question from code review (2026-08-26): if vuetify/antd/tdesign/element
+etc. offer no vapor-native compilation and crossings are expensive, why use
+Vapor at all — you can only win in isolated regions guaranteed light on vdom.
+
+## Honest answer up front
+
+The premise is correct TODAY for apps dominated by a vdom component library:
+vaporizing everything maximizes crossings and can be slower than plain vdom
+(our measured ~17x theme-flush amplification is the extreme case). Vapor is
+NOT a blanket win for such apps. The regions model Vue prescribes is exactly
+the escape hatch.
+
+## Where Vapor is genuinely the point (official positioning + evidence)
+
+- Vue's own stated use cases (3.6-beta.1 notes): "Partial usage in existing
+  apps, e.g. implementing a perf-sensitive sub page in Vapor Mode" + "Build
+  small new apps entirely in Vapor Mode" (avoids pulling in the vdom runtime:
+  smaller baseline bundle; vapor-native mounts/updates are cheaper).
+- Self-authored component palettes: OUR ui package's primitives (UiCard,
+  UiCardTabs, UiCardTab, UiCardTabClose) mount NO third-party vdom components;
+  they are already effectively vapor-native. The 3rd-party-heavy chrome is the
+  only place naive lives. Our own traces show app code ~1.5 ms of every flush;
+  vapor-native regions were never the bottleneck — crossings were.
+- Ecosystem trend line: naive-ui compiles with vue-jsx-vapor's compiler
+  (prereq to vapor support), Vuetify0 is vapor-first by design, ecosystem-ci
+  tracks vue vapor vs naive-ui/vuetify. When any major lib ships vapor-native
+  (or runtime-vapor optimizes crossing cost), the calculus flips.
+
+## Decision for THIS framework
+
+Adopt the regions model deliberately (matches Vue guidance + Vuetify0's
+"keep regions in one rendering mode"):
+- VDOM region: admin chrome that hosts naive internals (AdminShell/ProLayout,
+  tabbar with naive close buttons, sidebar NMenu, navbar/login islands).
+- Vapor region: page content + the ui package's own primitives.
+- Rule: never instantiate naive components inside vapor `v-for`/repeated
+  regions; put the boundary ABOVE repeated regions (one wrapper turns N
+  crossings into one — measured: inline +44% mount, wrapper = noise).
+- Validate with scripts/perf harness (expect ~40 ms flushes, vdom-like).
+- Keep the ui package vapor-native (it already is); do not vaporize naive
+  chrome further without a crossing budget.
+
+## Upstream action (do not conclude from an rc artifact)
+
+File the crossing-cost issue against vue-jsx-vapor/runtime-vapor with our
+trace evidence (~17x same-work amplification); crossing prop materialization
+per flush is a curable library defect.
