@@ -24,6 +24,18 @@ const DetailPage = defineComponent(
 
 For components with reactive state or lifecycle work, use a block-bodied first argument and return the TSX render closure. Stateless components may return the render closure directly. Import Naive UI controls directly; for layout and text prefer Naive UI primitives that consume design tokens over raw HTML + Tailwind — see [Design tokens and theming](#design-tokens-and-theming). Package Tailwind scanning is configured in `packages/admin/src/style.css`, which is imported by the public barrel.
 
+### JSX compiler: vue-jsx-vapor
+
+This project uses `vue-jsx-vapor` as the JSX Vite plugin (replacing `@vitejs/plugin-vue-jsx`). It provides Rust-based (Oxc) JSX compilation — ~35× faster than babel — and avoids the babel slot-flag crash that breaks naive-ui's `optimize: true`.
+
+Configuration in each `vite.config.ts`:
+```ts
+import vueJsxVapor from 'vue-jsx-vapor/vite'
+export default defineConfig({ plugins: [vueJsxVapor({ interop: true, macros: true })] })
+```
+
+`interop: true` enables `defineVaporComponent` support (used in packages/ui for vapor-native components). `macros: true` enables Vue macros (`defineModel`, `defineSlots`). Components using `defineComponent` compile to standard VDOM output (`createBaseVNode`).
+
 ## Design tokens and theming
 
 New UI components (pages, widgets, shells) MUST be compatible with Naive UI's design tokens and theming so they remain theme-able across dark mode, the font-size preference, and `FONT_SIZE_OVERRIDES`. Do not hardcode colors, font sizes, or spacing that a theme override should control.
