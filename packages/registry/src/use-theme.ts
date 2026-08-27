@@ -54,11 +54,11 @@ export type ThemeCssVarsFor<
 };
 
 /** The component-first themeVar schema declared by one registry library. */
-type ThemeOf<LibraryId extends keyof LibraryOverridesRegistry> =
+export type ThemeOf<LibraryId extends keyof LibraryOverridesRegistry> =
   LibraryOverridesRegistry[LibraryId]["theme"];
 
 /** The converted `--…` record shape emitted by {@link useTheme}. */
-type CssVarsOf<
+export type CssVarsOf<
   LibraryId extends keyof LibraryOverridesRegistry,
   ComponentId extends keyof ThemeOf<LibraryId> & string,
   CssPrefix extends string,
@@ -69,6 +69,25 @@ type CssVarsOf<
     ThemeOf<LibraryId>[ComponentId] & object
   >
 >;
+
+export function useCssVarsFor<
+  const LibraryId extends keyof LibraryOverridesRegistry,
+  const ComponentId extends keyof ThemeOf<LibraryId> & string,
+  const CssPrefix extends string,
+>(_libraryId: LibraryId, _componentId: ComponentId, _cssPrefix: CssPrefix) {
+  type CssVars = CssVarsOf<LibraryId, ComponentId, CssPrefix>;
+  return {
+    $css: (key: keyof CssVars) => key,
+    $var: (key: keyof CssVars) => `var(${String(key)})` as const,
+    $tw: <
+      const Tw extends string,
+      const Hint extends string = "",
+      const Suffix extends "" | "!" = "",
+    >(
+      class_: `${Tw}-(${Hint extends "" ? "" : `${Hint}:`}${keyof CssVars})${Suffix}`,
+    ) => class_,
+  };
+}
 
 /**
  * camelCase → kebab-case at runtime, mirroring the type-level `KebabCase` +

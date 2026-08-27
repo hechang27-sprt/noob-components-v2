@@ -1,12 +1,12 @@
 import { resolve } from "node:path";
 
 import tailwindcss from "@tailwindcss/vite";
-import vueJsx from "@vitejs/plugin-vue-jsx";
+import vueJsxVapor from "vue-jsx-vapor/vite";
 import { defineConfig } from "vitest/config";
 import dts from "unplugin-dts/vite";
 
 export default defineConfig({
-  plugins: [tailwindcss(), vueJsx(), dts({ tsconfigPath: "./tsconfig.build.json" })],
+  plugins: [tailwindcss(), vueJsxVapor({ interop: true, macros: true }), dts({ tsconfigPath: "./tsconfig.build.json" })],
   build: {
     lib: {
       entry: resolve(__dirname, "src/index.ts"),

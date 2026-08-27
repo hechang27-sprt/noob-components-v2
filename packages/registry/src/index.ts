@@ -11,7 +11,10 @@ export { type LibraryThemeDescriptor } from "./library-theme-overrides";
 export {
   resolveThemeVarValue,
   useTheme,
+  useCssVarsFor,
   type ThemeCssVarsFor,
+  type ThemeOf,
+  type CssVarsOf,
   type UseThemeOptions,
 } from "./use-theme";
 export {

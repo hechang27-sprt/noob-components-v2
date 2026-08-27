@@ -2,7 +2,7 @@ import { resolve } from "node:path";
 
 import vueI18n from "@intlify/unplugin-vue-i18n/vite";
 import tailwindcss from "@tailwindcss/vite";
-import vueJsx from "@vitejs/plugin-vue-jsx";
+import vueJsxVapor from "vue-jsx-vapor/vite";
 import { defineConfig } from "vitest/config";
 import dts from "unplugin-dts/vite";
 
@@ -17,7 +17,7 @@ export default defineConfig({
       outFile: resolve(__dirname, "src/locales/locale-types.generated.ts"),
     }),
     tailwindcss(),
-    vueJsx(),
+    vueJsxVapor({ interop: true, macros: true }),
     vueI18n({
       include: [resolve(__dirname, "src/locales/**")],
     }),

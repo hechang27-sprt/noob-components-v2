@@ -1,6 +1,7 @@
-import type {
-  LibraryThemeDescriptor,
-  RegistryThemeOverrides,
+import {
+  type LibraryThemeDescriptor,
+  type RegistryThemeOverrides,
+  useCssVarsFor,
 } from "@noob-naive-ui/registry";
 import type { NoobUiLocale, NoobUiLocaleName } from "../i18n/plugin";
 
@@ -51,3 +52,9 @@ export type NoobUiThemeOverrides = RegistryThemeOverrides["noob-naive-ui:ui"];
 export const noobUiTheme: LibraryThemeDescriptor<UiThemeComponents> = {
   libraryId: "noob-naive-ui:ui",
 };
+
+export function useUiCssVarsFor<
+  const ComponentId extends keyof UiThemeComponents,
+>(componentId: ComponentId) {
+  return useCssVarsFor("noob-naive-ui:ui", componentId, noobUiCssPrefix);
+}

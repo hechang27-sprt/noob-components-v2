@@ -2,7 +2,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { resolve } from "node:path";
 
 import vue from "@vitejs/plugin-vue";
-import vueJsx from "@vitejs/plugin-vue-jsx";
+import vueJsxVapor from "vue-jsx-vapor/vite";
 import vueDevTools from "vite-plugin-vue-devtools";
 import { createWorkspaceVueI18nPlugin } from "../../tooling/vite/vue-i18n";
 import { createJsonLocaleTypesWatcherPlugin } from "../../tooling/vite/json-locale-types";
@@ -12,7 +12,7 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
     vue(),
-    vueJsx(),
+    vueJsxVapor({ interop: true, macros: true }),
     vueDevTools(),
     // Optional monorepo tooling for source-locale transforms and HMR.
     // Without it, the dev server and production build must still work; built
