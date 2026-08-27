@@ -11,7 +11,7 @@ import {
   type GlobalThemeOverrides,
   type NLocale,
 } from "naive-ui";
-import { merge } from "es-toolkit";
+import { toMerged } from "es-toolkit";
 import {
   resolveThemeVarValue,
   type RegistryI18nOverrides,
@@ -90,7 +90,7 @@ export function mergeAdminNaiveUiLocaleOverrides(
       ? createLocale(overrides.locale, base.nLocale)
       : base.nLocale,
     nDateLocale: overrides?.dateLocale
-      ? merge(merge({}, base.nDateLocale), overrides.dateLocale)
+      ? toMerged(base.nDateLocale ?? {}, overrides.dateLocale ?? {})
       : base.nDateLocale,
   };
 }
@@ -347,11 +347,11 @@ export function mergeAdminNaiveUiThemeOverrides(
   preset: AdminThemePreset | undefined,
 ): GlobalThemeOverrides {
   if (!preset) return FONT_SIZE_OVERRIDES[size];
-  const presetTheme = merge(
-    merge({}, preset.themeOverrides["naive-ui"] ?? {}),
+  const presetTheme = toMerged(
+    preset.themeOverrides["naive-ui"] ?? {},
     preset.themeOverrides["pro-naive-ui"] ?? {},
   );
-  const merged = merge(FONT_SIZE_OVERRIDES[size], presetTheme);
+  const merged = toMerged(FONT_SIZE_OVERRIDES[size], presetTheme);
   return resolveSizeKeyedThemeOverrides(merged, size) as GlobalThemeOverrides;
 }
 

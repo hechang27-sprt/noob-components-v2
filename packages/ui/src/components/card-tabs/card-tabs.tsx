@@ -116,7 +116,7 @@ export const UiCardTabs = defineComponent(
     const MINW = $var("--noob-ui-card-tabs-card-min-width");
     const MAXW = $var("--noob-ui-card-tabs-card-max-width");
 
-    const DEFAULT_THEME_VARS: Partial<UiCardTabsThemeVars> = {
+    const getThemeDefaults = (): Partial<UiCardTabsThemeVars> => ({
       gap: DEFAULT_GAP,
       paddingTop: DEFAULT_PADDING,
       paddingBottom: DEFAULT_PADDING,
@@ -153,9 +153,9 @@ export const UiCardTabs = defineComponent(
       repeat(max(${N_TABS}, 1), ${GAP} ${RADII_X} minmax(${MINW}, ${MAXW}) ${RADII_X}) 
       ${GAP} ${RADII_X} min-content ${RADII_X} ${GAP}`,
       barBackground: `linear-gradient(${$var("--noob-ui-card-tabs-background-color")} 50%, ${$var("--noob-ui-card-tabs-active-card-color")} 50%)`,
-    };
+    });
 
-    const themeVars = useUiTheme("CardTabs", DEFAULT_THEME_VARS);
+    const themeVars = useUiTheme("CardTabs", getThemeDefaults);
 
     /**
      * Bar-level keyboard navigation. Tabs handle their own keys when focused;
