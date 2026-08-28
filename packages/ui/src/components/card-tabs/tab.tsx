@@ -8,24 +8,24 @@ import {
 } from "vue";
 import { tv } from "tailwind-variants";
 import { useUiCssVarsFor } from "../../theme/types";
-import { useTabController } from "./card-tabs-runtime";
+import { useTabController } from "./runtime";
 
 /** Reserved, non-selectable tab keys for the default head/tail sentinels. */
 export const HEAD_TAB_KEY = "__noob-ui-card-tabs-head__";
 export const TAIL_TAB_KEY = "__noob-ui-card-tabs-tail__";
 
-type UiCardTabMode = "tab" | "head" | "tail";
+type TabMode = "tab" | "head" | "tail";
 
 /** Which side carries the fillet cut-out on the bottom segment. */
 type Neighbor = "none" | "left" | "right";
 
 type Props = {
   tabKey: string;
-  mode?: UiCardTabMode;
+  mode?: TabMode;
 };
 
 /**
- * One connected tab-bar scope. Rendered inside a `UiCardTabs` grid container as
+ * One connected tab-bar scope. Rendered inside a `Tabs` grid container as
  * a `grid-cols-subgrid grid-rows-subgrid` card placed at
  * `--noob-ui-card-tabs-col-start` (4·index+1), spanning 5 rows.
  *
@@ -40,7 +40,7 @@ type Props = {
  * `index`/`count` the parent injects (not the controller's sorted array), so
  * open/close reorders never misplace a tab on the bar.
  */
-export const UiCardTab = defineComponent(
+export const Tab = defineComponent(
   (props: Props, { slots }: { slots: { default?: () => unknown } }) => {
     const { tabs, controller } = useTabController()!;
     const rootEl = ref<HTMLElement | null>(null);
@@ -313,6 +313,6 @@ export const UiCardTab = defineComponent(
     );
   },
   {
-    name: "UiCardTab",
+    name: "CardTabsTab",
   },
 );

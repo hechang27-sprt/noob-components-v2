@@ -1,3 +1,15 @@
+/**
+ * Tab controller — manages the connected tab-bar registry.
+ *
+ * Provides a shared reactive `tabList` and DOM-position-sorted tab map
+ * between a `CardTabs.Root` and its `CardTabs.Tab` children via Vue's
+ * provide/inject. Handles registration, unregistration, keyboard
+ * navigation ordering, and focus management.
+ *
+ * The controller uses DOM `compareDocumentPosition` to maintain tabs in
+ * visual order regardless of mount/unmount sequence. A sorted binary
+ * search insertion keeps O(log n) registration for large tab sets.
+ */
 import {
   inject,
   InjectionKey,
@@ -133,10 +145,6 @@ function createTabController(options: CreateTabControllerOptions) {
     elementOf(tabKey: string): HTMLElement | undefined {
       return elements.get(tabKey) as HTMLElement | undefined;
     },
-    // TEMP DEV diagnostics: live registry sizes (remove once leak question settled)
-    __debugSizes(): { tabs: number; elements: number; tabList: number } {
-      return { tabs: tabs.size, elements: elements.size, tabList: tabList.length };
-    },
     unregisterTab(tabKey: string): void {
       const toRemove = tabs.get(tabKey);
       if (!toRemove) {
@@ -153,9 +161,5 @@ function createTabController(options: CreateTabControllerOptions) {
     },
   };
 
-  if (import.meta.env.DEV) {
-    (globalThis as unknown as Record<string, unknown>).__cardTabsRegistry =
-      () => controller.__debugSizes();
-  }
   return { tabs: readonly(tabs), tabList: readonly(tabList), controller };
 }

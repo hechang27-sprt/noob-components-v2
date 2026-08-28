@@ -3,12 +3,12 @@ import type { ThemeVarValue } from "@noob-naive-ui/registry";
 import { useThemeVars } from "naive-ui";
 import { useUiTheme } from "../../theme/use-ui-theme";
 import { useUiCssVarsFor } from "../../theme/types";
-import { useTabController } from "./card-tabs-runtime";
-import { HEAD_TAB_KEY, TAIL_TAB_KEY, UiCardTab } from "./card-tab";
+import { useTabController } from "./runtime";
+import { HEAD_TAB_KEY, TAIL_TAB_KEY, Tab } from "./tab";
 
 // REMINDER: demo for the tab display mechanism: https://play.tailwindcss.com/j8IcWZ4HdN
 
-export type UiCardTabsThemeVars = {
+export type CardTabsThemeVars = {
   gap: ThemeVarValue;
   paddingTop: ThemeVarValue;
   paddingBottom: ThemeVarValue;
@@ -67,7 +67,7 @@ const DEFAULT_CONTENT_PADDING = {
 
 declare module "@noob-naive-ui/ui" {
   interface UiThemeComponents {
-    CardTabs: UiCardTabsThemeVars;
+    CardTabs: CardTabsThemeVars;
   }
 }
 
@@ -95,11 +95,11 @@ type Slots = {
  * keys). Positioning (index/count) is passed by the parent at render time so
  * the grid stays ordered regardless of tab open/close reorders.
  */
-// VDOM port (W1 experiment): UiCardTabs runs classic so the whole tab strip
+// VDOM port (W1 experiment): CardTabs runs classic so the whole tab strip
 // (its slot children + per-tab naive buttons) stays inside ONE vdom region;
 // the vapor->vdom boundary sits at the AdminShellTabbar edge instead of per
 // repeated tab. Keep slot macros off: props/emit/slots come from ctx.
-export const UiCardTabs = defineComponent(
+export const Root = defineComponent(
   (props: Props, ctx: { emit: Emits; slots: Slots }) => {
     const { emit, slots } = ctx;
     const nThemeVars = useThemeVars();
@@ -122,7 +122,7 @@ export const UiCardTabs = defineComponent(
     const MINW = $var("--noob-ui-card-tabs-card-min-width");
     const MAXW = $var("--noob-ui-card-tabs-card-max-width");
 
-    const getThemeDefaults = (): Partial<UiCardTabsThemeVars> => ({
+    const getThemeDefaults = (): Partial<CardTabsThemeVars> => ({
       gap: DEFAULT_GAP,
       paddingTop: DEFAULT_PADDING,
       paddingBottom: DEFAULT_PADDING,
@@ -229,15 +229,15 @@ export const UiCardTabs = defineComponent(
             "justify-start",
             $tw<"bg", "image">("bg-(image:--noob-ui-card-tabs-bar-background)"),
           ]}>
-          {slots.head?.() ?? <UiCardTab tabKey={HEAD_TAB_KEY} mode="head" />}
+          {slots.head?.() ?? <Tab tabKey={HEAD_TAB_KEY} mode="head" />}
           {slots.default?.()}
-          {slots.tail?.() ?? <UiCardTab tabKey={TAIL_TAB_KEY} mode="tail" />}
+          {slots.tail?.() ?? <Tab tabKey={TAIL_TAB_KEY} mode="tail" />}
         </div>
       </div>
     );
   },
   {
-    name: "UiCardTabs",
+    name: "CardTabsRoot",
     props: {
       modelValue: { type: String, default: "" },
     },

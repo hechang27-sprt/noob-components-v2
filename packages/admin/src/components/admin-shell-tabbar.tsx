@@ -2,7 +2,7 @@ import { NButton, NIcon, NP, useThemeVars } from "naive-ui";
 import { computed, defineComponent } from "vue";
 
 import { getComponentI18n, resolveI18nText } from "@noob-naive-ui/i18n";
-import { UiCardTab, UiCardTabs } from "@noob-naive-ui/ui";
+import { CardTabs } from "@noob-naive-ui/ui";
 
 import { useAdminShellNavigationStore } from "../stores/navigation";
 import { useAdminShell } from "./use-admin-shell";
@@ -41,57 +41,35 @@ import { CloseSharp } from "@vicons/ionicons5";
  * tab map and re-created each naive child's interop props — making any shell
  * flush linear in the tab count.
  */
-const AdminTabStrip = defineComponent(
-  (props: { descriptors: AdminShellTab[] }) => {
-    const shell = useAdminShell();
-    const { t } = getComponentI18n();
-    const nav = useAdminShellNavigationStore();
+const TabContent = (props: {
+  label: string;
+  close?: InstanceType<typeof NButton>["$props"]["onClick"];
+  popoverColor?: string;
+}) => {
+  const { label, popoverColor, close } = props;
 
-    const activeTabId = computed(() => nav.navigation?.active?.id ?? "");
-    const nThemeVars = useThemeVars();
-
-    return () => (
-      <>
-        {props.descriptors.map((tab) => {
-          const label = resolveI18nText(tab.label, t);
-          const isActive = tab.id === activeTabId.value;
-          const popoverColor = isActive
-            ? undefined
-            : nThemeVars.value.popoverColor;
-          return (
-            <UiCardTab key={tab.id} tabKey={tab.id} mode="tab">
-              <span class="inline-flex items-center justify-between gap-2 w-full overflow-hidden h-full">
-                <span class="overflow-hidden text-ellipsis whitespace-nowrap">
-                  {label}
-                </span>
-                {tab.closable !== false ? (
-                  <NButton
-                    text
-                    themeOverrides={{
-                      textColorTextHover: popoverColor,
-                      textColorTextFocus: popoverColor,
-                      textColorTextPressed: popoverColor,
-                    }}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void shell.closeTab(tab.id);
-                    }}>
-                    <NIcon>
-                      <CloseSharp />
-                    </NIcon>
-                  </NButton>
-                ) : null}
-              </span>
-            </UiCardTab>
-          );
-        })}
-      </>
-    );
-  },
-  {
-    name: "AdminTabStrip",
-  },
-);
+  return (
+    <span class="inline-flex items-center justify-between gap-2 w-full overflow-hidden h-full">
+      <span class="overflow-hidden text-ellipsis whitespace-nowrap">
+        {label}
+      </span>
+      {close ? (
+        <NButton
+          text
+          themeOverrides={{
+            textColorTextHover: popoverColor,
+            textColorTextFocus: popoverColor,
+            textColorTextPressed: popoverColor,
+          }}
+          onClick={close}>
+          <NIcon>
+            <CloseSharp />
+          </NIcon>
+        </NButton>
+      ) : null}
+    </span>
+  );
+};
 
 export const AdminShellTabbar = defineComponent(
   () => {
@@ -100,6 +78,7 @@ export const AdminShellTabbar = defineComponent(
     const nav = useAdminShellNavigationStore();
 
     const activeTabId = computed(() => nav.navigation?.active?.id ?? "");
+    const nThemeVars = useThemeVars();
 
     // Stable descriptor snapshot: SAME array identity while open tabs are
     // unchanged, so AdminTabStrip (and every tab below it) skips re-render
@@ -119,13 +98,34 @@ export const AdminShellTabbar = defineComponent(
         class="w-full h-full"
         role="tablist"
         aria-label={t("tabs.openPages")}>
-        <UiCardTabs
+        <CardTabs.Root
           modelValue={activeTabId.value}
           onUpdate:modelValue={(key: string | number) =>
             void shell.activateTab(String(key))
           }>
-          <AdminTabStrip descriptors={stripDescriptors.value} />
-        </UiCardTabs>
+          {stripDescriptors.value.map((tab) => {
+            const handleClose = tab.closable
+              ? (event: MouseEvent) => {
+                  event.stopPropagation();
+                  void shell.closeTab(tab.id);
+                }
+              : undefined;
+
+            return (
+              <CardTabs.Tab key={tab.id} tabKey={tab.id} mode="tab">
+                <TabContent
+                  label={resolveI18nText(tab.label, t)}
+                  close={handleClose}
+                  popoverColor={
+                    tab.id === activeTabId.value
+                      ? undefined
+                      : nThemeVars.value.popoverColor
+                  }
+                />
+              </CardTabs.Tab>
+            );
+          })}
+        </CardTabs.Root>
         {shell.tabError.value ? (
           <div role="alert" data-admin-tab-error>
             <NP>{shell.tabError.value}</NP>
