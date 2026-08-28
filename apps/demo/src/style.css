@@ -1,10 +1,4 @@
 @layer theme, base, components, utilities;
 @import "tailwindcss/theme.css" layer(theme);
-/* disable preflight */
-/* @import "tailwindcss/preflight.css" layer(base); */
 @import "tailwindcss/utilities.css" layer(utilities) source(none);
-
-/* Conservative source allow-list: disable Tailwind's automatic detection
-   (which scans .json files under the Vite root and full-reloads the page on
-   locale edits) and scan only the app's candidate source files. */
-@source not "**/locale/**/*.json";
+@import "@noob-naive-ui/admin/style.css";

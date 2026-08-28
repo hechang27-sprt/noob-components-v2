@@ -46,34 +46,13 @@ export default defineConfig({
     },
   },
   resolve: {
+    // Vite 8 reads tsconfig.json paths — replaces manual JS/TS aliases.
+    tsconfigPaths: true,
+    // CSS imports need explicit aliases (tsconfigPaths only handles JS/TS).
     alias: [
-      {
-        find: /^@noob-naive-ui\/i18n$/,
-        replacement: resolve(__dirname, "../i18n/src/index.ts"),
-      },
-      {
-        find: /^@noob\/i18n$/,
-        replacement: resolve(__dirname, "../i18n/src/index.ts"),
-      },
-      {
-        find: /^@noob-naive-ui\/registry$/,
-        replacement: resolve(__dirname, "../registry/src/index.ts"),
-      },
-      {
-        find: /^@noob\/registry$/,
-        replacement: resolve(__dirname, "../registry/src/index.ts"),
-      },
       {
         find: "@noob-naive-ui/ui/style.css",
         replacement: resolve(__dirname, "../ui/src/style.css"),
-      },
-      {
-        find: /^@noob-naive-ui\/ui$/,
-        replacement: resolve(__dirname, "../ui/src/index.ts"),
-      },
-      {
-        find: /^@noob\/ui$/,
-        replacement: resolve(__dirname, "../ui/src/index.ts"),
       },
     ],
   },

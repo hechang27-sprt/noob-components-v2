@@ -30,74 +30,17 @@ export default defineConfig({
     }),
   ],
   resolve: {
+    // Vite 8 reads tsconfig.json paths — replaces manual JS/TS aliases.
+    tsconfigPaths: true,
+    // CSS imports need explicit aliases (tsconfigPaths only handles JS/TS).
     alias: [
-      {
-        find: /^@noob-naive-ui\/admin-vue-router$/,
-        replacement: resolve(
-          __dirname,
-          "../../packages/admin-vue-router/src/index.ts",
-        ),
-      },
-      {
-        find: /^@noob\/admin-vue-router$/,
-        replacement: resolve(
-          __dirname,
-          "../../packages/admin-vue-router/src/index.ts",
-        ),
-      },
-      {
-        find: /^@noob-naive-ui\/i18n$/,
-        replacement: resolve(__dirname, "../../packages/i18n/src/index.ts"),
-      },
-      {
-        find: /^@noob\/i18n$/,
-        replacement: resolve(__dirname, "../../packages/i18n/src/index.ts"),
-      },
-      {
-        find: /^@noob-naive-ui\/registry$/,
-        replacement: resolve(__dirname, "../../packages/registry/src/index.ts"),
-      },
-      {
-        find: /^@noob\/registry$/,
-        replacement: resolve(__dirname, "../../packages/registry/src/index.ts"),
-      },
       {
         find: "@noob-naive-ui/admin/style.css",
         replacement: resolve(__dirname, "../../packages/admin/src/style.css"),
       },
       {
-        find: /^@noob-naive-ui\/admin$/,
-        replacement: resolve(__dirname, "../../packages/admin/src/index.ts"),
-      },
-      {
-        find: /^@noob\/admin$/,
-        replacement: resolve(__dirname, "../../packages/admin/src/index.ts"),
-      },
-      {
-        find: /^@noob-naive-ui\/prototype-i18n-verification$/,
-        replacement: resolve(
-          __dirname,
-          "../../packages/prototype-i18n-verification/src/index.ts",
-        ),
-      },
-      {
-        find: /^@noob\/prototype-i18n-verification$/,
-        replacement: resolve(
-          __dirname,
-          "../../packages/prototype-i18n-verification/src/index.ts",
-        ),
-      },
-      {
         find: "@noob-naive-ui/ui/style.css",
         replacement: resolve(__dirname, "../../packages/ui/src/style.css"),
-      },
-      {
-        find: /^@noob-naive-ui\/ui$/,
-        replacement: resolve(__dirname, "../../packages/ui/src/index.ts"),
-      },
-      {
-        find: /^@noob\/ui$/,
-        replacement: resolve(__dirname, "../../packages/ui/src/index.ts"),
       },
     ],
   },

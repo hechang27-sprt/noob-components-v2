@@ -1,11 +1,2 @@
 @layer theme, base, components, utilities;
-@import "tailwindcss/theme.css" layer(theme);
-/* disable preflight */
-/* @import "tailwindcss/preflight.css" layer(base); */
-@import "tailwindcss/utilities.css" layer(utilities) source(none);
-
 @source ".";
-
-/* UiCard themeVars are owned by `useUiTheme("Card", defaults)` — defaults
-   and provider overrides are bound as inline CSS variables on the root, so
-   no stylesheet defaults are required. */
