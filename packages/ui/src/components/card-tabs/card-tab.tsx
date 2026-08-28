@@ -73,11 +73,11 @@ export const UiCardTab = defineComponent(
           "overflow-hidden",
           "transition-colors",
           "duration-200",
-          $tw("rounded-t-(--noob-ui-card-tabs-card-inner-radii-top)"),
-          $tw("rounded-b-(--noob-ui-card-tabs-card-inner-radii-bottom)"),
-          $tw<"px">("px-(--noob-ui-card-tabs-card-inner-padding-x)"),
-          $tw<"pt">("pt-(--noob-ui-card-tabs-card-inner-padding-top)"),
-          $tw<"pb">("pb-(--noob-ui-card-tabs-card-inner-padding-bottom)"),
+          $tw("rounded-t-(--noob-ui-card-tabs-inner-radii-top)"),
+          $tw("rounded-b-(--noob-ui-card-tabs-inner-radii-bottom)"),
+          $tw<"px">("px-(--noob-ui-card-tabs-content-padding-x)"),
+          $tw<"pt">("pt-(--noob-ui-card-tabs-content-padding-top)"),
+          $tw<"pb">("pb-(--noob-ui-card-tabs-content-padding-bottom)"),
         ],
       },
       variants: {
@@ -91,9 +91,7 @@ export const UiCardTab = defineComponent(
               "before:-col-end-2",
               "before:row-start-2",
               "before:-row-end-3",
-              $tw(
-                "before:rounded-t-(--noob-ui-card-tabs-card-inner-radii-top)",
-              ),
+              $tw("before:rounded-t-(--noob-ui-card-tabs-inner-radii-top)"),
               "before:outline-1",
               $tw("before:outline-(--noob-ui-card-tabs-border-color)"),
             ],
@@ -140,8 +138,8 @@ export const UiCardTab = defineComponent(
           status: "inactive",
           class: {
             outer: [
-              $tw("rounded-br-(--noob-ui-card-tabs-card-fillet-radii)"),
-              $tw("before:rounded-br-(--noob-ui-card-tabs-card-fillet-radii)"),
+              $tw("rounded-br-(--noob-ui-card-tabs-fillet-radii)"),
+              $tw("before:rounded-br-(--noob-ui-card-tabs-fillet-radii)"),
               "before:border-r",
             ],
           },
@@ -151,8 +149,8 @@ export const UiCardTab = defineComponent(
           status: "inactive",
           class: {
             outer: [
-              $tw("rounded-bl-(--noob-ui-card-tabs-card-fillet-radii)"),
-              $tw("before:rounded-bl-(--noob-ui-card-tabs-card-fillet-radii)"),
+              $tw("rounded-bl-(--noob-ui-card-tabs-fillet-radii)"),
+              $tw("before:rounded-bl-(--noob-ui-card-tabs-fillet-radii)"),
               "before:border-l",
             ],
           },

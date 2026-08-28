@@ -13,14 +13,14 @@ export type UiCardTabsThemeVars = {
   paddingTop: ThemeVarValue;
   paddingBottom: ThemeVarValue;
   // Geometrically it doesn't sense to have separate cardInnerRadiiTopX and cardInnerRadiiBottomX
-  cardInnerRadiiX: ThemeVarValue;
-  cardInnerRadiiTopY: ThemeVarValue;
-  cardInnerRadiiBottomY: ThemeVarValue;
-  cardInnerPaddingX: ThemeVarValue;
-  cardInnerPaddingTop: ThemeVarValue;
-  cardInnerPaddingBottom: ThemeVarValue;
-  cardFilletRadiiX: ThemeVarValue;
-  cardFilletRadiiY: ThemeVarValue;
+  innerRadiiX: ThemeVarValue;
+  innerRadiiTopY: ThemeVarValue;
+  innerRadiiBottomY: ThemeVarValue;
+  contentPaddingX: ThemeVarValue;
+  contentPaddingTop: ThemeVarValue;
+  contentPaddingBottom: ThemeVarValue;
+  filletRadiiX: ThemeVarValue;
+  filletRadiiY: ThemeVarValue;
   cardMaxWidth: ThemeVarValue;
   cardMinWidth: ThemeVarValue;
   activeCardColor: string;
@@ -30,8 +30,8 @@ export type UiCardTabsThemeVars = {
   inactiveCardTextColor: string;
   cardTextColorOnHover: string;
   borderColor: string;
-  cardInnerBorderColor: string; // default transparent (no border)
-  cardInnerBorderOnHover: string; // default transparent (no border)
+  innerBorderColor: string; // default transparent (no border)
+  innerBorderOnHover: string; // default transparent (no border)
 
   // private computed vars (shorten long values + satisfy Tailwind's scanner
   // for runtime-var-driven utilities like col-start-)
@@ -42,22 +42,27 @@ export type UiCardTabsThemeVars = {
   rowStart: string;
   /** Number of real (middle) tabs — drives `repeat(var(--…-n-tabs), …)`. */
   nTabs: string;
-  cardInnerRadiiTop: string;
-  cardInnerRadiiBottom: string;
-  cardFilletRadii: string;
+  innerRadiiTop: string;
+  innerRadiiBottom: string;
+  filletRadii: string;
   barBorder: string;
 };
 
-const DEFAULT_GAP = { small: "0.25rem", medium: "0.5rem", large: "0.75rem" };
+const DEFAULT_GAP = { small: "0.375rem", medium: "0.5rem", large: "0.5rem" };
 const DEFAULT_PADDING = {
-  small: "0.25rem",
+  small: "0.375rem",
   medium: "0.5rem",
-  large: "0.75rem",
+  large: "0.5rem",
 };
 const DEFAULT_INNER_RADII = {
-  small: "0.25rem",
+  small: "0.375rem",
   medium: "0.5rem",
-  large: "0.75rem",
+  large: "0.5rem",
+};
+const DEFAULT_CONTENT_PADDING = {
+  small: "0.25rem",
+  medium: "0.25rem",
+  large: "0.375rem",
 };
 
 declare module "@noob-naive-ui/ui" {
@@ -111,9 +116,9 @@ export const UiCardTabs = defineComponent(
     const GAP = $var("--noob-ui-card-tabs-gap");
     const PT = $var("--noob-ui-card-tabs-padding-top");
     const PB = $var("--noob-ui-card-tabs-padding-bottom");
-    const RADII_X = $var("--noob-ui-card-tabs-card-inner-radii-x");
-    const RADII_YT = $var("--noob-ui-card-tabs-card-inner-radii-top-y");
-    const RADII_YB = $var("--noob-ui-card-tabs-card-inner-radii-bottom-y");
+    const RADII_X = $var("--noob-ui-card-tabs-inner-radii-x");
+    const RADII_YT = $var("--noob-ui-card-tabs-inner-radii-top-y");
+    const RADII_YB = $var("--noob-ui-card-tabs-inner-radii-bottom-y");
     const MINW = $var("--noob-ui-card-tabs-card-min-width");
     const MAXW = $var("--noob-ui-card-tabs-card-max-width");
 
@@ -121,16 +126,14 @@ export const UiCardTabs = defineComponent(
       gap: DEFAULT_GAP,
       paddingTop: DEFAULT_PADDING,
       paddingBottom: DEFAULT_PADDING,
-      cardInnerRadiiX: DEFAULT_INNER_RADII,
-      cardInnerRadiiTopY: DEFAULT_INNER_RADII,
-      cardInnerRadiiBottomY: DEFAULT_INNER_RADII,
-      cardInnerPaddingX: $var("--noob-ui-card-tabs-card-inner-radii-x"),
-      cardInnerPaddingTop: $var("--noob-ui-card-tabs-card-inner-radii-top-y"),
-      cardInnerPaddingBottom: $var(
-        "--noob-ui-card-tabs-card-inner-radii-bottom-y",
-      ),
-      cardFilletRadiiX: `calc(${GAP} + ${RADII_X})`,
-      cardFilletRadiiY: `calc(${PB} + ${RADII_YB})`,
+      innerRadiiX: DEFAULT_INNER_RADII,
+      innerRadiiTopY: DEFAULT_INNER_RADII,
+      innerRadiiBottomY: DEFAULT_INNER_RADII,
+      contentPaddingX: DEFAULT_CONTENT_PADDING,
+      contentPaddingTop: DEFAULT_CONTENT_PADDING,
+      contentPaddingBottom: DEFAULT_CONTENT_PADDING,
+      filletRadiiX: `calc(${GAP} + ${RADII_X})`,
+      filletRadiiY: `calc(${PB} + ${RADII_YB})`,
       cardMaxWidth: "12.5rem",
       cardMinWidth: "6.25rem",
       activeCardColor: nThemeVars.value.cardColor,
@@ -142,13 +145,13 @@ export const UiCardTabs = defineComponent(
       borderColor: nThemeVars.value.borderColor,
 
       // private vars
-      cardInnerRadiiTop: `${RADII_X} ${RADII_YT}`,
-      cardInnerRadiiBottom: `${RADII_X} ${RADII_YB}`,
+      innerRadiiTop: `${RADII_X} ${RADII_YT}`,
+      innerRadiiBottom: `${RADII_X} ${RADII_YB}`,
       // Elliptical fillet (space-separated X / Y, valid in the corner
       // longhand): gap+innerX horizontally, padding-bottom+innerY vertically,
       // so the API's separate gap/padding/inner X|Y all feed the arc.
-      cardFilletRadii: `${$var("--noob-ui-card-tabs-card-fillet-radii-x")} ${$var("--noob-ui-card-tabs-card-fillet-radii-y")}`,
-      rowTemplate: `${PT} ${RADII_X} calc(2 * ${RADII_X}) ${RADII_X} ${PB}`,
+      filletRadii: `${$var("--noob-ui-card-tabs-fillet-radii-x")} ${$var("--noob-ui-card-tabs-fillet-radii-y")}`,
+      rowTemplate: `${PT} ${RADII_X} min-content ${RADII_X} ${PB}`,
       // Declarative column template (no per-scope JS): head cap + N real tabs
       // (repeat) + tail cap, each `gap inner-… minmax/1fr inner-…`. The
       // `--…-n-tabs` recur creates the real-tab track per actual tab.
