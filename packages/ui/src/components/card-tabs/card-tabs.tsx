@@ -45,6 +45,7 @@ export type UiCardTabsThemeVars = {
   cardInnerRadiiTop: string;
   cardInnerRadiiBottom: string;
   cardFilletRadii: string;
+  barBorder: string;
 };
 
 const DEFAULT_GAP = { small: "0.25rem", medium: "0.5rem", large: "0.75rem" };
@@ -132,13 +133,15 @@ export const UiCardTabs = defineComponent(
       cardFilletRadiiY: `calc(${PB} + ${RADII_YB})`,
       cardMaxWidth: "12.5rem",
       cardMinWidth: "6.25rem",
-      activeCardColor: nThemeVars.value.baseColor,
+      activeCardColor: nThemeVars.value.cardColor,
       cardColorOnHover: nThemeVars.value.primaryColorHover,
-      backgroundColor: nThemeVars.value.tabColor,
+      backgroundColor: nThemeVars.value.bodyColor,
       activeCardTextColor: nThemeVars.value.textColorBase,
       inactiveCardTextColor: nThemeVars.value.textColorBase,
-      cardTextColorOnHover: nThemeVars.value.baseColor,
+      cardTextColorOnHover: nThemeVars.value.popoverColor,
       borderColor: nThemeVars.value.borderColor,
+
+      // private vars
       cardInnerRadiiTop: `${RADII_X} ${RADII_YT}`,
       cardInnerRadiiBottom: `${RADII_X} ${RADII_YB}`,
       // Elliptical fillet (space-separated X / Y, valid in the corner
@@ -153,6 +156,7 @@ export const UiCardTabs = defineComponent(
       repeat(max(${N_TABS}, 1), ${GAP} ${RADII_X} minmax(${MINW}, ${MAXW}) ${RADII_X}) 
       ${GAP} ${RADII_X} min-content ${RADII_X} ${GAP}`,
       barBackground: `linear-gradient(${$var("--noob-ui-card-tabs-background-color")} 50%, ${$var("--noob-ui-card-tabs-active-card-color")} 50%)`,
+      barBorder: `inset 0 -1px 0 0 ${$var("--noob-ui-card-tabs-border-color")}`,
     });
 
     const themeVars = useUiTheme("CardTabs", getThemeDefaults);
@@ -204,7 +208,13 @@ export const UiCardTabs = defineComponent(
             [$css("--noob-ui-card-tabs-n-tabs")]: tabList.length - 2,
           } as CSSProperties
         }
-        class={`w-full h-full overflow-x-auto ${$tw<"bg">("bg-(--noob-ui-card-tabs-background-color)")}`}
+        class={[
+          "w-full",
+          "h-full",
+          "overflow-x-auto",
+          $tw<"bg">("bg-(--noob-ui-card-tabs-background-color)"),
+          $tw<"shadow">("shadow-(--noob-ui-card-tabs-bar-border)"),
+        ]}
         data-card-tabs-scroll
         onKeydown={onBarKeydown}>
         <div

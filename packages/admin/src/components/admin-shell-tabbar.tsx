@@ -1,4 +1,4 @@
-import { NButton, NIcon, NP } from "naive-ui";
+import { NButton, NIcon, NP, useThemeVars } from "naive-ui";
 import { computed, defineComponent } from "vue";
 
 import { getComponentI18n, resolveI18nText } from "@noob-naive-ui/i18n";
@@ -48,12 +48,16 @@ const AdminTabStrip = defineComponent(
     const nav = useAdminShellNavigationStore();
 
     const activeTabId = computed(() => nav.navigation?.active?.id ?? "");
+    const nThemeVars = useThemeVars();
 
     return () => (
       <>
         {props.descriptors.map((tab) => {
           const label = resolveI18nText(tab.label, t);
           const isActive = tab.id === activeTabId.value;
+          const popoverColor = isActive
+            ? undefined
+            : nThemeVars.value.popoverColor;
           return (
             <UiCardTab key={tab.id} tabKey={tab.id} mode="tab">
               <span class="inline-flex items-center justify-between gap-2 w-full overflow-hidden h-full">
@@ -64,8 +68,9 @@ const AdminTabStrip = defineComponent(
                   <NButton
                     text
                     themeOverrides={{
-                      textColorTextHover: isActive ? undefined : "#FFF",
-                      textColorTextFocus: isActive ? undefined : "#FFF",
+                      textColorTextHover: popoverColor,
+                      textColorTextFocus: popoverColor,
+                      textColorTextPressed: popoverColor,
                     }}
                     onClick={(event) => {
                       event.stopPropagation();
