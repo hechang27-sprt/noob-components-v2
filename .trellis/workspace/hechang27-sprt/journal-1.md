@@ -1590,3 +1590,26 @@ Deleted packages/i18n/src/library-i18n-descriptor.ts; createComponentI18n now de
 
 - openwiki regeneration (references removed LibraryI18nDescriptor).
 - Symmetry follow-up: fold LibraryThemeDescriptor/noobUiTheme the same way (registry-keyed theme schema).
+
+
+## Session 45: Tailwind CSS dedup, path alias cleanup, CardTabs refactoring
+<!-- trellis-session: v=2 fp=8111346f99492a2a -->
+
+**Date**: 2026-08-28
+**Task**: Tailwind CSS dedup, path alias cleanup, CardTabs refactoring
+
+### Summary
+
+Eliminated 3x Tailwind CSS duplicates by having library packages (ui, admin) not import tailwindcss — only the consumer (demo) does. Migrated all vite configs to Vite 8's native resolve.tsconfigPaths. Refactored CardTabs into Vuetify 0 compound component pattern (CardTabs.Root, CardTabs.Tab). Fixed theme-switch bugs (merge mutation, useTheme reactive defaults).
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6fc8014b` | refactor(ui): reorganize CardTabs as compound component (Vuetify 0 pattern) |
+| `cfaa0e92` | fix: make UiCardTabs css vars terser; better default sizes |
+| `22e62afa` | fix(ui): eliminate 3x Tailwind CSS duplicates + migrate vite aliases to tsconfigPaths |
+
+### Status
+
+[OK] **Completed**
