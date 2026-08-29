@@ -26,7 +26,8 @@ The barrel re-exports:
   `AdminLoginValues`, `AdminRouteKey`, `AdminMenuTree` (= Naive UI `MenuOption[]`),
   `AdminThemeMode` ("light" | "dark" | "system"), `AdminFontSize`
   ("small" | "medium" | "large"), `AdminThemePreset` (navbar-selectable theme
-  presets with per-font-size override layers), `AdminLocaleOption`,
+  presets whose `themeOverrides` may carry size-keyed `ThemeVarValue` values in
+  ANY library slice), `AdminLocaleOption`,
   `AdminShellPreferences`.
 - **Stores**: only `useAdminAuthStore` (+ `AdminAuthStore`,
   `AdminAuthStoreConfig`) and `useAdminShellNavigationStore` are re-exported from
@@ -34,15 +35,15 @@ The barrel re-exports:
   **module-internal** — consumers reach preferences/menu state through
   `useAdminProvider` (see [Root Provider](provider.md) and
   [runtime stores](runtime-stores.md)).
-- **i18n**: `AdminI18nSnapshot` (type only, from `i18n/plugin.ts`); the
-  `adminI18n` stable library key (`"noob-naive-ui:admin"`) is
-  **module-internal** — hosts override package text through the shared
-  libraryId-keyed override registry (`libraryOverridesKey` from
-  `@noob-naive-ui/registry`, see [registry package](../registry.md)), supplied
-  via the `AdminProvider` `i18nOverrides` prop and provided per-package by
-  `AdminConfigProvider`. Plus `AdminLocale`-family types (`AdminComponentId`,
+- **i18n**: the `AdminLocale`-family **types** from `./i18n` (`AdminLocale`,
   `AdminLocaleName`, `AdminLocaleOverrides`, `AdminShellLocale`,
-  `AdminLoginPageLocale`).
+  `AdminLoginPageLocale`). The `LIB_ID` library key (`"noob-naive-ui:admin"`,
+  defined in `registry.ts`) is **module-internal** — hosts override package text
+  through the shared libraryId-keyed override registry (`libraryOverridesKey`
+  from `@noob-naive-ui/registry`, see [registry package](../registry.md)),
+  supplied via the `AdminProvider` `i18nOverrides` prop and provided per-package
+  by `AdminConfigProvider`. There is no separate i18n plugin or `adminI18n`
+  snapshot any more ([Admin i18n](i18n.md)).
 - **Naive UI config helpers**: `resolveAdminNaiveBaseFontSize`,
   `resolveAdminNaiveUiLocale`, `AdminNaiveUiConfig` — see
   [Preferences](preferences.md).
@@ -85,9 +86,9 @@ src/
     use-admin-shell.ts        AdminShellContext + useAdminShell
     use-admin-shell-tabs.ts   page-instance tab state machine
   use-admin-provider.ts       useAdminProvider composable (provider.md)
-  i18n/
-    plugin.ts                 adminI18n library key + AdminI18nSnapshot type
-    admin-locale.ts           locale typing over generated types (registry-derived overrides)
+  registry.ts                 LIB_ID + LibraryOverridesRegistry module augmentation
+  i18n.ts                     locale typing over generated types (registry-derived overrides)
+  theme.ts                    AdminThemeComponents (empty registry seam)
   locales/
     AdminShell.json           en/zh-CN packaged messages
     AdminLoginPage.json       en/zh-CN packaged messages
@@ -113,9 +114,9 @@ src/
   `useAdminShellTabsStore` and its composable `useAdminShellTabs` are **not
   re-exported** from `src/index.ts` (shell-internal orchestration only), and the
   context key `adminShellContextKey` is documented as "not part of the public
-  barrel surface" — descendants use `useAdminShell()`. The `adminI18n` library
-  key is likewise module-internal; hosts address the admin registry slice by
-  string key through `AdminProvider`'s `i18nOverrides` prop.
+  barrel surface" — descendants use `useAdminShell()`. The `LIB_ID` constant is
+  likewise module-internal; hosts address the admin registry slice by string key
+  through `AdminProvider`'s `i18nOverrides` prop.
 - **Single consumption surface for presentational state**: hosts, shell chrome,
   and demo pages reach theme/locale/font-size/sidebar/menu state through
   `useAdminProvider()`, not through the underlying Pinia stores, which remain an

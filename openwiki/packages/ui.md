@@ -1,13 +1,13 @@
 ---
 type: package
 title: "@noob-naive-ui/ui"
-description: The ui package — the per-library config provider, the useUiTheme composable and typed component-first themeVar schema (UiCard), and the i18n key with an empty locale schema; hosts override its slice through the shared registry.
-tags: [ui, naive-ui, i18n, theme, package]
+description: The ui package — the per-library config provider, the registry-backed useUiTheme/useUiCssVarsFor theme seam, the Example verification component, the CardTabs connected segmented tab bar, and the locale/theme augmentations hosts override through the shared registry.
+tags: [ui, naive-ui, i18n, theme, tailwind]
 openwiki:
   roles: [architecture, domain]
   change_kinds: [public-api, lifecycle]
-  source_paths: [packages/ui/src/index.ts, packages/ui/src/i18n/plugin.ts, packages/ui/src/theme/types.ts, packages/ui/src/theme/admin-ui-config-provider.tsx, packages/ui/src/theme/use-ui-theme.ts, packages/ui/src/card/ui-card.tsx]
-  symbols: [AdminUiConfigProvider, useUiTheme, noobUiTheme, UiThemeComponents, NoobUiThemeOverrides, UiCard, UiCardThemeVars, noobUiI18n, NoobUiLocaleOverrides]
+  source_paths: [packages/ui/src/index.ts, packages/ui/src/theme.ts, packages/ui/src/i18n.ts, packages/ui/src/config-provider.tsx, packages/ui/src/components/example/root.tsx, packages/ui/src/components/card-tabs/root.tsx, packages/ui/src/components/card-tabs/runtime.ts]
+  symbols: [AdminUiConfigProvider, useUiTheme, useUiCssVarsFor, noobUiTheme, CSS_PREFIX, NoobUiThemeComponents, NoobUiThemeOverrides, NoobUiLocale, NoobUiLocaleName, NoobUiLocaleOverrides, Example, CardTabs]
   test_paths: [packages/ui/tests/use-ui-theme.test.tsx]
   validation_commands: ["pnpm --filter @noob-naive-ui/ui test", "pnpm --filter @noob-naive-ui/ui typecheck"]
 ---
@@ -15,45 +15,55 @@ openwiki:
 # `@noob-naive-ui/ui`
 
 The `ui` package (`packages/ui`) ships the **per-library config provider, the
-typed themeVar seam, and the first proof component** for the workspace's shared
-override registry:
+registry-backed themeVar seam, and the first component libraries** for the
+workspace's shared override registry:
 
-- `AdminUiConfigProvider` (`theme/admin-ui-config-provider.tsx`) — a
-  standalone-capable provider that merges the ui package's `{ i18n, theme }`
-  slice into the shared registry under `"noob-naive-ui:ui"` (nearest provider
-  wins for its subtree).
-- `useUiTheme(componentId)` (`theme/use-ui-theme.ts`) — reads one ui component's
-  themeVar override slice from the registry; provider-less → `undefined` → the
-  component falls back to its own defaults (no throw, unlike naive-ui's
-  `useTheme`).
-- `UiCard` (`card/ui-card.tsx`) — the proof component: declares its exact
-  `--n-*`-style themeVar names, reads its slice via `useUiTheme("Card")`, and
-  binds the overrides as inline CSS variables on its root (defaults live in
-  `src/style.css` under `.ui-card`).
-- The i18n surface is a **key with an empty schema** today: `noobUiI18n =
-  "noob-naive-ui:ui"`, `NoobUiComponentId = never`, `NoobUiLocale =
-  Record<never, never>`. The seam ships ahead of the first translating component.
+- `AdminUiConfigProvider` (`config-provider.tsx`) — a standalone-capable
+  provider that merges the ui package's `{ i18n, theme }` slice into the shared
+  registry under `"noob-naive-ui:ui"` (nearest provider wins for its subtree).
+- `useUiTheme(componentId, defaults?)` (`theme.ts`) — reads one ui component's
+  themeVar override slice from the registry, resolves the component's default
+  values (a getter runs inside the computed), merges the override slice on top,
+  and emits the exact `--noob-ui-<component>-<kebab-case>` CSS var record.
+  Provider-less / undefined-slice → the component's own defaults (no throw).
+- `useUiCssVarsFor(componentId)` — typed `$css` / `$var` / `$tw` helpers bound
+  to the ui CSS prefix (`noob-ui`), used inside ui component render functions.
+- `Example` (`components/example/`) — the proof component: declares its themeVar
+  schema (`ExampleThemeVars: background, borderColor, padding: ThemeVarValue`) and
+  its locale schema (`NoobUiExampleLocale` from `locales/Example.json`), reads
+  both through `useUiTheme` / `createComponentI18n`, and renders the
+  `--noob-ui-example-…` CSS vars inline with packaged defaults. Used by the demo
+  `InternationalizationDemoPage` to prove the registry contract.
+- `CardTabs` (`components/card-tabs/`) — a connected, segmented tab bar (the
+  "fillet" cut-out look) consumed by `AdminShellTabbar`. `CardTabs.Root` owns the
+  CSS-grid layout, scroll container, and bar-level keyboard navigation;
+  `CardTabs.Tab` registers with the shared controller on mount and renders a
+  `grid-cols-subgrid` scope positioned by runtime CSS vars.
 
 Dependencies: `@noob-naive-ui/i18n`, `@noob-naive-ui/registry`, `es-toolkit`
-(`merge` in the config provider). Peers: `naive-ui`, `vue`, `vue-i18n`
-(`catalog:`). Build: ES library mode with `unplugin-dts` declarations,
-`exports["./style.css"]`, `sideEffects: ["**/*.css"]`.
+(`merge` in the config provider), `tailwind-variants`. Peers: `naive-ui`, `vue`,
+`vue-i18n` (`catalog:`). Build: ES library mode with `unplugin-dts`
+declarations, `exports["./style.css"]`, `sideEffects: ["**/*.css"]`, and the
+`vue-jsx-vapor` plugin (`interop`, `macros`) for the components.
 
 ## Public surface (`src/index.ts`)
 
 ```ts
-export { noobUiI18n } from "./i18n/plugin";
-export type {
-  NoobUiComponentId, NoobUiI18nSnapshot, NoobUiLocale,
-  NoobUiLocaleName, NoobUiLocaleOverrides,
-} from "./i18n/plugin";
-export { AdminUiConfigProvider, type AdminUiConfigProviderProps } from "./theme/admin-ui-config-provider";
-export { useUiTheme } from "./theme/use-ui-theme";
-export { noobUiTheme, type NoobUiThemeOverrides, type UiThemeComponents } from "./theme/types";
-export { UiCard, type UiCardThemeVars } from "./card/ui-card";
+export type { NoobUiLocale, NoobUiLocaleName, NoobUiLocaleOverrides } from "./i18n";
+export { AdminUiConfigProvider, type AdminUiConfigProviderProps } from "./config-provider";
+export { useUiTheme } from "./theme";
+export { CSS_PREFIX, noobUiTheme, type NoobUiThemeOverrides, type NoobUiThemeComponents } from "./theme";
+export * from "./registry";
+export * from "./components/example";
+export * from "./components/card-tabs";
 ```
 
-## Registry declaration (`theme/types.ts`)
+`noobUiTheme` (`theme.ts`) is the ui library's typed `LibraryThemeDescriptor`
+handled by the registry; its runtime value is only the stable `libraryId`
+(`"noob-naive-ui:ui"`), the `__theme` brand pins the schema at type level and
+never exists at runtime.
+
+## Registry declaration (`registry.ts`)
 
 The package declares its FULL locale + themeVar types into the framework-wide
 registry via module augmentation — the schema is never declared a second time:
@@ -61,84 +71,145 @@ registry via module augmentation — the schema is never declared a second time:
 ```ts
 declare module "@noob-naive-ui/registry" {
   interface LibraryOverridesRegistry {
-    "noob-naive-ui:ui": {
+    [LIB_ID]: {
       locale: Record<NoobUiLocaleName, NoobUiLocale>;
-      theme: UiThemeComponents;
+      theme: NoobUiThemeComponents;
     };
   }
 }
 ```
 
-- `UiThemeComponents` is the component-first themeVar schema; today it has one
-  entry, `Card: UiCardThemeVars` (`--ui-card-bg`, `--ui-card-border-color`,
-  `--ui-card-padding`). Extend it per component; each entry declares the
-  component's exact var names so `NoobUiThemeOverrides.Card` autocompletes them
-  and rejects unknown keys at the host boundary.
-- `NoobUiThemeOverrides = RegistryThemeOverrides["noob-naive-ui:ui"]` — the
-  derived per-component partial override tree.
-- `noobUiTheme: LibraryThemeDescriptor<UiThemeComponents>` — a typed theme handle
-  whose runtime value is only the stable `libraryId`; the `__theme` brand never
-  exists at runtime (see [registry package](registry.md)).
+- `NoobUiThemeComponents` (`theme.ts`) is the component-first themeVar schema
+  hook — an **empty mergeable interface**. Each component augments it via module
+  augmentation targeting `@noob-naive-ui/ui` (e.g. `ExampleThemeVars` from
+  `components/example/theme.ts`, `CardTabsThemeVars` from
+  `components/card-tabs/theme.ts`). Each entry declares the component's exact
+  camelCase var names so `NoobUiThemeOverrides.Example` autocompletes them and
+  rejects unknown keys (including raw `--noob-ui-…` names) at the host boundary.
+- `NoobUiThemeOverrides = RegistryThemeOverrides[typeof LIB_ID]` — the derived
+  per-component partial override tree.
+- `NoobUiLocale` (`i18n.ts`) is the locale augmentation hook: an empty interface
+  extended per component by `components/example/i18n.ts`
+  (`NoobUiExampleLocale = LocaleFileMap["Example"]["en"]`). `NoobUiLocaleName =
+  "en" | "zh-CN"`; `NoobUiLocaleOverrides = RegistryI18nOverrides[typeof LIB_ID]`.
 
-## `AdminUiConfigProvider` and `useUiTheme`
+## `useUiTheme` and `useUiCssVarsFor` (`theme.ts`)
 
-`AdminUiConfigProvider` mirrors the admin package's `AdminConfigProvider`
-([Admin overview](admin/overview.md)): `inject(libraryOverridesKey, null)`,
-`merge` the ui slice `{ i18n, theme }` over the parent value into a `computed`,
-and `provide` it back under the same key. Standalone-capable: outside any
-aggregator it supplies only its own slice.
+`useUiTheme` is a thin wrapper over the registry's `useTheme`
+<!-- openwiki: broken internal link [../registry.md] file "../registry.md" does not exist. Fix the href or restore the target, then delete this comment. -->
+([registry package](../registry.md)):
 
-`useUiTheme(componentId)` injects the registry and returns
-`computed<Partial<UiThemeComponents[K]> | undefined>` for the requested component.
-The `as … | undefined` cast is the registry read boundary: `.theme` is `unknown`
-in the loose runtime value, and the cast does NOT weaken exact-`--n-*` typing —
-unknown var names were already rejected at the host `NoobUiThemeOverrides` prop
-boundary.
+```ts
+export function useUiTheme<const K extends keyof NoobUiThemeComponents>(
+  componentId: K,
+  defaults?: Partial<NoobUiThemeComponents[K]> | (() => Partial<NoobUiThemeComponents[K]>),
+) {
+  return useTheme({ libraryId: LIB_ID, cssPrefix: CSS_PREFIX, componentId, defaults });
+}
+```
 
-## i18n key (`src/i18n/plugin.ts`)
+- The `defaults` getter runs inside the computed so reactive sources (e.g.
+  naive-ui `useThemeVars()` in `CardTabs`) trigger re-evaluation.
+- With `defaults` provided, the output is never `undefined` (type-level);
+  without defaults, an empty resolution yields `undefined`.
+- Size-keyed `ThemeVarValue` leaves (e.g. `padding: { small, medium, large }`)
+  resolve against the active font-size tier injected under `themeFontSizeKey`
+  (`AdminProvider` provides it; absent a provider, `"medium"` is the default).
+- `useUiCssVarsFor` returns the typed `$css`/`$var`/`$tw` helpers from the
+  registry's `useCssVarsFor` bound to `CSS_PREFIX = "noob-ui"`.
 
-`noobUiI18n = "noob-naive-ui:ui"` is the stable library key under which hosts
-provide ui overrides in the shared registry. The derived
-`NoobUiI18nSnapshot`/`NoobUiLocaleOverrides` types come from the registry's i18n
-projection of the ui augmentation. With no components registered yet, hosts can
-only supply empty per-locale slices. The convention for extending it: grow the
-`NoobUiComponentId` union, then locale-first resources live under
-`src/locales/<ComponentName>.json` and are precompiled by the shared workspace
-preset ([tooling](../tooling/vite-plugins.md)). Hosts supply ui overrides through
-`AdminProvider`'s `i18nOverrides` prop under the `noob-naive-ui:ui` key
-([Admin root provider](admin/provider.md)), or by mounting `AdminUiConfigProvider`
-directly.
+## `Example` (`components/example/`)
+
+The i18n + theme proof component:
+
+- `root.tsx` — `useUiTheme("Example", { background: "#ffffff",
+  borderColor: "#d0d5dd", padding: { small: "0.75rem", medium: "1rem",
+  large: "1.25rem" } })` plus `createComponentI18n({ messages: exampleMessages,
+  libraryId: "noob-naive-ui:ui", componentId: "Example" })`; renders
+  `style={overrides.value}` on `.example` so the root always carries the
+  `--noob-ui-example-…` variables (defaults merged under any provider override).
+  No stylesheet defaults are needed.
+- `theme.ts` — `ExampleThemeVars` (background, borderColor, `padding:
+  ThemeVarValue`) augmented into `NoobUiThemeComponents`; the file's own JSDoc
+  still says "Card" / `useUiTheme("Card")` — a stale comment left from the
+  `UiCard` → `Example` rename (the code reads `"Example"`).
+- `i18n.ts` — `NoobUiExampleLocale` from the generated `LocaleFileMap`,
+  augmented into `NoobUiLocale`.
+- `locales/Example.json` — en/zh-CN `title`/`description` messages (the
+  generated `src/locales/locale-types.generated.ts` derives the message type).
+
+## `CardTabs` (`components/card-tabs/`)
+
+A connected segmented tab bar whose layout mirrors the reference demo: a CSS
+grid whose column template is `repeat(<scopeCount>, gap inner 1fr inner) gap`,
+each scope a `grid-cols-subgrid` card positioned via a runtime `col-start` CSS
+var. Real tabs get a `1fr` body column; empty head/tail sentinels collapse to a
+`0` body track.
+
+- `Root` (`root.tsx`, `COMPONENT_ID = "CardTabs"`, name `CardTabsRoot`) — renders
+  the scroll container + grid, owns the shared tab controller
+  (`useTabController`), bar-level Arrow/Home/End keyboard navigation, and the
+  themeVars via `useUiTheme("CardTabs", getThemeDefaults)` where the defaults
+  getter reads naive-ui `useThemeVars()` (active card color, hover colors,
+  background, borders). The grid's `colTemplate`/`rowTemplate`/`nTabs` CSS vars
+  are computed from the registered tabs. Slots: `head` / `tail` (placed at the
+  bar ends; empty slots inject a default sentinel `Tab` with reserved keys
+  `__noob-ui-card-tabs-head__` / `__noob-ui-card-tabs-tail__`) and `default`.
+- `Tab` (`tab.tsx`, name `Tab` from the fn name — `defineOptions` is not part of
+  the vue-jsx-vapor macro set) — one connected scope: registers with the shared
+  controller on mount (DOM-position ordered), derives `status` (active/inactive),
+  `neighbor` (none/left/right relative to the active tab), and the
+  `col-start` (4·index+1), and renders the `tailwind-variants` class matrix
+  across `status`/`mode`/`neighbor` axes with `$tw`-driven runtime var utilities
+  (e.g. `bg-(--noob-ui-card-tabs-active-card-color)`).
+- `runtime.ts` — `useTabController({ activeKey, handleClick })`
+  provide/inject controller: a reactive `tabList` ordered by DOM
+  `compareDocumentPosition` (sorted binary-insertion keeps O(log n)
+  registration), register/unregister with duplicate-key protection, and
+  `elementOf` for focus moves. Requires a `Root` ancestor or explicit options
+  (throws otherwise).
+
+`AdminShellTabbar` consumes `CardTabs.Root`/`CardTabs.Tab` as its tab strip
+<!-- openwiki: broken internal link [../admin/shell.md] file "../admin/shell.md" does not exist. Fix the href or restore the target, then delete this comment. -->
+([admin shell](../admin/shell.md)).
 
 ## Stylesheet (`src/style.css`)
 
-Tailwind v4 CSS: `@layer theme, base, components, utilities;`, imports
-`tailwindcss/theme.css` and `tailwindcss/utilities.css` with `source(none)`,
-**preflight disabled**, and `@source "."`. Exported as `./style.css` subpath with
-`sideEffects: ["**/*.css"]`; the admin stylesheet re-imports it
-(`@import "@noob-naive-ui/ui/style.css"`). The `.ui-card` defaults
-(`--ui-card-bg`, `--ui-card-border-color`, `--ui-card-padding`) live here. See the
-build pipeline section in [Repository Overview](../architecture/overview.md).
+Tailwind v4 CSS: `@layer theme, base, components, utilities;` with
+`@source "./components"` (scanned by the workspace Tailwind build). Exported as
+`./style.css` subpath with `sideEffects: ["**/*.css"]`; the admin stylesheet
+re-imports it (`@import "@noob-naive-ui/ui/style.css"`). There is no preflight
+and no `.ui-card` block anymore — components bind their defaults inline via
+`useUiTheme` (see [build pipeline](../architecture/overview.md)).
 
-## Tests
+## Tests — `packages/ui/tests/use-ui-theme.test.tsx`
 
-`packages/ui/tests/use-ui-theme.test.tsx` (happy-dom, 3 `it`):
+happy-dom suite (4 `it`) covering `useUiTheme` + `AdminUiConfigProvider`:
 
-- binds the `themeOverride` Card slice as inline CSS vars through
-  `AdminUiConfigProvider`;
-- renders no inline style vars without a provider (defaults fall through);
-- keeps exact var names in the typed override surface (compile-time check).
+- binds a camelCase `Example` override as the converted `--noob-ui-example-…`
+  CSS var, merged over defaults;
+- renders provider-less defaults as inline CSS vars;
+- resolves size-keyed vars against the injected font-size tier (`themeFontSizeKey`,
+  default `"medium"` when no provider);
+- keeps camelCase names in the typed override surface;
+- type-level: raw `--noob-ui-…` names and unknown camelCase names are rejected at
+  the host boundary; with defaults the output is never `undefined`.
 
-Narrowest validation: `pnpm --filter @noob-naive-ui/ui test` (component behavior)
-or `pnpm --filter @noob-naive-ui/ui typecheck` (type-surface changes).
+Narrowest validation: `pnpm --filter @noob-naive-ui/ui test`, plus
+`pnpm --filter @noob-naive-ui/ui typecheck` after type-level changes.
 
 ## Related
 
-- [registry package](registry.md) — the schema this package augments and the
-  `libraryOverridesKey` it provides
-- [i18n package](i18n.md) — the shared i18n primitives (empty ui schema today)
-- [Admin overview](admin/overview.md) — the sibling admin package's config provider
-  and aggregator
-- [Admin preferences](admin/preferences.md) — how preset theme overrides reach the
-  ui slice through `AdminProvider`
-- [Repository Overview](../architecture/overview.md) — build pipeline and
-  `./style.css` subpath contract
+<!-- openwiki: broken internal link [../registry.md] file "../registry.md" does not exist. Fix the href or restore the target, then delete this comment. -->
+- [registry package](../registry.md) — `libraryOverridesKey`, `useTheme`,
+  `themeFontSizeKey`, `ThemeVarValue`
+<!-- openwiki: broken internal link [../i18n.md] file "../i18n.md" does not exist. Fix the href or restore the target, then delete this comment. -->
+- [i18n package](../i18n.md) — `createComponentI18n` for the Example locale
+<!-- openwiki: broken internal link [../admin/shell.md] file "../admin/shell.md" does not exist. Fix the href or restore the target, then delete this comment. -->
+- [admin shell](../admin/shell.md) — `AdminShellTabbar` consumes `CardTabs`
+<!-- openwiki: broken internal link [../admin/provider.md] file "../admin/provider.md" does not exist. Fix the href or restore the target, then delete this comment. -->
+- [Admin root provider](../admin/provider.md) — `AdminProvider` mounts
+  `AdminUiConfigProvider` and provides `themeFontSizeKey`
+<!-- openwiki: broken internal link [../../apps/demo.md] file "../../apps/demo.md" does not exist. Fix the href or restore the target, then delete this comment. -->
+- [Demo host](../../apps/demo.md) — `InternationalizationDemoPage` renders
+  `Example`

@@ -1,7 +1,7 @@
 ---
 type: package
 title: "@noob-naive-ui/prototype-i18n-verification"
-description: The standalone i18n verification package — a localized PrototypeCard component and its own plugin, used by the demo to prove the component-local Composer override contract.
+description: The standalone i18n verification package — a localized PrototypeCard component and its own plugin, proving the component-local Composer override contract in isolation (the demo now uses the ui package's Example component instead).
 tags: [i18n, prototype, package, vue-i18n]
 ---
 
@@ -79,6 +79,7 @@ tests):
 ## Related
 
 - [i18n package](i18n.md) — the shared factory this package mirrors
-- [Demo host](../apps/demo.md) — `InternationalizationDemoPage` renders
-  `PrototypeCard` with locale diagnostics
-th locale diagnostics
+- [Demo host](../apps/demo.md) — the demo still declares this package as a
+  dependency, but `InternationalizationDemoPage` now renders the ui package's
+  `Example` component; the prototype package remains the standalone reference
+  implementation of the same contract

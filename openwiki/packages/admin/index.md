@@ -1,7 +1,7 @@
 # Files
 
 - [Admin Authentication — Auth Store and Login Page](auth.md) - The admin package's frontend-only authentication state machine, host-effect configuration, restoration readiness, and the AdminLoginPage presentation that renders it.
-- [Admin i18n — Library Key, Locale Typing, and Resources](i18n.md) - How the admin package pins its locale schema into the framework-wide override registry, and how hosts override AdminShell and AdminLoginPage messages through the AdminProvider i18nOverrides prop.
+- [Admin i18n — Locale Typing and Resources](i18n.md) - How the admin package pins its locale schema into the framework-wide override registry (single src/i18n.ts), the AdminLocale family of types, and how hosts override AdminShell and AdminLoginPage messages through the AdminProvider i18nOverrides prop.
 - [@noob-naive-ui/admin](overview.md) - The router-neutral Admin package — public barrel, runtime contracts, stores, shell components, naive-ui configuration, and i18n wiring that hosts configure and AdminShell consumes.
 - [Admin Shell Preferences and Naive UI Configuration](preferences.md) - The persisted local display preferences store (theme mode, font size, locale, sidebar), its localStorage schema and hydration, and the derived NConfigProvider/ProLayout props.
 - [AdminProvider, AdminConfigProvider, and useAdminProvider — Host Root Providers](provider.md) - The props-driven admin root provider component (and its per-package config provider sibling) plus the consumption composable — store initialization, menu configuration, global Composer seeding, registry override provision, and derived Naive UI config.

@@ -74,9 +74,9 @@ supplying:
 - `i18nOverrides={{ "noob-naive-ui:admin": { en: { AdminShell: { account: { signOut:
   "Log out" } } }, "zh-CN": { AdminShell: { account: { signOut: "退出" } } } }
   satisfies AdminLocaleOverrides }}` — the registry's i18n projection keyed by
-  libraryId (the component-based replacement for the former per-package
-  `app.use(adminI18nPlugin, { messages })` install; each entry is typed with
-  that package's override type). `AdminProvider` passes the admin slice to
+  libraryId (the component-based replacement for the removed per-package i18n
+  plugin install; each entry is typed with that package's override type).
+  `AdminProvider` passes the admin slice to
   `AdminConfigProvider`, which provides it into the shared `libraryOverridesKey`
   registry; the `"naive-ui"` slice (if any) is merged into `naiveUiConfig`'s
   locale packs.
@@ -116,8 +116,9 @@ registry aligned.
 ## Demo pages (`src/pages/demo/`)
 
 - `dashboard-demo-page.tsx` — non-closable home (text via global Composer).
-- `internationalization-demo-page.tsx` — renders `PrototypeCard` from
-  `@noob-naive-ui/prototype-i18n-verification` and exposes verification data
+- `internationalization-demo-page.tsx` — renders `Example` from
+  `@noob-naive-ui/ui` (the i18n + theme proof component) and exposes
+  verification data
   attributes `data-demo-preference-locale` (read through
   `useAdminProvider().locale`) / `data-demo-global-locale`.
 - `reports-demo-page.tsx` — uses `useAdminShell()`'s `navigate` with a

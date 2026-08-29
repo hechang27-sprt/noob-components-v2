@@ -31,6 +31,11 @@ under a configured Pinia and a global vue-i18n Composer, and it:
    `{ i18n, theme }` slice), `AdminUiConfigProvider` (ui slice, from
    `@noob-naive-ui/ui`), and `ProConfigProvider` with the derived `naiveUiConfig`
    (theme, locale, dateLocale, componentOptions).
+6. `provide(themeFontSizeKey, provider.fontSize)` — supplies the active
+   font-size tier (from the preferences store) so registry `useTheme` consumers
+   (ui components and their size-keyed themeVars) resolve against the preference
+   without knowing the tier themselves (see
+   [registry package](../registry.md)).
 
 `AdminProvider` itself **never provides the registry**: it is the aggregator only,
 passing per-package values to the config providers, which provide their own slices
@@ -80,6 +85,7 @@ sequenceDiagram
     P->>G: composer.locale.value = provider.locale.value
     P->>S: menu.configure(menu)
     P->>G: setLocaleMessage per locale (watch, immediate, re-seed)
+    P->>P: provide(themeFontSizeKey, provider.fontSize) — registry useTheme tier
     P->>C: pass admin i18n slice + preset themeOverride slice
     C->>C: provide(libraryOverridesKey, merged computed) — nearest wins
     P->>U: pass ui i18n slice + preset themeOverride slice
@@ -171,8 +177,8 @@ seed, `menu.configure(...)`, theme-preset configuration
 (`configureThemePresets`), and the former per-package plugin override install
 into `<AdminProvider messages menu storeOptions themes defaultTheme
 defaultDarkTheme i18nOverrides>`, then delete the manual calls. The
-`i18nOverrides` prop supplies the registry's i18n projection in place of
-`app.use(adminI18nPlugin, { messages })` ([Admin i18n](i18n.md)). The demo at
+`i18nOverrides` prop supplies the registry's i18n projection in place of the
+removed per-package i18n plugin ([Admin i18n](i18n.md)). The demo at
 [apps/demo](../../apps/demo.md) is the reference migration.
 
 ## Tests
@@ -201,8 +207,8 @@ tests/admin-provider.test.tsx tests/use-admin-provider.test.ts`.
 
 - [Admin overview](overview.md) — the public barrel this page is exported from
 - [Preferences](preferences.md) — the store blobs `useAdminProvider` projects
-- [Admin i18n](i18n.md) — the shared override registry replaced the per-package
-  `adminI18nPlugin`
+- [Admin i18n](i18n.md) — the shared override registry replaced the removed
+  per-package i18n plugin and key
 - [registry package](../registry.md) — the `libraryOverridesKey` the config
   providers provide
 - [Shell](shell.md) — AdminShell and the navbar controls consume the provider

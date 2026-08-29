@@ -26,7 +26,7 @@ apps/
 packages/
   registry/        @noob-naive-ui/registry — framework-wide override registry schema + shared libraryOverridesKey
   i18n/            @noob-naive-ui/i18n — component i18n registry + I18nText + global locale sync (registry-based)
-  ui/              @noob-naive-ui/ui — UiCard + component-first themeVar schema + AdminUiConfigProvider/useUiTheme (registry-based)
+  ui/              @noob-naive-ui/ui — Example + CardTabs components, registry-backed useUiTheme/useUiCssVarsFor theme seam, AdminUiConfigProvider (registry-based)
   admin/           @noob-naive-ui/admin — router-neutral admin shell, login page, stores, naive-ui config
   admin-vue-router/@noob-naive-ui/admin-vue-router — Vue Router lifecycle integration (registry, navigation adapter, plugin-owned router)
   prototype-i18n-verification/ @noob-naive-ui/prototype-i18n-verification — PrototypeCard + standalone i18n plugin
@@ -67,7 +67,9 @@ flowchart LR
 - `@noob-naive-ui/registry` is the type-level foundation: it declares the
   framework-wide override registry schema (`LibraryOverridesRegistry`), the
   derived i18n/theme projections, the preseeded `naive-ui`/`pro-naive-ui`
-  entries, and the single shared `libraryOverridesKey` injection key. It depends
+  entries, the single shared `libraryOverridesKey` injection key, and the
+  runtime theme resolution (`useTheme`, `useCssVarsFor`, `themeFontSizeKey`, and
+  the `ThemeVarValue` font-size tier). It depends
   only on `vue` (types) and `naive-ui` (types); every component package declares
   its own locale + themeVar schema via module augmentation (see
   [registry package](../packages/registry.md)).
@@ -76,6 +78,10 @@ flowchart LR
   `createComponentI18n` override slices. Every other package either consumes it
   directly (admin, ui, admin-vue-router) or re-implements its contract
   standalone (prototype-i18n-verification).
+- `@noob-naive-ui/ui` depends on `i18n`, `registry`, and `tailwind-variants`; it
+  provides the `Example` proof component and the `CardTabs` connected tab bar
+  (consumed by the admin shell's tabbar), both themed through the registry's
+  `useTheme` runtime.
 - `@noob-naive-ui/admin` depends on `i18n`, `registry`, and `ui` and on Naive UI,
   `pro-naive-ui`, Pinia, and `@vicons/ionicons5`. It **never imports
   vue-router** (router-neutrality is an invariant, enforced by `external` lists
@@ -104,8 +110,9 @@ dependencies (workspace and third-party) via `rolldownOptions.external`, so
 `@vicons/ionicons5`, `@noob-naive-ui/i18n`, `@noob-naive-ui/registry`,
 `@noob-naive-ui/ui`, `naive-ui`,
 `pinia`, `pro-naive-ui`, `vue`, `vue-i18n`, and `zod`; `@noob-naive-ui/ui`
-externalizes `@noob-naive-ui/i18n`, `@noob-naive-ui/registry`, `naive-ui`, `vue`,
-and `vue-i18n`; `@noob-naive-ui/registry` externalizes `vue` and `naive-ui`. The
+externalizes `@noob-naive-ui/i18n`, `@noob-naive-ui/registry`, `es-toolkit`,
+`naive-ui`, `vue`, and `vue-i18n`; `@noob-naive-ui/registry` externalizes `vue`
+and `naive-ui`. The
 same
 `external` lists double as the router-neutrality enforcement for admin (no
 `vue-router` entry means a stray admin import would be bundled, breaking the
@@ -117,10 +124,9 @@ invariant).
 - `vite.config.ts` sets `cssFileName: "style"` in the library build.
 - The stylesheets are Tailwind v4 CSS:
   - `packages/ui/src/style.css`: declares `@layer theme, base, components,
-    utilities;`, imports `tailwindcss/theme.css` and
-    `tailwindcss/utilities.css` (`source(none)`), and **disables preflight**
-    (the `tailwindcss/preflight.css` import is commented out). `@source "."`
-    scopes scanning to the ui package.
+    utilities;` with `@source "./components"` so Tailwind scans the ui
+    components; preflight is disabled (the `tailwindcss/preflight.css` import
+    is absent).
   - `packages/admin/src/style.css` imports
     `@noob-naive-ui/ui/style.css` and `@source "./components"` so Tailwind scans
     the admin components; preflight is likewise disabled.
@@ -135,7 +141,7 @@ at build start. The generated module lives **under `src/`** deliberately so the
 declaration build emits a sibling `dist/locales/locale-types.generated.d.ts` and
 the exported `AdminShellLocale`/`AdminLoginPageLocale` types stay resolvable for
 consumers without JSON references in published declarations (rationale documented
-in `packages/admin/src/i18n/admin-locale.ts`). Editing a locale JSON without
+in `packages/admin/src/i18n.ts`). Editing a locale JSON without
 regenerating (or committing) the generated module breaks typechecks; see
 [Tooling — Vite plugins](../tooling/vite-plugins.md).
 

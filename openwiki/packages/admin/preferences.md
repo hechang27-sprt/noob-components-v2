@@ -42,18 +42,24 @@ type AdminThemePreset = {
   key: string;                       // stable preset identity, persisted in themeKey
   label: I18nText;                   // resolved reactively against the nearest Composer
   themeOverrides: AdminPresetThemeOverrides; // per-library themeVar overrides (RegistryThemeOverrides)
-  fontSizeOverrides?: Record<AdminFontSize, GlobalThemeOverrides>; // optional per-size layers
   isDark: boolean;                   // preset polarity (base darkTheme vs light)
 };
 ```
 
 - `AdminPresetThemeOverrides = RegistryThemeOverrides` — the registry's theme
   projection keyed by libraryId (see [registry package](../registry.md)).
-  `naive-ui` and `pro-naive-ui` are preseeded (`GlobalThemeOverrides`; pro-naive-ui
-  forwards its slice to naive-ui's `NConfigProvider`, so both merge into the same
-  `themeOverrides`); admin and ui declare their own entries via module
-  augmentation. Theme presets are the **sole source of themeVar overrides** —
+  `naive-ui` and `pro-naive-ui` are preseeded (`ResolvableGlobalThemeOverrides` —
+  `GlobalThemeOverrides` with every string leaf widened to `ThemeVarValue`;
+  pro-naive-ui forwards its slice to naive-ui's `NConfigProvider`, so both merge
+  into the same `themeOverrides`); admin and ui declare their own entries via
+  module augmentation. Theme presets are the **sole source of themeVar overrides** —
   `AdminProvider`'s `i18nOverrides` prop never carries theme values.
+- **There is no `fontSizeOverrides` field anymore**: per-font-size naive-ui
+  configuration is expressed as size-keyed `ThemeVarValue` leaves in ANY library
+  slice. The naive-ui/pro-naive-ui slices resolve against the active font size in
+  the naive-ui merge (over the built-in `FONT_SIZE_OVERRIDES` default tier), and
+  noob-package slices (ui, admin) resolve in the registry's `useTheme` (see
+  [registry package](../registry.md) and [ui package](../ui.md)).
 - `themeKey` stores the last-picked preset key; `""` means "no preset picked
   yet", and resolution falls back to the polarity default.
 - `resolveThemePreset(themes, defaultTheme, defaultDarkTheme, themeMode,
@@ -63,12 +69,13 @@ type AdminThemePreset = {
   dark, else `defaultTheme`); (3) the first preset of the effective polarity.
   While mode is `"system"`, the picked `themeKey` is ignored and the OS-driven
   polarity default wins.
-- `mergeAdminNaiveUiThemeOverrides(size, preset)` deep-merges (es-toolkit
-  `merge`) the active preset's `themeOverrides["naive-ui"]` and
-  `themeOverrides["pro-naive-ui"]` with the font-size tier layer — the font-size
-  layer is the source so the built-in hardcoded default font size wins over
-  font-size values the preset sets directly, unless the preset ships its own
-  `fontSizeOverrides[size]`.
+- `mergeAdminNaiveUiThemeOverrides(size, preset)` merges the active preset's
+  `themeOverrides["naive-ui"]` and `themeOverrides["pro-naive-ui"]` (es-toolkit
+  `toMerged`) so it wins over the built-in `FONT_SIZE_OVERRIDES[size]` default
+  tier — the default tier only fills gaps the preset does not set. Size-keyed
+  leaves are then resolved against the active size by the registry's
+  `resolveThemeVarValue` (recursively, via `resolveSizeKeyedThemeOverrides`), so
+  a preset can ship per-font-size naive-ui config directly in `themeOverrides`.
 - `resolveDefaultNaiveUiTheme(themeMode, systemUsesDark)` provides the
   no-preset fallback (`darkTheme` for dark or system+dark, else `null`).
 - `setTheme(key)` (in `useAdminProvider`) selects a preset and **pins the mode
@@ -142,12 +149,13 @@ and shell (the store itself exposes only the raw blobs):
   `resolveDefaultNaiveUiTheme(themeMode, systemUsesDark)` (`darkTheme` when the
   mode is `dark`, or `system` + dark signal; else `null`).
 - `themeOverrides`: `mergeAdminNaiveUiThemeOverrides(fontSize, activeTheme)`
-  deep-merges the active preset's `themeOverrides["naive-ui"]` +
-  `themeOverrides["pro-naive-ui"]` over the fixed per-font-size
-  overrides from `FONT_SIZE_OVERRIDES` (common font sizes, Typography header
-  sizes, Flex gaps; the 13/14/16px mapping lives in exactly one place, and the
-  font-size layer wins over preset font-size values unless the preset ships
-  `fontSizeOverrides`).
+  merges the active preset's `themeOverrides["naive-ui"]` +
+  `themeOverrides["pro-naive-ui"]` (es-toolkit `toMerged`) over the fixed
+  per-font-size overrides from `FONT_SIZE_OVERRIDES` (common font sizes,
+  Typography header sizes, Flex gaps; the 13/14/16px mapping lives in exactly one
+  place), then resolves any size-keyed leaves against the active size — the
+  preset's font config overrides the default tier, and `FONT_SIZE_OVERRIDES`
+  fills the gaps.
 - `locale` / `dateLocale`: `resolveAdminNaiveUiLocale(activeLocale,
   fallbackLocale)` maps `en` → `enUS`/`dateEnUS`, `zh-CN` → `zhCN`/`dateZhCN`;
   unsupported locales fall back to the host-owned fallback, then `null` (naive-ui
@@ -173,8 +181,8 @@ applies `resolveAdminNaiveBaseFontSize(fontSize)` to its root element so
 
 - Currently `{ collapsed: preferences.sidebarCollapsed }` — maps the collapse
   preference into pro-naive-ui's `ProLayout`. The tabbar container height follows
-  the font-size tier so the shell's NTabs never overflow it (handled in shell
-  CSS).
+  the font-size tier so the shell's `CardTabs` tab strip never overflows it
+  (handled in shell CSS).
 
 ## Locale flow
 

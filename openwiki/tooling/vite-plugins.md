@@ -92,7 +92,7 @@ runtime, safe for any pipeline.
 
 `packages/admin/src/locales/AdminShell.json` + `AdminLoginPage.json` →
 (json-locale-types at build start) → `src/locales/locale-types.generated.ts`
-(committed) → `src/i18n/admin-locale.ts` derives `AdminShellLocale` /
+(committed) → `src/i18n.ts` derives `AdminShellLocale` /
 `AdminLoginPageLocale` from `LocaleFileMap[...]["en"]` → the declaration build
 emits `dist/locales/locale-types.generated.d.ts` so published types stay
 resolvable. See the build pipeline section in

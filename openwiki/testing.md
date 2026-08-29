@@ -35,7 +35,7 @@ Suite inventory (test-file counts from `grep` of `it(` blocks):
 | i18n | `tests/use-component-i18n.test.tsx` | packaged defaults, override merge through the shared registry key, fallbackRoot, host-key resolution, nearest-composer, compile-time component-id/locale validation (10 `it`) |
 | i18n | `tests/use-global-i18n-sync.test.tsx` | one-way locale sync (3 `it`) |
 | registry | `tests/library-overrides-registry.test.ts` | shared `libraryOverridesKey`, preseeded naive-ui/pro-naive-ui locale schema, typed theme descriptor without runtime brand (3 `it`) |
-| ui | `tests/use-ui-theme.test.tsx` | `useUiTheme` + `AdminUiConfigProvider`: Card slice as inline CSS vars, provider-less fallback, exact `--ui-card-*` typing (3 `it`) |
+| ui | `tests/use-ui-theme.test.tsx` | `useUiTheme` + `AdminUiConfigProvider`: Example slice as inline CSS vars, provider-less fallback, size-keyed tier resolution against `themeFontSizeKey`, exact `--noob-ui-example-*` typing (4 `it`) |
 | prototype | `tests/i18n-contract.test.ts` | plugin snapshot, slices, card locale ownership (4 `it`) |
 
 ## Harness conventions
@@ -69,6 +69,20 @@ Suite inventory (test-file counts from `grep` of `it(` blocks):
   how the packages themselves augment it — there is no per-package plugin install
   anymore; assertions read rendered `data-*` attributes.
 
+## E2E (Playwright)
+
+`e2e/theme-switch-bugs.spec.ts` (2 tests) exercises the **running demo host** in a
+real browser (`webServer: "pnpm --filter demo dev"`, base URL
+`http://localhost:5173`): it logs in through the demo login page, opens the
+Reports tab, switches theme presets via the Pinia preferences store (a helper
+mutates `admin-shell-preferences` store state directly), and asserts the page
+background and the `CardTabs` tab-bar background (`--noob-ui-card-tabs-background-color`
+on `[data-card-tabs-scroll]`) update in both directions — including after a
+reload. Run with the demo dev server up: `pnpm --filter demo dev` in one
+terminal, then `pnpm exec playwright test` (headless, config in
+`playwright.config.ts`). These are the only browser-level tests and the first
+place a theme/CardTabs visual regression shows up.
+
 ## Narrowest validation per change area
 
 | Change area | Narrowest command |
@@ -82,11 +96,13 @@ Suite inventory (test-file counts from `grep` of `it(` blocks):
 | AdminProvider / useAdminProvider / provider refactor | `pnpm --filter @noob-naive-ui/admin test tests/admin-provider.test.tsx tests/use-admin-provider.test.ts tests/shell-preferences.test.ts` |
 | Admin i18n registry / override prop | `pnpm --filter @noob-naive-ui/admin test tests/i18n-contract.test.tsx tests/admin-provider.test.tsx` (plus `pnpm --filter @noob-naive-ui/registry test` and `pnpm --filter @noob-naive-ui/i18n test` for the shared primitives) |
 | Registry schema / projections / key | `pnpm --filter @noob-naive-ui/registry test tests/library-overrides-registry.test.ts` |
-| ui theme/i18n surface / UiCard | `pnpm --filter @noob-naive-ui/ui test tests/use-ui-theme.test.tsx` (+ `pnpm --filter @noob-naive-ui/ui typecheck` for the typed override surface) |
+| ui theme/i18n surface / components | `pnpm --filter @noob-naive-ui/ui test tests/use-ui-theme.test.tsx` (+ `pnpm --filter @noob-naive-ui/ui typecheck` for the typed override surface) |
 | Locale JSON changes (admin) | regenerate `locale-types.generated.ts`, then `pnpm --filter @noob-naive-ui/admin typecheck && pnpm --filter @noob-naive-ui/admin test tests/i18n-contract.test.tsx` |
 | Locale-type codegen changes | `pnpm --filter @noob-naive-ui/admin test tests/json-locale-types.test.ts` |
 | i18n package changes | `pnpm --filter @noob-naive-ui/i18n test` |
 | Prototype i18n changes | `pnpm --filter @noob-naive-ui/prototype-i18n-verification test` |
+| CardTabs runtime / tab-strip interaction | `pnpm --filter @noob-naive-ui/ui test` + `pnpm --filter @noob-naive-ui/admin test tests/admin-shell.test.tsx` |
+| E2E (theme switching, tab bar) | `pnpm --filter demo dev` in one terminal, then `pnpm exec playwright test` |
 | Cross-package integration | `pnpm --filter demo typecheck` then `pnpm --filter demo build`, plus the package suites above |
 
 Root-wide checks: `pnpm -r --if-present typecheck` (per-package `tsc --noEmit`),

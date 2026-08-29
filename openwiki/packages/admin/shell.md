@@ -123,15 +123,24 @@ Key behaviors (each proven by `admin-shell.test.tsx`):
 
 ## `AdminShellTabbar` (`components/admin-shell-tabbar.tsx`)
 
-- Renders the `tabbar` ProLayout slot: Naive UI `NTabs` (type "card") over
-  `shell.visibleTabs`, with the active tab bound to `nav.navigation?.active?.id`.
+- Renders the `tabbar` ProLayout slot using the ui package's **`CardTabs`
+  connected tab bar** (`<CardTabs.Root modelValue={activeId} …>` with one
+  `<CardTabs.Tab tabKey={tab.id} mode="tab">` per visible tab), replacing the
+  former naive-ui `NTabs` strip — see [ui package](../ui.md).
 - Reads the full shell controller via `useAdminShell()` and the nearest component
   Composer via `getComponentI18n()`; host-authored tab labels (I18nText `i18n`
   keys) resolve through root-message fallback in the same Composer, so open and
-  restored tabs follow locale switches reactively.
-- Close controls only render for `closable !== false`; `onBeforeLeave` consults
-  `canActivateTab` (guards pending-activation duplicates); errors render in a
-  `role="alert"` element.
+  restored tabs follow locale switches reactively. The active tab is bound to
+  `nav.navigation?.active?.id`; activation emits
+  `shell.activateTab(String(key))`.
+- A stable `stripDescriptors` computed keeps the SAME array identity while open
+  tabs are unchanged, so the tab strip skips re-render when the wrapper
+  re-renders for unrelated theme-var changes (a fresh array is only produced when
+  `visibleTabs` or a tab record changed).
+- Close controls render for `closable` tabs inside each `CardTabs.Tab`'s
+  fully-customizable default slot (a naive `NButton` with the close icon, colored
+  with the inactive tab's popover color); errors render in a `role="alert"`
+  element below the strip.
 - Declared with `defineComponent` (not a plain function component) so
   plugin-vue-jsx hot-registers the leaf module: an HMR edit reloads only the
   leaf instead of remounting the shell and dropping the setup-scoped registry.
@@ -191,8 +200,5 @@ Key behaviors (each proven by `admin-shell.test.tsx`):
 - [Preferences](preferences.md) — navbar controls and ProLayout props
 - [Root Provider](provider.md) — the `useAdminProvider` surface the shell reads
 - [runtime stores](runtime-stores.md) — the navigation/menu controllers
-- [admin-vue-router navigation runtime](../admin-vue-router/navigation-runtime.md)
-  — the Vue Router-backed controller that answers these requests
-time-stores.md) — the navigation/menu controllers
 - [admin-vue-router navigation runtime](../admin-vue-router/navigation-runtime.md)
   — the Vue Router-backed controller that answers these requests
