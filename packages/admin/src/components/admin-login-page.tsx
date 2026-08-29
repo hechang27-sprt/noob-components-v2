@@ -16,7 +16,6 @@ import { createComponentI18n } from "@noob-naive-ui/i18n";
 import { defineComponent, ref, useId } from "vue";
 
 import adminLoginPageMessages from "../locales/AdminLoginPage.json";
-import { adminI18n } from "../i18n/plugin";
 import type { AdminAuthStatus, AdminLoginValues } from "../runtime-contract";
 import { useAdminAuthStore } from "../stores/auth";
 
@@ -57,7 +56,7 @@ export const AdminLoginPage = defineComponent(
     // override slice second, so overrides win at the leaf.
     const { t } = createComponentI18n({
       messages: adminLoginPageMessages,
-      libraryId: adminI18n,
+      libraryId: "noob-naive-ui:admin",
       componentId: "AdminLoginPage",
     });
 

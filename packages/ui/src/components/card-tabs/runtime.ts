@@ -18,10 +18,11 @@ import {
   reactive,
   readonly,
 } from "vue";
+import { LIB_ID } from "../../registry";
 
 const CONTROLLER_PROVIDE_KEY: InjectionKey<
   ReturnType<typeof createTabController>
-> = Symbol("noob-naive-ui:ui:UiCardTabs:TabController");
+> = Symbol(`${LIB_ID}:UiCardTabs:TabController`);
 
 export type TabDataBase = {
   key: string;

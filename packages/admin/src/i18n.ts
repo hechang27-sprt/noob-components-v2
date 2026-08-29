@@ -1,5 +1,5 @@
 import type { RegistryI18nOverrides } from "@noob-naive-ui/registry";
-import type { LocaleFileMap } from "../locales/locale-types.generated";
+import type { LocaleFileMap } from "./locales/locale-types.generated";
 
 /**
  * Public locale typing for the admin package.
@@ -16,9 +16,6 @@ import type { LocaleFileMap } from "../locales/locale-types.generated";
 
 /** Supported packaged locale identifiers for admin components. */
 export type AdminLocaleName = "en" | "zh-CN";
-
-/** Stable component identifiers addressable by admin package overrides. */
-export type AdminComponentId = "AdminShell" | "AdminLoginPage";
 
 /** The complete AdminShell message schema (en subtree of the resource). */
 export type AdminShellLocale = LocaleFileMap["AdminShell"]["en"];

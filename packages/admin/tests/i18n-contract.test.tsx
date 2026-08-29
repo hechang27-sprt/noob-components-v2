@@ -12,9 +12,9 @@ import {
   type RegistryI18nOverrides,
 } from "@noob-naive-ui/registry";
 import { selectComponentOverrides } from "@noob-naive-ui/i18n";
-import { type AdminI18nSnapshot } from "../src/i18n/plugin";
-import type { AdminLocaleOverrides } from "../src/i18n/admin-locale";
+import type { AdminLocaleOverrides } from "../src/i18n";
 import { useAdminAuthStore } from "../src/stores/auth";
+import { LIB_ID } from "@noob-naive-ui/admin";
 
 /** Retains mounted test applications so each test releases Vue resources. */
 const mountedApps: App[] = [];
@@ -92,14 +92,15 @@ function mountLoginPage(
  */
 function captureProviderSnapshot(
   overrides: RegistryI18nOverrides,
-): AdminI18nSnapshot {
-  let captured: AdminI18nSnapshot | undefined;
+): AdminLocaleOverrides {
+  let captured: AdminLocaleOverrides | undefined;
   const Capture = defineComponent({
     name: "SnapshotCapture",
     setup() {
       const registry = inject(libraryOverridesKey, null);
-      captured = registry?.value?.["noob-naive-ui:admin"]
-        ?.i18n as AdminI18nSnapshot | undefined;
+      captured = registry?.value?.[LIB_ID]?.i18n as
+        | AdminLocaleOverrides
+        | undefined;
       return () => null;
     },
   });
@@ -109,10 +110,7 @@ function captureProviderSnapshot(
   const pinia = createPinia();
   const app = createApp({
     setup: () => () => (
-      <AdminProvider
-        messages={{}}
-        menu={[]}
-        i18nOverrides={overrides}>
+      <AdminProvider messages={{}} menu={[]} i18nOverrides={overrides}>
         <Capture />
       </AdminProvider>
     ),
@@ -129,13 +127,13 @@ function captureProviderSnapshot(
 describe("admin i18n overrides via AdminProvider", () => {
   it("snapshots caller overrides when provided through the prop", () => {
     const overrides: RegistryI18nOverrides = {
-      "noob-naive-ui:admin": {
+      [LIB_ID]: {
         en: { AdminShell: { account: { signOut: "Installed sign out" } } },
       },
     };
     const snapshot = captureProviderSnapshot(overrides);
     (
-      overrides["noob-naive-ui:admin"] as AdminI18nSnapshot
+      overrides[LIB_ID] as AdminLocaleOverrides
     ).en!.AdminShell!.account!.signOut = "Mutated sign out";
     expect(snapshot?.en?.AdminShell?.account?.signOut).toBe(
       "Installed sign out",
@@ -154,21 +152,13 @@ describe("admin i18n overrides via AdminProvider", () => {
       "zh-CN": { form: { signIn: "登录" } },
     });
   });
-
-  it("no longer exposes the removed adminI18nPlugin", async () => {
-    const plugin = (await import("../src/i18n/plugin")) as Record<
-      string,
-      unknown
-    >;
-    expect(plugin).not.toHaveProperty("adminI18nPlugin");
-  });
 });
 
 describe("AdminLoginPage locale ownership", () => {
   it("merges a partial override after defaults without losing siblings", () => {
     const { container } = mountLoginPage({
       overrides: {
-        "noob-naive-ui:admin": {
+        [LIB_ID]: {
           en: { AdminLoginPage: { form: { signIn: "Log in" } } },
         },
       },

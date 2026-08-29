@@ -33,7 +33,7 @@
       },
       "internationalization": {
         "title": "Internationalization",
-        "description": "This routed page demonstrates the host preference-to-Composer locale synchronization and the prototype i18n verification card."
+        "description": "This routed page demonstrates the host preference-to-Composer locale synchronization and the demo component."
       },
       "reports": {
         "title": "Reports",
@@ -84,7 +84,7 @@
       },
       "internationalization": {
         "title": "国际化",
-        "description": "此路由页面演示主机偏好到 Composer 的语言同步以及原型 i18n 验证卡片。"
+        "description": "此路由页面演示主机偏好到 Composer 的语言同步以及示例组件。"
       },
       "reports": {
         "title": "报表",

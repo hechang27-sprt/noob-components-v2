@@ -4,11 +4,9 @@ import {
   libraryOverridesKey,
   type LibraryOverridesRegistryValue,
 } from "@noob-naive-ui/registry";
-import {
-  noobUiI18n,
-  type NoobUiLocaleOverrides,
-} from "../i18n/plugin";
-import type { NoobUiThemeOverrides } from "./types";
+import { type NoobUiLocaleOverrides } from "./i18n";
+import type { NoobUiThemeOverrides } from "./theme";
+import { LIB_ID } from "./registry";
 
 /**
  * Per-package override provider for the ui library's slice of the shared
@@ -35,15 +33,12 @@ export const AdminUiConfigProvider = defineComponent(
   (props: AdminUiConfigProviderProps, { slots }) => {
     const parent = inject(libraryOverridesKey, null);
     const merged = computed<LibraryOverridesRegistryValue>(() =>
-      merge(
-        merge({}, parent?.value ?? {}),
-        {
-          [noobUiI18n]: {
-            i18n: props.i18n,
-            theme: props.themeOverride,
-          },
+      merge(merge({}, parent?.value ?? {}), {
+        [LIB_ID]: {
+          i18n: props.i18n,
+          theme: props.themeOverride,
         },
-      ),
+      }),
     );
     provide(libraryOverridesKey, merged);
     return () => slots.default?.();

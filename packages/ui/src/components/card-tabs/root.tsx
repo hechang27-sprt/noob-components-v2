@@ -1,53 +1,12 @@
 import { defineComponent, toValue, type CSSProperties } from "vue";
-import type { ThemeVarValue } from "@noob-naive-ui/registry";
 import { useThemeVars } from "naive-ui";
-import { useUiTheme } from "../../theme/use-ui-theme";
-import { useUiCssVarsFor } from "../../theme/types";
+import { useUiTheme } from "../../theme";
+import { useUiCssVarsFor } from "../../theme";
 import { useTabController } from "./runtime";
 import { HEAD_TAB_KEY, TAIL_TAB_KEY, Tab } from "./tab";
+import { CardTabsThemeVars } from "./theme";
 
-// REMINDER: demo for the tab display mechanism: https://play.tailwindcss.com/j8IcWZ4HdN
-
-export type CardTabsThemeVars = {
-  gap: ThemeVarValue;
-  paddingTop: ThemeVarValue;
-  paddingBottom: ThemeVarValue;
-  // Geometrically it doesn't sense to have separate cardInnerRadiiTopX and cardInnerRadiiBottomX
-  innerRadiiX: ThemeVarValue;
-  innerRadiiTopY: ThemeVarValue;
-  innerRadiiBottomY: ThemeVarValue;
-  contentPaddingX: ThemeVarValue;
-  contentPaddingTop: ThemeVarValue;
-  contentPaddingBottom: ThemeVarValue;
-  filletRadiiX: ThemeVarValue;
-  filletRadiiY: ThemeVarValue;
-  cardMaxWidth: ThemeVarValue;
-  cardMinWidth: ThemeVarValue;
-  activeCardColor: string;
-  cardColorOnHover: string;
-  backgroundColor: string;
-  activeCardTextColor: string;
-  inactiveCardTextColor: string;
-  cardTextColorOnHover: string;
-  borderColor: string;
-  innerBorderColor: string; // default transparent (no border)
-  innerBorderOnHover: string; // default transparent (no border)
-
-  // private computed vars (shorten long values + satisfy Tailwind's scanner
-  // for runtime-var-driven utilities like col-start-)
-  colTemplate: string;
-  rowTemplate: string;
-  barBackground: string;
-  colStart: string;
-  rowStart: string;
-  /** Number of real (middle) tabs — drives `repeat(var(--…-n-tabs), …)`. */
-  nTabs: string;
-  innerRadiiTop: string;
-  innerRadiiBottom: string;
-  filletRadii: string;
-  barBorder: string;
-  activeTabBorder: string;
-};
+export const COMPONENT_ID = "CardTabs" as const;
 
 const DEFAULT_GAP = { small: "0.375rem", medium: "0.5rem", large: "0.5rem" };
 const DEFAULT_PADDING = {
@@ -65,12 +24,6 @@ const DEFAULT_CONTENT_PADDING = {
   medium: "0.25rem",
   large: "0.375rem",
 };
-
-declare module "@noob-naive-ui/ui" {
-  interface UiThemeComponents {
-    CardTabs: CardTabsThemeVars;
-  }
-}
 
 type Props = { modelValue: string };
 type Emits = (e: "update:modelValue", v: string) => void;
@@ -95,6 +48,8 @@ type Slots = {
  * slot is empty, a default sentinel `UiCardTab` is injected instead (reserved
  * keys). Positioning (index/count) is passed by the parent at render time so
  * the grid stays ordered regardless of tab open/close reorders.
+ *
+ * Here is a demo for the tab display mechanism: https://play.tailwindcss.com/j8IcWZ4HdN
  */
 // VDOM port (W1 experiment): CardTabs runs classic so the whole tab strip
 // (its slot children + per-tab naive buttons) stays inside ONE vdom region;
@@ -104,7 +59,7 @@ export const Root = defineComponent(
   (props: Props, ctx: { emit: Emits; slots: Slots }) => {
     const { emit, slots } = ctx;
     const nThemeVars = useThemeVars();
-    const { $css, $var, $tw } = useUiCssVarsFor("CardTabs");
+    const { $css, $var, $tw } = useUiCssVarsFor(COMPONENT_ID);
 
     // Provides the shared controller for the CardTab children (active key,
     // click handling, register/unregister bookkeeping).
@@ -169,7 +124,7 @@ export const Root = defineComponent(
         .join(", "),
     });
 
-    const themeVars = useUiTheme("CardTabs", getThemeDefaults);
+    const themeVars = useUiTheme(COMPONENT_ID, getThemeDefaults);
 
     /**
      * Bar-level keyboard navigation. Tabs handle their own keys when focused;

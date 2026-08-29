@@ -25,10 +25,10 @@ import {
   AdminConfigProvider,
   type AdminConfigProviderProps,
 } from "../src/components/admin-config-provider";
-import { type AdminI18nSnapshot } from "../src/i18n/plugin";
 import { useAdminShellMenuStore } from "../src/stores/menu";
 import { useAdminShellPreferencesStore } from "../src/stores/shell-preferences";
 import type { AdminThemePreset } from "../src/runtime-contract";
+import { AdminLocaleOverrides, LIB_ID } from "@noob-naive-ui/admin";
 
 /** Retains mounted apps until cleanup prevents DOM and Pinia state leakage. */
 const mountedApps: App[] = [];
@@ -261,7 +261,7 @@ describe("AdminProvider", () => {
       setup() {
         const registry = inject(libraryOverridesKey, null);
         const snapshot = registry?.value?.["noob-naive-ui:admin"]?.i18n as
-          | AdminI18nSnapshot
+          | AdminLocaleOverrides
           | undefined;
         const signOut = snapshot?.en?.AdminShell?.account?.signOut ?? "";
         return () => <div data-probe={signOut} />;
@@ -305,7 +305,7 @@ describe("AdminProvider", () => {
         themeOverrides: {
           "naive-ui": { common: { primaryColor: "#18a058" } },
           "noob-naive-ui:ui": {
-            Card: { background: "#0f172a" },
+            Example: { background: "#0f172a" },
           },
         },
         isDark: false,
@@ -378,7 +378,7 @@ describe("AdminProvider", () => {
         key: "default",
         label: { kind: "string", value: "Default" },
         themeOverrides: {
-          "noob-naive-ui:ui": { Card: { background: "#ffffff" } },
+          "noob-naive-ui:ui": { Example: { background: "#ffffff" } },
         },
         isDark: false,
       },
@@ -386,7 +386,7 @@ describe("AdminProvider", () => {
         key: "ocean",
         label: { kind: "string", value: "Ocean" },
         themeOverrides: {
-          "noob-naive-ui:ui": { Card: { background: "#0ea5e9" } },
+          "noob-naive-ui:ui": { Example: { background: "#0ea5e9" } },
         },
         isDark: false,
       },
@@ -473,7 +473,7 @@ describe("AdminProvider", () => {
     app.mount(target);
     mountedApps.push(app);
     expect(target.querySelector("[data-keys]")?.getAttribute("data-keys")).toBe(
-      "noob-naive-ui:admin",
+      LIB_ID,
     );
   });
 });

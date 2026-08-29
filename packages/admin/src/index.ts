@@ -22,14 +22,12 @@ export { useAdminShellNavigationStore } from "./stores/navigation";
 export { useAdminProvider, type AdminProviderApi } from "./use-admin-provider";
 
 export type {
-  AdminComponentId,
   AdminLocale,
   AdminLocaleName,
   AdminLocaleOverrides,
   AdminLoginPageLocale,
   AdminShellLocale,
-} from "./i18n/admin-locale";
-export type { AdminI18nSnapshot } from "./i18n/plugin";
+} from "./i18n";
 
 export {
   resolveAdminNaiveBaseFontSize,
@@ -69,3 +67,5 @@ export {
   type AdminShellContext,
   useAdminShell,
 } from "./components/use-admin-shell";
+
+export * from "./registry";

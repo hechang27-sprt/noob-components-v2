@@ -124,8 +124,8 @@ export function createComponentI18n<
   // AdminUiConfigProvider) that the admin aggregator mounts — AdminProvider
   // itself provides nothing; the optional chaining handles a missing provider.
   const registry = inject(libraryOverridesKey, null);
-  const snapshot = (registry?.value?.[libraryId]?.i18n ?? emptySnapshot) as
-    Partial<Record<LocaleName, DeepPartial<Locale>>>;
+  const snapshot = (registry?.value?.[libraryId]?.i18n ??
+    emptySnapshot) as Partial<Record<LocaleName, DeepPartial<Locale>>>;
 
   // Fresh local registry inheriting root locale and fallback locale; the
   // root's fallbackRoot flag is corrected below after creation.

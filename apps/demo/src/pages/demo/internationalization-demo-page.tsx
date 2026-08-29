@@ -1,5 +1,5 @@
 import { useAdminProvider } from "@noob-naive-ui/admin";
-import { PrototypeCard } from "@noob-naive-ui/prototype-i18n-verification";
+import { Example } from "@noob-naive-ui/ui";
 import { NH1, NP } from "naive-ui";
 import { defineComponent } from "vue";
 import { useI18n } from "vue-i18n";
@@ -33,7 +33,7 @@ export const InternationalizationDemoPage = defineComponent(
         data-demo-global-locale={globalLocale.value}>
         <NH1>{t("pages.internationalization.title")}</NH1>
         <NP>{t("pages.internationalization.description")}</NP>
-        <PrototypeCard />
+        <Example />
       </div>
     );
   },

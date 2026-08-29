@@ -7,7 +7,7 @@ import {
   toValue,
 } from "vue";
 import { tv } from "tailwind-variants";
-import { useUiCssVarsFor } from "../../theme/types";
+import { useUiCssVarsFor } from "../../theme";
 import { useTabController } from "./runtime";
 
 /** Reserved, non-selectable tab keys for the default head/tail sentinels. */

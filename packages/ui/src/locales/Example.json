@@ -1,0 +1,10 @@
+{
+  "en": {
+    "title": "i18n verification card",
+    "description": "Rendered by `Example` component in `{'@'}noob-naive-ui/ui` using a component-local Vue I18n Composer. You can configure the localization in `src/locales/Examples.json`."
+  },
+  "zh-CN": {
+    "title": "i18n 验证卡片",
+    "description": "由 `{'@'}noob-naive-ui/ui` 中的 `Example` 组件使用组件级 Vue I18n Composer 渲染。你可以在 `src/locales/Examples.json` 中配置本地化。"
+  }
+}

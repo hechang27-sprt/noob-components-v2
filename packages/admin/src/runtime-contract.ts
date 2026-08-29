@@ -4,26 +4,12 @@ import type {
   AdminFontSize,
   RegistryThemeOverrides,
 } from "@noob-naive-ui/registry";
+import { LIB_ID } from "./registry";
 
 // The font-size tier union lives in the registry so themeVar values can key
 // on it (`ThemeVarValue = string | Record<AdminFontSize, string>`); re-export
 // under the historical admin name so existing imports keep working.
 export type { AdminFontSize } from "@noob-naive-ui/registry";
-import type { AdminLocale, AdminLocaleName } from "./i18n/admin-locale";
-
-// Declare the admin library's FULL locale + themeVar types into the
-// framework-wide registry so the derived projections (`RegistryI18nOverrides` /
-// `RegistryThemeOverrides`, and via them `AdminPresetThemeOverrides` /
-// `AdminProviderProps.i18nOverrides`) carry the admin library's override
-// types without hardcoding libraryId elsewhere or pre-partializing here.
-declare module "@noob-naive-ui/registry" {
-  interface LibraryOverridesRegistry {
-    "noob-naive-ui:admin": {
-      locale: Record<AdminLocaleName, AdminLocale>;
-      theme: AdminThemeComponents;
-    };
-  }
-}
 
 export type AdminAuthStatus =
   | { kind: "loading" }
@@ -59,14 +45,8 @@ export type AdminMenuTree = MenuOption[];
 
 export type AdminThemeMode = "light" | "dark" | "system";
 
-/**
- * Open registry of admin package theme components; empty until admin ships
- * components that declare themeVars. Extend as components are added.
- */
-export type AdminThemeComponents = {};
-
 /** Admin package themeVar overrides, derived from the registry's declared theme schema. */
-export type AdminThemeOverrides = RegistryThemeOverrides["noob-naive-ui:admin"];
+export type AdminThemeOverrides = RegistryThemeOverrides[typeof LIB_ID];
 
 /**
  * Per-library themeVar override tree selectable from a theme preset, derived

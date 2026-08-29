@@ -21,7 +21,7 @@
     "account": { "signOut": "退出登录" },
     "fontSize": { "small": "小", "medium": "中", "large": "大" },
     "aria": {
-      "fontSize": "字号：{label}",
+      "fontSize": "界面大小：{label}",
       "language": "语言：{label}",
       "account": "账户：{user}",
       "theme": "主题：{label}",

@@ -4,9 +4,22 @@ import tailwindcss from "@tailwindcss/vite";
 import vueJsxVapor from "vue-jsx-vapor/vite";
 import { defineConfig } from "vitest/config";
 import dts from "unplugin-dts/vite";
+import vueI18n from "@intlify/unplugin-vue-i18n/vite";
+import { createJsonLocaleTypesPlugin } from "../../tooling/vite/json-locale-types";
 
 export default defineConfig({
-  plugins: [tailwindcss(), vueJsxVapor({ interop: true, macros: true }), dts({ tsconfigPath: "./tsconfig.build.json" })],
+  plugins: [
+    createJsonLocaleTypesPlugin({
+      dir: resolve(__dirname, "src/locales"),
+      outFile: resolve(__dirname, "src/locales/locale-types.generated.ts"),
+    }),
+    tailwindcss(),
+    vueJsxVapor({ interop: true, macros: true }),
+    vueI18n({
+      include: [resolve(__dirname, "src/locales/**")],
+    }),
+    dts({ tsconfigPath: "./tsconfig.build.json" }),
+  ],
   build: {
     lib: {
       entry: resolve(__dirname, "src/index.ts"),
@@ -15,9 +28,14 @@ export default defineConfig({
       cssFileName: "style",
     },
     rolldownOptions: {
-      external: ["@noob-naive-ui/i18n", "es-toolkit", "naive-ui", "vue", "vue-i18n",
-      "@noob-naive-ui/registry",
-    ],
+      external: [
+        "@noob-naive-ui/i18n",
+        "es-toolkit",
+        "naive-ui",
+        "vue",
+        "vue-i18n",
+        "@noob-naive-ui/registry",
+      ],
     },
   },
   resolve: {

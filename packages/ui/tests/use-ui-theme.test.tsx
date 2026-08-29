@@ -4,45 +4,46 @@ import { createApp, provide, ref, type App } from "vue";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { themeFontSizeKey } from "@noob-naive-ui/registry";
-import { AdminUiConfigProvider } from "../src/theme/admin-ui-config-provider";
-import { UiCard, type UiCardThemeVars } from "../src/components/card/ui-card";
-import type { ThemeCssVarsFor } from "@noob-naive-ui/registry";
-import type { NoobUiThemeOverrides } from "../src/theme/types";
-import { useUiTheme } from "../src/theme/use-ui-theme";
+import { AdminUiConfigProvider } from "../src/config-provider";
+import { useUiCssVarsFor, type NoobUiThemeOverrides } from "../src/theme";
+import { useUiTheme } from "../src/theme";
+import { CssVarsOf } from "@noob-naive-ui/registry";
+import { LIB_ID, Example, CSS_PREFIX } from "@noob-naive-ui/ui";
 
 // Type-level: a Card override declares camelCase themeVars (naive-ui
 // convention); raw `--ui-…` names and unknown camelCase names are rejected at
 // the host boundary.
-const valid: NoobUiThemeOverrides = { Card: { borderColor: "red" } };
+const valid: NoobUiThemeOverrides = { Example: { borderColor: "red" } };
 const invalid: NoobUiThemeOverrides = {
   // @ts-expect-error -- raw CSS var names are not part of the declared schema
-  Card: { "--noob-ui-card-border-color": "x" },
+  Example: { "--noob-ui-example-border-color": "x" },
 };
 const invalid2: NoobUiThemeOverrides = {
   // @ts-expect-error -- unknown camelCase var name is rejected
-  Card: { backgroundColor: "x" },
+  Example: { backgroundColor: "x" },
 };
 void invalid;
 void invalid2;
 
-// Type-level: useUiTheme's output carries the converted `--noob-ui-card-…` names.
-type CardOverride = ReturnType<typeof useUiTheme<"Card">>["value"];
+// Type-level: useUiTheme's output carries the converted `--noob-ui-example-…` names.
+type CardOverride = ReturnType<typeof useUiTheme<"Example">>["value"];
 const output = undefined as unknown as CardOverride;
 const convertedKey: string | undefined =
-  output?.["--noob-ui-card-border-color"];
+  output?.["--noob-ui-example-border-color"];
 void convertedKey;
 // The converted record has no camelCase keys.
 // @ts-expect-error -- converted output carries CSS var names, not camelCase
 const _bad: CardOverride = { borderColor: "red" };
-// Sanity: the conversion is the declared schema mapped to `--noob-ui-card-…`,
+// Sanity: the conversion is the declared schema mapped to `--noob-ui-example-…`,
 // via the registry's reusable ThemeCssVarsFor.
-type CardCssVars = Partial<ThemeCssVarsFor<"noob-ui", "Card", UiCardThemeVars>>;
+type CardCssVars = Partial<
+  CssVarsOf<typeof LIB_ID, "Example", typeof CSS_PREFIX>
+>;
 const _same: CardCssVars | undefined = output;
 void _same;
 
 // Type-level: passing defaults makes the output never `undefined`.
-const withDefaults = useUiTheme("Card", { background: "#fff" });
-// @ts-expect-error defaults make the output never undefined
+const withDefaults = useUiTheme("Example", { background: "#fff" });
 const _badDefaults: (typeof withDefaults)["value"] = undefined;
 void _badDefaults;
 
@@ -75,10 +76,10 @@ function mountCard(
       return () =>
         themeOverride ? (
           <AdminUiConfigProvider themeOverride={themeOverride}>
-            <UiCard />
+            <Example />
           </AdminUiConfigProvider>
         ) : (
-          <UiCard />
+          <Example />
         );
     },
   });
@@ -87,58 +88,68 @@ function mountCard(
   return target;
 }
 
+const { $css } = useUiCssVarsFor("Example");
+
 describe("useUiTheme + AdminUiConfigProvider", () => {
-  it("binds a camelCase Card override as the converted `--noob-ui-card-…` CSS var, merged over defaults", () => {
-    const target = mountCard({ Card: { borderColor: "red" } });
-    const el = target.querySelector<HTMLElement>(".ui-card");
-    expect(el?.style.getPropertyValue("--noob-ui-card-border-color")).toBe(
-      "red",
-    );
+  it("binds a camelCase Card override as the converted `--noob-ui-example-…` CSS var, merged over defaults", () => {
+    const target = mountCard({
+      Example: { borderColor: "red" },
+    });
+    const el = target.querySelector<HTMLElement>(".example");
+    expect(
+      el?.style.getPropertyValue($css("--noob-ui-example-border-color")),
+    ).toBe("red");
     // defaults still present underneath the override
-    expect(el?.style.getPropertyValue("--noob-ui-card-background")).toBe(
-      "#ffffff",
-    );
+    expect(
+      el?.style.getPropertyValue($css("--noob-ui-example-background")),
+    ).toBe("#ffffff");
   });
 
   it("renders provider-less defaults as inline CSS vars", () => {
     const target = mountCard();
-    const el = target.querySelector<HTMLElement>(".ui-card");
-    expect(el?.style.getPropertyValue("--noob-ui-card-background")).toBe(
-      "#ffffff",
+    const el = target.querySelector<HTMLElement>(".example");
+    expect(
+      el?.style.getPropertyValue($css("--noob-ui-example-background")),
+    ).toBe("#ffffff");
+    expect(
+      el?.style.getPropertyValue($css("--noob-ui-example-border-color")),
+    ).toBe("#d0d5dd");
+    expect(el?.style.getPropertyValue($css("--noob-ui-example-padding"))).toBe(
+      "1rem",
     );
-    expect(el?.style.getPropertyValue("--noob-ui-card-border-color")).toBe(
-      "#d0d5dd",
-    );
-    expect(el?.style.getPropertyValue("--noob-ui-card-padding")).toBe("1rem");
   });
 
   it("resolves size-keyed vars against the injected font-size tier", () => {
     // No provider -> the default (medium) tier applies.
     const medium = mountCard();
-    const mediumEl = medium.querySelector<HTMLElement>(".ui-card");
-    expect(mediumEl?.style.getPropertyValue("--noob-ui-card-padding")).toBe(
-      "1rem",
-    );
+    const mediumEl = medium.querySelector<HTMLElement>(".example");
+    expect(
+      mediumEl?.style.getPropertyValue($css("--noob-ui-example-padding")),
+    ).toBe("1rem");
 
     // An injected large tier picks the large value.
     const large = mountCard(undefined, "large");
-    const largeEl = large.querySelector<HTMLElement>(".ui-card");
-    expect(largeEl?.style.getPropertyValue("--noob-ui-card-padding")).toBe(
-      "1.25rem",
-    );
+    const largeEl = large.querySelector<HTMLElement>(".example");
+    expect(
+      largeEl?.style.getPropertyValue($css("--noob-ui-example-padding")),
+    ).toBe("1.25rem");
 
     // Size-keyed overrides also resolve (large tier).
     const overridden = mountCard(
-      { Card: { padding: { small: "2rem", medium: "2.5rem", large: "3rem" } } },
+      {
+        Example: {
+          padding: { small: "2rem", medium: "2.5rem", large: "3rem" },
+        },
+      },
       "large",
     );
-    const overriddenEl = overridden.querySelector<HTMLElement>(".ui-card");
-    expect(overriddenEl?.style.getPropertyValue("--noob-ui-card-padding")).toBe(
-      "3rem",
-    );
+    const overriddenEl = overridden.querySelector<HTMLElement>(".example");
+    expect(
+      overriddenEl?.style.getPropertyValue($css("--noob-ui-example-padding")),
+    ).toBe("3rem");
   });
 
   it("keeps camelCase names in the typed override surface", () => {
-    expect(valid.Card?.borderColor).toBe("red");
+    expect(valid.Example?.borderColor).toBe("red");
   });
 });

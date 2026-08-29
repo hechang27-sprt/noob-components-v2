@@ -6,15 +6,18 @@ import {
   themeFontSizeKey,
   type RegistryI18nOverrides,
 } from "@noob-naive-ui/registry";
-import { AdminUiConfigProvider, noobUiI18n } from "@noob-naive-ui/ui";
+import {
+  AdminUiConfigProvider,
+  LIB_ID as NOOB_UI_LIB_ID,
+} from "@noob-naive-ui/ui";
 import type { AdminMenuTree, AdminThemePreset } from "../runtime-contract";
 import type { AdminShellPreferencesStoreOptions } from "../runtime/shell-preferences";
 import { useAdminProvider } from "../use-admin-provider";
 import { useAdminShellMenuStore } from "../stores/menu";
 import { useAdminShellPreferencesStore } from "../stores/shell-preferences";
-import { adminI18n } from "../i18n/plugin";
 import { ProConfigProvider } from "pro-naive-ui";
 import { AdminConfigProvider } from "./admin-config-provider";
+import { LIB_ID } from "../registry";
 
 /**
  * Props-driven root provider that owns mount-safe host configuration for the
@@ -130,12 +133,12 @@ export const AdminProvider = defineComponent(
     // overrides are already resolved into `naiveUiConfig` by the composable.
     return () => (
       <AdminConfigProvider
-        i18n={props.i18nOverrides?.[adminI18n]}
-        themeOverride={provider.activeTheme.value?.themeOverrides?.[adminI18n]}>
+        i18n={props.i18nOverrides?.[LIB_ID]}
+        themeOverride={provider.activeTheme.value?.themeOverrides?.[LIB_ID]}>
         <AdminUiConfigProvider
-          i18n={props.i18nOverrides?.[noobUiI18n]}
+          i18n={props.i18nOverrides?.[NOOB_UI_LIB_ID]}
           themeOverride={
-            provider.activeTheme.value?.themeOverrides?.[noobUiI18n]
+            provider.activeTheme.value?.themeOverrides?.[NOOB_UI_LIB_ID]
           }>
           <ProConfigProvider {...provider.naiveUiConfig.value}>
             <NGlobalStyle />

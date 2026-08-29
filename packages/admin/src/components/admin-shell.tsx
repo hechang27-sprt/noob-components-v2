@@ -8,7 +8,6 @@ import {
   type I18nText,
 } from "@noob-naive-ui/i18n";
 import adminShellMessages from "../locales/AdminShell.json";
-import { adminI18n } from "../i18n/plugin";
 import { useAdminProvider } from "../use-admin-provider";
 import { useAdminShellNavigationStore } from "../stores/navigation";
 import {
@@ -148,7 +147,7 @@ export const AdminShell = defineComponent(
     // slice second, so overrides win at the leaf.
     const { t } = createComponentI18n({
       messages: adminShellMessages,
-      libraryId: adminI18n,
+      libraryId: "noob-naive-ui:admin",
       componentId: "AdminShell",
     });
 

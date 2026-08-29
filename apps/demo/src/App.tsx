@@ -2,6 +2,7 @@ import {
   AdminProvider,
   resolveAdminNaiveBaseFontSize,
   useAdminProvider,
+  LIB_ID as ADMIN_LIB_ID,
 } from "@noob-naive-ui/admin";
 import type { MenuOption } from "naive-ui";
 import { defineComponent, onBeforeUnmount, watch } from "vue";
@@ -132,7 +133,7 @@ export default defineComponent(
         defaultTheme={demoDefaultTheme}
         defaultDarkTheme={demoDefaultDarkTheme}
         i18nOverrides={{
-          "noob-naive-ui:admin": {
+          [ADMIN_LIB_ID]: {
             en: { AdminShell: { account: { signOut: "Log out" } } },
             "zh-CN": { AdminShell: { account: { signOut: "退出" } } },
           },

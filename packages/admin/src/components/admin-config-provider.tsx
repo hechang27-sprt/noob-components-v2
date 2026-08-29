@@ -4,9 +4,9 @@ import {
   libraryOverridesKey,
   type LibraryOverridesRegistryValue,
 } from "@noob-naive-ui/registry";
-import { adminI18n } from "../i18n/plugin";
-import type { AdminLocaleOverrides } from "../i18n/admin-locale";
+import type { AdminLocaleOverrides } from "../i18n";
 import type { AdminThemeOverrides } from "../runtime-contract";
+import { LIB_ID } from "../registry";
 
 /**
  * Per-package override provider for the admin library's slice of the shared
@@ -33,15 +33,12 @@ export const AdminConfigProvider = defineComponent(
   (props: AdminConfigProviderProps, { slots }) => {
     const parent = inject(libraryOverridesKey, null);
     const merged = computed<LibraryOverridesRegistryValue>(() =>
-      merge(
-        merge({}, parent?.value ?? {}),
-        {
-          [adminI18n]: {
-            i18n: props.i18n,
-            theme: props.themeOverride,
-          },
+      merge(merge({}, parent?.value ?? {}), {
+        [LIB_ID]: {
+          i18n: props.i18n,
+          theme: props.themeOverride,
         },
-      ),
+      }),
     );
     provide(libraryOverridesKey, merged);
     return () => slots.default?.();

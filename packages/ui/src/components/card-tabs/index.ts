@@ -16,7 +16,9 @@
  */
 import { Root } from "./root";
 import { Tab } from "./tab";
-export { type CardTabsThemeVars } from "./root";
+
+// module augmentation requires imports
+import "./theme";
 
 export const CardTabs = {
   Root,

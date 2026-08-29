@@ -1,2 +1,2 @@
 @layer theme, base, components, utilities;
-@source ".";
+@source "./components";

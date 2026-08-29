@@ -1,26 +1,25 @@
 import "./style.css";
 
-export { noobUiI18n } from "./i18n/plugin";
 export type {
-  NoobUiComponentId,
-  NoobUiI18nSnapshot,
   NoobUiLocale,
   NoobUiLocaleName,
   NoobUiLocaleOverrides,
-} from "./i18n/plugin";
+} from "./i18n";
 
 export {
   AdminUiConfigProvider,
   type AdminUiConfigProviderProps,
-} from "./theme/admin-ui-config-provider";
-export { useUiTheme } from "./theme/use-ui-theme";
+} from "./config-provider";
+export { useUiTheme } from "./theme";
 export {
-  noobUiCssPrefix,
+  CSS_PREFIX,
   noobUiTheme,
   type NoobUiThemeOverrides,
-  type UiThemeComponents,
-} from "./theme/types";
+  type NoobUiThemeComponents,
+} from "./theme";
+
+export * from "./registry";
 
 // Components
-export { UiCard, type UiCardThemeVars } from "./components/card/ui-card";
+export * from "./components/example";
 export * from "./components/card-tabs";

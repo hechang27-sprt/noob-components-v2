@@ -22,7 +22,7 @@ import type {
   AdminThemeMode,
   AdminThemePreset,
 } from "../runtime-contract";
-import type { AdminLocaleName } from "../i18n/admin-locale";
+import type { AdminLocaleName } from "../i18n";
 
 /**
  * NConfigProvider props derived from admin shell preferences.
