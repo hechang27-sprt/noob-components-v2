@@ -46,6 +46,7 @@ export type CardTabsThemeVars = {
   innerRadiiBottom: string;
   filletRadii: string;
   barBorder: string;
+  activeTabBorder: string;
 };
 
 const DEFAULT_GAP = { small: "0.375rem", medium: "0.5rem", large: "0.5rem" };
@@ -160,6 +161,12 @@ export const Root = defineComponent(
       ${GAP} ${RADII_X} min-content ${RADII_X} ${GAP}`,
       barBackground: `linear-gradient(${$var("--noob-ui-card-tabs-background-color")} 50%, ${$var("--noob-ui-card-tabs-active-card-color")} 50%)`,
       barBorder: `inset 0 -1px 0 0 ${$var("--noob-ui-card-tabs-border-color")}`,
+      activeTabBorder: ["-1px 0", "0 -1px", "1px 0"]
+        .map(
+          (offset) =>
+            `${offset} 0 0 ${$var("--noob-ui-card-tabs-border-color")}`,
+        )
+        .join(", "),
     });
 
     const themeVars = useUiTheme("CardTabs", getThemeDefaults);

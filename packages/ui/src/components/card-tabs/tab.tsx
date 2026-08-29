@@ -31,14 +31,15 @@ type Props = {
  *
  * The class matrix is organized with `tailwind-variants` across three axes:
  * `status` (active/inactive), `mode` (tab/head/tail), and `neighbor`
- * (fillet side on the bottom segment). Conditional children (body pill,
- * active-tab border, bottom segment) follow the demo's card anatomy.
+ * (relative to the active tab, i.e. `left` neighbor shows the right fillet etc.)
+ * Conditional children (body pill, active-tab border, bottom segment) follow the
+ * demo's card anatomy.
  *
  * Registers itself with the shared `TabController` on mount (supplying its root
  * element for DOM ordering) and unregisters on unmount, keeping `tabList` and
- * the container's scope count correct. Its grid position comes from the
- * `index`/`count` the parent injects (not the controller's sorted array), so
- * open/close reorders never misplace a tab on the bar.
+ * the container's scope count correct. Its grid position (`col-start`) is
+ * derived from the controller's DOM-sorted `index` (4·index+1), so tabs
+ * maintain visual order regardless of mount/unmount sequence.
  */
 export const Tab = defineComponent(
   (props: Props, { slots }: { slots: { default?: () => unknown } }) => {
@@ -86,14 +87,14 @@ export const Tab = defineComponent(
             outer: [
               "z-20",
               "bg-transparent!",
-              "before:z-11",
               "before:col-start-2",
               "before:-col-end-2",
               "before:row-start-2",
               "before:-row-end-3",
               $tw("before:rounded-t-(--noob-ui-card-tabs-inner-radii-top)"),
-              "before:outline-1",
-              $tw("before:outline-(--noob-ui-card-tabs-border-color)"),
+              $tw<"before:shadow">(
+                "before:shadow-(--noob-ui-card-tabs-active-tab-border)",
+              ),
             ],
             body: [
               $tw("bg-(--noob-ui-card-tabs-active-card-color)"),
@@ -215,10 +216,6 @@ export const Tab = defineComponent(
     });
     onBeforeUnmount(() => controller.unregisterTab(props.tabKey));
 
-    // NOTE: reactive reads must happen INSIDE the returned JSX — the
-    // vue-jsx-vapor compiler hoists setup-level `const`s out of the render
-    // effect, so once-computed values (isActive, styles(state.value)) never
-    // re-evaluate and the active highlight would stay stale.
     const isActiveTab = computed(
       () => toValue(controller.activeKey) === props.tabKey,
     );
