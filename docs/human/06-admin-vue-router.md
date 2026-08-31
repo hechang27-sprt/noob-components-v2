@@ -111,16 +111,20 @@ with zod. Illustrative example:
 
 ```ts
 const searchPayloadSchema = z.object({
+  category: z.string().optional(),
   q: z.string().optional(),
   page: z.coerce.number().int().positive().default(1),
 });
 
 export const demoRouteRegistry = defineAdminRouteRegistry({
   search: {
-    route: { path: "search", component: SearchDemoPage, props: false },
+    route: { path: "search/:category?", component: SearchDemoPage, props: true },
     codec: defineAdminRouteUrlCodec(searchPayloadSchema, {
       encode(payload) {
         return {
+          // path variable
+          ...(payload.category ? { params: { category: payload.category } } : {}),
+          // query variables
           query: {
             ...(payload.q ? { q: payload.q } : {}),
             page: String(payload.page),
@@ -128,9 +132,11 @@ export const demoRouteRegistry = defineAdminRouteRegistry({
         };
       },
       decode(route, _state) {
+        const category = route.params.category;
         const q = route.query.q;
         const page = route.query.page;
         return {
+          ...(typeof category === "string" ? { category } : {}),
           ...(typeof q === "string" ? { q } : {}),
           page: typeof page === "string" ? page : "1",
         };
