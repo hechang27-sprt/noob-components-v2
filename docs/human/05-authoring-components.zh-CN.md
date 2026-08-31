@@ -16,7 +16,7 @@
 
 名称形式为 `--<前缀>-<组件>-<变量>`。
 
-### 1. 声明主题变量模式
+### 1. 声明主题变量结构
 
 `NoobUiThemeComponents` 是 ui 包的空增强钩子。声明你的组件片段：
 
@@ -79,7 +79,7 @@ $var("--noob-ui-card-tabs-background-color"); // var(...) 包装
 $tw("bg-(--noob-ui-card-tabs-background-color)"); // tailwind 类形式
 ```
 
-在 JSX 中使用它们。这三个辅助函数是防漂移保护：参数类型被限制为模式推导出的确切 CSS 变量名（`backgroundColor` → `--noob-ui-…-background-color`）。如果你重命名了模式属性，使用旧变量名的引用会无法通过类型检查，因此过期的 JSX 字符串会在编译时被标记，而不是悄悄失效。你需要更新被标记的用法；不会有任何自动更新。
+在 JSX 中使用它们。这三个辅助函数是防漂移保护：参数类型被限制为结构推导出的确切 CSS 变量名（`backgroundColor` → `--noob-ui-…-background-color`）。如果你重命名了结构属性，使用旧变量名的引用会无法通过类型检查，因此过期的 JSX 字符串会在编译时被标记，而不是悄悄失效。你需要更新被标记的用法；不会有任何自动更新。
 
 ### 4. Tailwind 类与 CSS 变量
 
@@ -163,9 +163,9 @@ const { t } = getComponentI18n();
 
 缺失的 key 会通过根 composer 回退到宿主消息。
 
-### 声明语言模式
+### 声明语言结构
 
-框架从覆盖注册表推导语言类型。每个包声明一次完整模式：
+框架从覆盖注册表推导语言类型。每个包声明一次完整结构：
 
 ```ts
 // packages/ui/src/registry.ts
@@ -199,7 +199,7 @@ import "./i18n"; // 注册 NoobUiLocale 增强
 ## 新组件清单
 
 1. 在 `packages/ui/src/components/` 下创建组件目录。
-2. 在增强文件中声明主题变量模式。
+2. 在增强文件中声明主题变量结构。
 3. 调用 `useUiTheme`，并传入默认值 getter。
 4. 添加单独的 i18n 增强文件并导入它。
 5. 从包的 barrel 导出复合命名空间。
