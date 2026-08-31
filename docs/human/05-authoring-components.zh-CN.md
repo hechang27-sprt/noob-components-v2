@@ -29,7 +29,7 @@ declare module "@noob-naive-ui/ui" {
 }
 ```
 
-合并后的接口提供有类型的覆盖和有类型的组件 key。
+合并后的接口提供有类型的覆写和有类型的组件 key。
 
 ### 2. 把默认值映射为 CSS 变量
 
@@ -54,7 +54,7 @@ return () => (
 
 `defaults` 可以是普通对象或 getter。当默认值依赖响应式来源时请使用 getter。例如 naive-ui 的 `useThemeVars()` 返回一个 ref。getter 在 computed 内部运行，因此主题变化时依赖会重新求值。
 
-辅助函数还会合并共享注册表中宿主提供的覆盖片段。同一变量的组件默认值会被宿主覆盖。
+辅助函数还会合并共享注册表中宿主提供的覆写片段。同一变量的组件默认值会被宿主覆写。
 
 `useUiTheme` 是 registry 包 `useTheme` 的薄封装：
 
@@ -165,7 +165,7 @@ const { t } = getComponentI18n();
 
 ### 声明 i18n 结构体
 
-框架从覆盖注册表推导语言类型。每个包声明一次完整的 i18n 结构体：
+框架从覆写注册表推导语言类型。每个包声明一次完整的 i18n 结构体：
 
 ```ts
 // packages/ui/src/registry.ts

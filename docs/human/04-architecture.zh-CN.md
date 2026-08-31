@@ -6,7 +6,7 @@
 
 | 包 | 职责 |
 | --- | --- |
-| `@noob-naive-ui/registry` | 覆盖注册表、`useTheme`、字号解析 |
+| `@noob-naive-ui/registry` | 覆写注册表、`useTheme`、字号解析 |
 | `@noob-naive-ui/ui` | 可复用组件（UiCard、CardTabs、useUiTheme） |
 | `@noob-naive-ui/admin` | 外壳：`AdminProvider`、`AdminShell`、`AdminLoginPage`、store |
 | `@noob-naive-ui/i18n` | `createComponentI18n`、`getComponentI18n`、解析器 |
@@ -14,7 +14,7 @@
 | `apps/demo` | 宿主应用：路由、菜单、主题、消息、仅前端登录 |
 | `apps/admin-starter` | 未来复制 demo 结构的模板占位 |
 
-## 覆盖注册表
+## 覆写注册表
 
 `@noob-naive-ui/registry` 承载 `LibraryOverridesRegistry`。每个库通过模块增强声明其完整的语言和主题类型：
 
@@ -29,7 +29,7 @@ declare module "@noob-naive-ui/registry" {
 }
 ```
 
-派生类型都来自这一处声明。它们产生 i18n 覆盖树（`RegistryI18nOverrides`）和主题覆盖树（`RegistryThemeOverrides`）。注册表没有字符串索引，因此派生投影保持按库有类型。
+派生类型都来自这一处声明。它们产生 i18n 覆写树（`RegistryI18nOverrides`）和主题覆写树（`RegistryThemeOverrides`）。注册表没有字符串索引，因此派生投影保持按库有类型。
 
 运行时，各包的配置 provider（`AdminConfigProvider`、`AdminUiConfigProvider`）构建 computed 注册表值，并通过 `libraryOverridesKey` 提供。组件读取自己库的片段。
 
@@ -37,10 +37,10 @@ declare module "@noob-naive-ui/registry" {
 
 1. 宿主定义主题预设（`AdminThemePreset[]`）。
 2. `AdminProvider` 从偏好设置 store 读取当前预设。
-3. naive-ui 配置合并用 `toMerged` 构建主题和覆盖。
+3. naive-ui 配置合并用 `toMerged` 构建主题和覆写。
 4. `NGlobalStyle` 根据合并后的主题写入页面背景。
 5. 组件把自己的局部默认值传给 `useTheme` / `useUiTheme`。
-6. 辅助函数把默认值和任何宿主覆盖片段映射为 CSS 自定义属性。
+6. 辅助函数把默认值和任何宿主覆写片段映射为 CSS 自定义属性。
 
 这里没有主题 store。默认值来自组件源码。详见[组件编写](05-authoring-components.zh-CN.md)。
 
@@ -49,7 +49,7 @@ declare module "@noob-naive-ui/registry" {
 1. 宿主把消息注入全局的 vue-i18n composer。
 2. 包组件调用 `createComponentI18n` 并传入包默认消息。
 3. 函数用这些默认消息构建局部 composer。
-4. 它从注册表合并组件的覆盖片段。
+4. 它从注册表合并组件的覆写片段。
 5. 缺失的 key 通过根 composer 回退到宿主消息。
 
 包默认消息来自组件的语言 JSON。这里没有包级消息 store。详见[组件编写](05-authoring-components.zh-CN.md)。

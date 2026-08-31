@@ -21,7 +21,7 @@ Noob Components 是一个用于构建管理后台的起始模板。它提供了�
 
 | 包 | 作用 |
 | --- | --- |
-| `@noob-naive-ui/registry` | 覆盖注册表、`useTheme`、字号解析 |
+| `@noob-naive-ui/registry` | 覆写注册表、`useTheme`、字号解析 |
 | `@noob-naive-ui/ui` | 可复用组件（UiCard、CardTabs） |
 | `@noob-naive-ui/admin` | 管理后台外壳：Provider、Shell、登录页、store |
 | `@noob-naive-ui/i18n` | 组件 i18n 工具 |

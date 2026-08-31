@@ -6,7 +6,7 @@
 
 主题预设位于宿主应用中。参见 `apps/demo/src/themes.ts`。
 
-一个预设包含 key、label、`isDark` 标志和 naive-ui 主题覆盖：
+一个预设包含 key、label、`isDark` 标志和 naive-ui 主题覆写：
 
 ```ts
 import type { GlobalThemeOverrides } from "naive-ui";
@@ -41,9 +41,9 @@ padding: { small: "0.75rem", medium: "1rem", large: "1.25rem" }
 
 叶子值可以是普通字符串，也可以是以字号为键的记录。当前字号会在运行时解析叶子值。
 
-## 按库覆盖
+## 按库覆写
 
-宿主可以为整个库覆盖主题值。使用各包的配置 provider：
+宿主可以为整个库覆写主题值。使用各包的配置 provider：
 
 ```tsx
 import { AdminUiConfigProvider } from "@noob-naive-ui/ui";
@@ -56,11 +56,11 @@ import { AdminUiConfigProvider } from "@noob-naive-ui/ui";
 </AdminUiConfigProvider>
 ```
 
-provider 会把你的片段合并到共享覆盖注册表中。子树内最近的 provider 生效。
+provider 会把你的片段合并到共享覆写注册表中。子树内最近的 provider 生效。
 
 ## 配色方案与页面背景
 
-naive-ui 的 `NGlobalStyle` 会根据合并后的主题写入页面背景。admin 的覆盖合并不能修改基础覆盖表。框架为此使用 `es-toolkit` 的 `toMerged`，因此从暗色预设切回亮色时，亮色页面背景会恢复。
+naive-ui 的 `NGlobalStyle` 会根据合并后的主题写入页面背景。admin 的覆写合并不能修改基础覆写表。框架为此使用 `es-toolkit` 的 `toMerged`，因此从暗色预设切回亮色时，亮色页面背景会恢复。
 
 ## Tailwind 与单一导入规则
 
