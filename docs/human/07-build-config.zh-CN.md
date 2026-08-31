@@ -79,7 +79,11 @@ pnpm format                     # oxfmt
 }
 ```
 
-清空 `paths` 后，声明输出器会把跨包别名解析为真正安装的包（node_modules 中 pnpm workspace 的符号链接）。输出的声明因此保留稳定的包说明符，例如 `@noob-naive-ui/registry`。如果保留 `paths`，输出器会把别名解析到兄弟包的源码文件，并把导入改写成相对路径，例如 `../../../registry/src/index.ts`，这会破坏打包后的消费者。测试被排除在构建之外。
+清空 `paths` 是为了让输出程序保持在本包的 `src` 范围内。路径别名指向兄弟包的源码文件。如果保留 `paths`，别名会把那些 `.ts` 文件拉进程序，而 `rootDir: "src"` 会拒绝它们（TS6059）。清空后，别名解析到 node_modules 中已安装的包（pnpm workspace 的符号链接）及其声明文件，构建因此通过。
+
+输出的声明会按原样保留别名说明符，例如 `@noob-naive-ui/registry`。消费者通过 node_modules 解析它。
+
+跨包导入必须使用这些包别名。相对兄弟导入，例如 `../../../registry/src/index.ts`，会绕过 `paths`，把兄弟源码拉进程序，并原样泄露到输出的声明中。由于别名解析读取的是已安装的类型，需要先构建依赖包；根构建脚本遵循 workspace 的依赖顺序。测试被排除在构建之外。
 
 demo 应用改为继承 `tsconfig.vite.json`，而不是库树：它不输出任何内容。
 

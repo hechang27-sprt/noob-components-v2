@@ -89,13 +89,22 @@ package config and resets emit to a package-local shape:
 }
 ```
 
-`paths` is cleared so the declaration emitter resolves cross-package
-aliases to the real installed packages (the pnpm workspace symlinks in
-node_modules). The emitted declarations then keep the stable package
-specifier, for example `@noob-naive-ui/registry`. With `paths` present,
-the emitter resolves the alias to the sibling source file and rewrites
-the import into a relative path such as `../../../registry/src/index.ts`,
-which breaks packaged consumers. Tests are excluded from the build.
+`paths` is cleared so the emit program stays scoped to this package's
+`src`. Path aliases point at sibling source files. With `paths` present,
+the alias pulls those `.ts` files into the program, and `rootDir: "src"`
+rejects them (TS6059). With `paths` cleared, the alias resolves to the
+installed package in node_modules (the pnpm workspace symlink) and its
+declaration file instead, so the build passes.
+
+Emitted declarations keep the alias specifier as written, for example
+`@noob-naive-ui/registry`. Consumers resolve it through node_modules.
+
+Cross-package imports must use these package aliases. A relative sibling
+import such as `../../../registry/src/index.ts` bypasses `paths`, drags
+the sibling source into the program, and leaks verbatim into the emitted
+declaration. Because alias resolution reads installed types, build the
+dependency packages first; the root build script follows the workspace
+dependency order. Tests are excluded from the build.
 
 The demo app extends `tsconfig.vite.json` instead of the library tree:
 it emits nothing.
