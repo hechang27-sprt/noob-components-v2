@@ -65,6 +65,7 @@ pnpm lint           # 代码检查（oxlint）
 - [i18n（宿主侧）](docs/human/03-i18n.zh-CN.md)
 - [架构](docs/human/04-architecture.zh-CN.md)
 - [组件编写](docs/human/05-authoring-components.zh-CN.md)
+- [Admin 路由](docs/human/06-admin-vue-router.zh-CN.md)
 
 ## 状态
 

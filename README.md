@@ -70,6 +70,7 @@ Docs live in `docs/human/` in English and Simplified Chinese.
 - [i18n (host side)](docs/human/03-i18n.md)
 - [Architecture](docs/human/04-architecture.md)
 - [Authoring Components](docs/human/05-authoring-components.md)
+- [Admin Router](docs/human/06-admin-vue-router.md)
 
 ## Status
 

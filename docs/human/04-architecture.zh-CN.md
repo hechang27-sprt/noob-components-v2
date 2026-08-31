@@ -58,7 +58,7 @@ declare module "@noob-naive-ui/registry" {
 
 `AdminShell` 渲染导航、页面实例和偏好设置。它与路由框架无关。`@noob-naive-ui/admin-vue-router` 把 Vue Router 连接到外壳页面实例：路由用 `defineAdminRouteRegistry` 声明，目的地携带用 zod 校验的 URL codec（`defineAdminRouteUrlCodec`）。
 
-宿主拥有路由历史和路由组件。外壳拥有标签条和已打开页面注册表。
+宿主拥有路由历史和路由组件。外壳拥有标签条和已打开页面注册表。动态路由和载荷编码请参见[Admin 路由](06-admin-vue-router.zh-CN.md)。
 
 ## 认证边界
 

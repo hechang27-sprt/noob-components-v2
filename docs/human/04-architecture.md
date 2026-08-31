@@ -76,7 +76,9 @@ and destinations carry a URL codec (`defineAdminRouteUrlCodec`) validated
 with zod.
 
 The host owns the router history and the route components. The shell owns
-the tab strip and the open-page registry.
+the tab strip and the open-page registry. See
+[Admin Router](06-admin-vue-router.md) for dynamic routes and payload
+encoding.
 
 ## Auth boundary
 

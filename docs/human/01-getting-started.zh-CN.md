@@ -114,3 +114,4 @@ typecheck 会在 demo 项目上运行 `tsc -p tsconfig.json --noEmit`。
 - [主题](02-theming.zh-CN.md) — 主题预设与 CSS 自定义属性
 - [i18n](03-i18n.zh-CN.md) — 组件级 i18n 结构体
 - [架构](04-architecture.zh-CN.md) — 包的作用与数据流
+- [Admin 路由](06-admin-vue-router.zh-CN.md) — 动态路由与载荷 codec

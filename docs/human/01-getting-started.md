@@ -121,3 +121,4 @@ Typecheck runs `tsc -p tsconfig.json --noEmit` on the demo project.
 - [Theming](02-theming.md) — theme presets and CSS custom properties
 - [i18n](03-i18n.md) — component-level locale schemas
 - [Architecture](04-architecture.md) — package roles and data flow
+- [Admin Router](06-admin-vue-router.md) — dynamic routes and payload codecs
