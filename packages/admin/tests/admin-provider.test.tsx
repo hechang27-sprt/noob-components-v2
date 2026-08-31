@@ -321,12 +321,12 @@ describe("AdminProvider", () => {
         // Registry values are loose (unknown) at the provider boundary; narrow
         // the ui theme entry to the known Card var shape for the assertion.
         const uiTheme = uiEntry?.theme as
-          | { Card?: { background?: string } }
+          | { Example?: { background?: string } }
           | undefined;
         return () => (
           <div
             data-admin-has-i18n={admin?.i18n !== undefined}
-            data-ui-bg={uiTheme?.Card?.background ?? ""}
+            data-ui-bg={uiTheme?.Example?.background ?? ""}
           />
         );
       },
@@ -401,9 +401,9 @@ describe("AdminProvider", () => {
           // Registry values are loose (unknown); narrow the ui theme entry to
           // the known Card var shape for the assertion.
           const uiTheme = registry?.value?.["noob-naive-ui:ui"]?.theme as
-            | { Card?: { background?: string } }
+            | { Example?: { background?: string } }
             | undefined;
-          return <div data-color={uiTheme?.Card?.background ?? ""} />;
+          return <div data-color={uiTheme?.Example?.background ?? ""} />;
         };
       },
     });

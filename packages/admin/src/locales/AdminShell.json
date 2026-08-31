@@ -1,7 +1,13 @@
 {
   "en": {
-    "account": { "signOut": "Sign out" },
-    "fontSize": { "small": "Small", "medium": "Medium", "large": "Large" },
+    "account": {
+      "signOut": "Sign out"
+    },
+    "fontSize": {
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large"
+    },
     "aria": {
       "fontSize": "Font size: {label}",
       "language": "Language: {label}",
@@ -10,7 +16,9 @@
       "sidebarExpand": "Expand sidebar",
       "sidebarCollapse": "Collapse sidebar"
     },
-    "tabs": { "openPages": "Open pages" },
+    "tabs": {
+      "openPages": "Open pages"
+    },
     "errors": {
       "unableToNavigate": "Unable to navigate.",
       "unableToCloseTab": "Unable to close tab."
@@ -18,17 +26,25 @@
     "signedIn": "Signed in"
   },
   "zh-CN": {
-    "account": { "signOut": "退出登录" },
-    "fontSize": { "small": "小", "medium": "中", "large": "大" },
+    "account": {
+      "signOut": "退出登录"
+    },
+    "fontSize": {
+      "small": "小",
+      "medium": "中",
+      "large": "大"
+    },
     "aria": {
-      "fontSize": "界面大小：{label}",
+      "fontSize": "字号：{label}",
       "language": "语言：{label}",
       "account": "账户：{user}",
       "theme": "主题：{label}",
       "sidebarExpand": "展开侧边栏",
       "sidebarCollapse": "收起侧边栏"
     },
-    "tabs": { "openPages": "打开的页面" },
+    "tabs": {
+      "openPages": "打开的页面"
+    },
     "errors": {
       "unableToNavigate": "无法导航。",
       "unableToCloseTab": "无法关闭标签页。"

@@ -56,6 +56,7 @@ const TabContent = (props: {
       {close ? (
         <NButton
           text
+          data-admin-tab-close
           themeOverrides={{
             textColorTextHover: popoverColor,
             textColorTextFocus: popoverColor,

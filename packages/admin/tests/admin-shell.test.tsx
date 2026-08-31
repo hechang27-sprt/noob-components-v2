@@ -167,7 +167,8 @@ async function settle(): Promise<void> {
 }
 
 /**
- * Finds the close control rendered by a closable Naive UI tab.
+ * Finds the close control rendered by a closable UiCardTabs tab
+ * (`data-admin-tab-close`, set on the tabbar's close NButton).
  *
  * @param container - Mounted shell DOM containing the tab strip.
  * @param key - Stable local tab key whose close control is needed.
@@ -178,7 +179,7 @@ function getTabClose(
   key: string,
 ): HTMLButtonElement | null {
   return container.querySelector<HTMLButtonElement>(
-    `[data-admin-tab-key="${key}"] .n-tabs-tab__close`,
+    `[data-admin-tab-key="${key}"] [data-admin-tab-close]`,
   );
 }
 

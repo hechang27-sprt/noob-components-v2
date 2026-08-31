@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 
 import { createApp, provide, ref, type App } from "vue";
+import { createI18n } from "vue-i18n";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { themeFontSizeKey } from "@noob-naive-ui/registry";
@@ -83,6 +84,16 @@ function mountCard(
         );
     },
   });
+  // Example's root creates a component Composer via createComponentI18n,
+  // which requires the vue-i18n plugin on the app (host-side contract).
+  app.use(
+    createI18n({
+      legacy: false,
+      locale: "en",
+      fallbackLocale: "en",
+      messages: {},
+    }),
+  );
   app.mount(target);
   mountedApps.push(app);
   return target;
