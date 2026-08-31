@@ -1613,3 +1613,39 @@ Eliminated 3x Tailwind CSS duplicates by having library packages (ui, admin) not
 ### Status
 
 [OK] **Completed**
+
+
+## Session 46: Human-facing docs, README, build-config guide, tsconfig fixes
+<!-- trellis-session: v=2 fp=623f5880be01b092 -->
+
+**Date**: 2026-08-31
+**Task**: Human-facing docs, README, build-config guide, tsconfig fixes
+
+### Summary
+
+Wrote bilingual (EN/zh-CN) human-facing docs: README + getting-started, host-side theming, host-side i18n, architecture, component authoring, admin-vue-router (dynamic routes + payload codecs + state-carried variables), build configuration. Verified every claim against source; corrected useTheme framing (mapping helper, no global store) and the Tailwind CSS-var anti-drift pattern. Fixed zh-CN terminology per review: schema=结构体, override=覆写, i18n kept as-is, no literal 这里 for 'there is'. Added MIT license + framework links/acknowledgments. Investigated paths-clearing: A/B/C experiment in /tmp proved TS keeps aliases verbatim and relative sibling imports leak; corrected docs. Found+fixed tsconfig outliers: admin-vue-router build (rootDir src + paths {} — dist types were broken) and ui editor config (rootDir ../..).
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4efdfb08` | fix(tsconfig): align rootDir/paths outliers in ui + admin-vue-router |
+| `89ac2708` | docs: correct paths-clearing rationale (A/B/C verification) |
+| `4668e47e` | docs: correct why tsconfig.build.json clears paths |
+| `cf79f6bd` | docs: add build-configuration guide (TS + Vite + tooling plugins) |
+| `18c7f77d` | docs: link/acknowledge Vue, naive-ui, pro-naive-ui; add MIT license |
+| `665476a8` | docs: state-carried variables — drop sensitive-data rationale |
+| `400a7d22` | docs: add state-carried variables example to admin-vue-router guide |
+| `02cdb241` | docs: fix multiple-variables example to use params + query together |
+| `97de2d1f` | docs: add admin-vue-router guide (dynamic routes + payload codecs) |
+| `cd58f33a` | docs: clarify no-store statements + natural zh-CN phrasing |
+| `a2e16118` | docs(zh-CN): translate override as 覆写, not 覆盖 |
+| `c86fe64e` | docs(zh-CN): schema → 结构体; keep i18n as i18n |
+| `a3ad52d4` | docs(zh-CN): translate schema as 结构, not 模式 |
+| `3abb02ff` | docs: add Tailwind CSS-var pattern to component authoring guide |
+| `dd8ccedd` | docs: separate host-side theming/i18n from component authoring |
+| `362d6997` | docs: add human-facing guides + bilingual README |
+
+### Status
+
+[OK] **Completed**
