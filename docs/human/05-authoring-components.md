@@ -12,8 +12,9 @@ for the app developer's view.
 
 A component reads its values from CSS custom properties. The registry
 package maps declared defaults to variable names. There is **no global
-theme store**. Defaults live in the component source and are passed to
-the helper at each call.
+theme store**. Unlike naive-ui's `useThemeVars()`, there is no API that
+retrieves the default theme variable values. Defaults live in the
+component source and are passed to the helper at each call.
 
 Example variable name:
 

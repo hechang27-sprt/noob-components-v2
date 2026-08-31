@@ -51,8 +51,9 @@ under `libraryOverridesKey`. Components read their own library's slice.
 6. The helper maps defaults plus any host override slice to CSS custom
    properties.
 
-There is no theme store. Defaults come from component source. See
-[Authoring Components](05-authoring-components.md) for details.
+There is no global theme store you can query for default theme variable
+values (unlike naive-ui's `useThemeVars()`). Defaults come from component
+source. See [Authoring Components](05-authoring-components.md) for details.
 
 ## i18n data flow
 
@@ -63,7 +64,7 @@ There is no theme store. Defaults come from component source. See
 5. Missing keys fall back to host messages through the root composer.
 
 Packaged defaults come from the component's locale JSON. There is no
-package-wide message store. See
+global message store you can query for a package's default messages. See
 [Authoring Components](05-authoring-components.md) for details.
 
 ## Shell and router

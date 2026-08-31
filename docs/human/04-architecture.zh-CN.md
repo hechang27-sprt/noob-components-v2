@@ -42,7 +42,7 @@ declare module "@noob-naive-ui/registry" {
 5. 组件把自己的局部默认值传给 `useTheme` / `useUiTheme`。
 6. 辅助函数把默认值和任何宿主覆写片段映射为 CSS 自定义属性。
 
-这里没有主题 store。默认值来自组件源码。详见[组件编写](05-authoring-components.zh-CN.md)。
+并不存在可供你查询默认主题变量值的全局主题 store（不同于 naive-ui 的 `useThemeVars()`）。默认值来自组件源码。详见[组件编写](05-authoring-components.zh-CN.md)。
 
 ## i18n 数据流
 
@@ -52,7 +52,7 @@ declare module "@noob-naive-ui/registry" {
 4. 它从注册表合并组件的覆写片段。
 5. 缺失的 key 通过根 composer 回退到宿主消息。
 
-包默认消息来自组件的语言 JSON。这里没有包级消息 store。详见[组件编写](05-authoring-components.zh-CN.md)。
+包默认消息来自组件的语言 JSON。并不存在可供你查询包默认消息的全局消息 store。详见[组件编写](05-authoring-components.zh-CN.md)。
 
 ## 外壳与路由
 
