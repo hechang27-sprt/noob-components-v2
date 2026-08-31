@@ -121,9 +121,6 @@ importers:
       '@noob-naive-ui/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
-      '@noob-naive-ui/prototype-i18n-verification':
-        specifier: workspace:*
-        version: link:../../packages/prototype-i18n-verification
       naive-ui:
         specifier: 'catalog:'
         version: 2.44.1(vue@3.5.40(typescript@7.0.2))
@@ -217,18 +214,6 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 4.4.3
-
-  packages/prototype-i18n-verification:
-    dependencies:
-      tsafe:
-        specifier: ^1.8.12
-        version: 1.8.12
-      vue:
-        specifier: 'catalog:'
-        version: 3.5.40(typescript@7.0.2)
-      vue-i18n:
-        specifier: 'catalog:'
-        version: 11.4.8(vue@3.5.40(typescript@7.0.2))
 
   packages/registry:
     dependencies:
@@ -3087,9 +3072,6 @@ packages:
 
   ts-macro@0.3.7:
     resolution: {integrity: sha512-5BinbTKn5WXRslotv5/VWTn3catfK0thWoB4BZI5VNEdxMu6r9AUPFalut4wLEK3nGvxhywA9aAdZnJ+Fnug9A==}
-
-  tsafe@1.8.12:
-    resolution: {integrity: sha512-nFRqW0ttu/2o6XTXsHiVZWJBCOaxhVqZLg7dgs3coZNsCMPXPfwz+zPHAQA+70fNnVJLAPg1EgGIqK9Q84tvAw==}
 
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
@@ -6205,8 +6187,6 @@ snapshots:
   ts-macro@0.3.7:
     dependencies:
       muggle-string: 0.4.1
-
-  tsafe@1.8.12: {}
 
   tslib@2.8.1:
     optional: true

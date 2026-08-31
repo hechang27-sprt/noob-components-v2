@@ -12,7 +12,6 @@
     "@noob-naive-ui/admin": "workspace:*",
     "@noob-naive-ui/admin-vue-router": "workspace:*",
     "@noob-naive-ui/i18n": "workspace:*",
-    "@noob-naive-ui/prototype-i18n-verification": "workspace:*",
     "naive-ui": "catalog:",
     "pinia": "catalog:",
     "pro-naive-ui": "catalog:",
