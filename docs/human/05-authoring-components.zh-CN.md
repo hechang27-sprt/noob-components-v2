@@ -81,6 +81,44 @@ $tw("bg-(--noob-ui-card-tabs-background-color)"); // tailwind 类形式
 
 在 JSX 中使用它们。这三个辅助函数是防漂移保护：参数类型被限制为模式推导出的确切 CSS 变量名（`backgroundColor` → `--noob-ui-…-background-color`）。如果你重命名了模式属性，使用旧变量名的引用会无法通过类型检查，因此过期的 JSX 字符串会在编译时被标记，而不是悄悄失效。你需要更新被标记的用法；不会有任何自动更新。
 
+### 4. Tailwind 类与 CSS 变量
+
+Tailwind 会扫描源码文本以寻找类候选。它不会执行 JavaScript。这决定了组件应如何使用工具类。
+
+受支持的模式的第一个部分是：静态工具类按名称读取 CSS 变量：
+
+```tsx
+class="bg-(--noob-ui-card-tabs-background-color)"
+```
+
+Tailwind 在构建时只生成一次这条规则：
+
+```css
+.bg-\\(--noob-ui-card-tabs-background-color\\) {
+  background-color: var(--noob-ui-card-tabs-background-color);
+}
+```
+
+第二个部分是：动态值通过内联 style 注入变量：
+
+```tsx
+<div
+  style={themeVars.value}
+  class={$tw<"bg">("bg-(--noob-ui-card-tabs-background-color)")}>
+```
+
+Tailwind 在扫描时能找到这个字面量类字符串。运行时值的变化只会更新 CSS 变量，因此不需要生成任何新的工具类规则。
+
+在类名中插值表达式的写法是错误的：
+
+```tsx
+// 错误 —— Tailwind 在扫描时无法求值这些表达式
+class={`bg-[${getBackground()}]`}
+class={`bg-(${getMyCssVar()})`}
+```
+
+扫描器看不到完整的字面量候选，因此不会生成任何规则，元素也就没有背景。完整的字面量字符串（例如三元分支中的写法）仍然可以正常扫描；只有插值的片段会失效。
+
 ## 复合组件模式
 
 框架组件采用类似 Vuetify 0 的命名空间 API。复合组件导出 `{ Root, Sub }`，而不是一个巨型组件：

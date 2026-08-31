@@ -100,6 +100,51 @@ a schema property, references using the old variable name fail typecheck, so
 stale JSX strings are flagged at compile time instead of silently breaking.
 You update the flagged usages; nothing updates automatically.
 
+### 4. Tailwind classes and CSS variables
+
+Tailwind scans source text for class candidates. It does not evaluate
+JavaScript. This shapes how components use utilities.
+
+The supported pattern has two parts.
+
+First, a static utility class reads a CSS variable by name:
+
+```tsx
+class="bg-(--noob-ui-card-tabs-background-color)"
+```
+
+Tailwind generates this rule once at build time:
+
+```css
+.bg-\\(--noob-ui-card-tabs-background-color\\) {
+  background-color: var(--noob-ui-card-tabs-background-color);
+}
+```
+
+Second, the dynamic value flows through the variable via inline style:
+
+```tsx
+<div
+  style={themeVars.value}
+  class={$tw<"bg">("bg-(--noob-ui-card-tabs-background-color)")}>
+```
+
+Tailwind finds the literal class string during scanning. Runtime value
+changes only update the CSS variable, so no new utility rules are needed.
+
+Patterns that interpolate expressions into class names are a mistake:
+
+```tsx
+// Wrong — Tailwind cannot evaluate these during scanning
+class={`bg-[${getBackground()}]`}
+class={`bg-(${getMyCssVar()})`}
+```
+
+The scanner sees no complete literal candidate, so no rule is generated
+and the element gets no background. Whole literal strings still scan
+correctly, for example inside ternary branches. Only interpolated
+fragments break.
+
 ## The compound component pattern
 
 Framework components follow a namespace API like Vuetify 0. A compound
