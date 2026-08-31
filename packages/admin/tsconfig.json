@@ -1,7 +1,30 @@
 {
   "extends": "../../tsconfig.library.json",
   "compilerOptions": {
-    "rootDir": "../.."
+    "noEmit": false,
+    "rootDir": "src",
+    "outDir": "dist",
+    "declarationDir": "dist",
+    "composite": true,
+    "emitDeclarationOnly": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts", "tests/**/*.tsx"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.json"
+  ],
+  "exclude": [
+    "tests"
+  ],
+  "references": [
+    {
+      "path": "../registry/tsconfig.json"
+    },
+    {
+      "path": "../i18n/tsconfig.json"
+    },
+    {
+      "path": "../ui/tsconfig.json"
+    }
+  ]
 }

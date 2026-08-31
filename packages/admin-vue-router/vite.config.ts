@@ -2,19 +2,13 @@ import { resolve } from "node:path";
 
 import vueJsxVapor from "vue-jsx-vapor/vite";
 import { defineConfig } from "vitest/config";
-import dts from "unplugin-dts/vite";
 
 export default defineConfig({
-  plugins: [vueJsxVapor({ interop: true, macros: true }), dts({
-      tsconfigPath: "./tsconfig.build.json",
-      // Monorepo: entries are package src; deps resolve via tsconfig
-      // paths from source (no prebuilt dep dist needed).
-      entryRoot: "./src",
-      // Keep emitted specifiers verbatim (@noob-naive-ui/*) instead of
-      // rewriting paths targets into relative sibling-source imports.
-      pathsToAliases: false,
-    })],
+  plugins: [
+    vueJsxVapor({ interop: true, macros: true })
+  ],
   build: {
+    emptyOutDir: false,
     lib: {
       entry: resolve(__dirname, "src/index.ts"),
       formats: ["es"],
@@ -27,8 +21,8 @@ export default defineConfig({
         "pinia",
         "vue",
         "vue-router",
-        "zod",
-      ],
+        "zod"
+  ],
     },
   },
   resolve: {
@@ -39,8 +33,8 @@ export default defineConfig({
       {
         find: "@noob-naive-ui/ui/style.css",
         replacement: resolve(__dirname, "../ui/src/style.css"),
-      },
-    ],
+      }
+  ],
   },
   test: {
     environment: "node",

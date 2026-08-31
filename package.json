@@ -11,7 +11,8 @@
     "format:check": "oxfmt --check",
     "dev": "pnpm --filter admin-starter dev",
     "stat:ELOC": "find . -type f -not -path \"*/node_modules/*\" -not -path \"./.omp/*\" -not -path \"./.trellis/*\" -not -path \"./.git/*\" -not -path \"./.jj/*\" -not -path \"*/dist/*\" \\( -path \"*.ts\" -or -path \"*.tsx\" \\) -not -path \"*.test.*\" -exec wc -l {} +",
-    "build:clean": "pnpm -r --if-present clean && pnpm -r build"
+    "build:clean": "pnpm -r --if-present clean && pnpm -r build",
+    "typecheck:all": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@intlify/unplugin-vue-i18n": "^11.2.4",

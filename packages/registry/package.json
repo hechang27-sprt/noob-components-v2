@@ -15,11 +15,12 @@
     "dist"
   ],
   "scripts": {
-    "build": "pnpm run clean && vite build",
-    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "vite build",
+    "clean": "node -e \"const fs=require('node:fs');fs.rmSync('dist',{recursive:true,force:true});fs.rmSync('tsconfig.tsbuildinfo',{force:true})\"",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -b tsconfig.json --force",
+    "prebuild": "tsc -b tsconfig.json"
   },
   "dependencies": {
     "naive-ui": "catalog:",
