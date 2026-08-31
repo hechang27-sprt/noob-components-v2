@@ -7,8 +7,8 @@ Noob Components 是一个用于构建管理后台的起始模板。它提供了�
 ## 技术栈
 
 - **Vite 8** 构建工具，使用 `resolve.tsconfigPaths`
-- **Vue 3.5** 与 JSX（`vue-jsx-vapor` 插件）
-- **naive-ui** 和 **pro-naive-ui**，用于外壳和表单组件
+- **[Vue 3.5](https://vuejs.org/)** 与 JSX（在 VDOM 模式下使用 `vue-jsx-vapor` 插件）
+- **[naive-ui](https://www.naiveui.com/)** 和 **[pro-naive-ui](https://github.com/Zheng-Changfu/pro-naive-ui)**，用于外壳和表单组件
 - **Tailwind CSS 4** 工具类
 - **pinia** 状态管理
 - **vue-router** 导航
@@ -17,17 +17,17 @@ Noob Components 是一个用于构建管理后台的起始模板。它提供了�
 
 ## 工作区
 
-这是 pnpm workspace。
+是 pnpm workspace。
 
-| 包 | 作用 |
-| --- | --- |
-| `@noob-naive-ui/registry` | 覆写注册表、`useTheme`、字号解析 |
-| `@noob-naive-ui/ui` | 可复用组件（UiCard、CardTabs） |
-| `@noob-naive-ui/admin` | 管理后台外壳：Provider、Shell、登录页、store |
-| `@noob-naive-ui/i18n` | 组件 i18n 工具 |
-| `@noob-naive-ui/admin-vue-router` | Vue Router 与 AdminShell 的适配器 |
-| `apps/demo` | 可运行的参考应用（仅前端登录） |
-| `apps/admin-starter` | 占位（尚未搭建） |
+| 包                                | 作用                                         |
+| --------------------------------- | -------------------------------------------- |
+| `@noob-naive-ui/registry`         | 覆写注册表、`useTheme`、字号解析             |
+| `@noob-naive-ui/ui`               | 可复用组件（UiCard、CardTabs）               |
+| `@noob-naive-ui/admin`            | 管理后台外壳：Provider、Shell、登录页、store |
+| `@noob-naive-ui/i18n`             | 组件 i18n 工具                               |
+| `@noob-naive-ui/admin-vue-router` | Vue Router 与 AdminShell 的适配器            |
+| `apps/demo`                       | 可运行的参考应用（仅前端登录）               |
+| `apps/admin-starter`              | 占位（尚未搭建）                             |
 
 ## 快速开始
 
@@ -70,3 +70,11 @@ pnpm lint           # 代码检查（oxlint）
 ## 状态
 
 这是一个 WIP 起始模板。demo 应用（`apps/demo`）是使用框架的参考示例。`apps/admin-starter` 是未来会复制 demo 结构的模板。
+
+## 致谢
+
+本项目建立在优秀的开源项目之上：[Vue](https://vuejs.org/)、[naive-ui](https://www.naiveui.com/) 和 [pro-naive-ui](https://github.com/Zheng-Changfu/pro-naive-ui)。
+
+## 许可证
+
+MIT — 见 [LICENSE](LICENSE)。

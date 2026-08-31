@@ -10,8 +10,8 @@ your own pages, routes, and backend integration.
 ## Stack
 
 - **Vite 8** build tool with `resolve.tsconfigPaths`
-- **Vue 3.5** with JSX (`vue-jsx-vapor` plugin)
-- **naive-ui** and **pro-naive-ui** for the shell and form components
+- **[Vue 3.5](https://vuejs.org/)** with JSX (`vue-jsx-vapor` plugin under VDOM mode)
+- **[naive-ui](https://www.naiveui.com/)** and **[pro-naive-ui](https://github.com/Zheng-Changfu/pro-naive-ui)** for the shell and form components
 - **Tailwind CSS 4** for utilities
 - **pinia** for state
 - **vue-router** for navigation
@@ -22,15 +22,15 @@ your own pages, routes, and backend integration.
 
 This is a pnpm workspace.
 
-| Package | Role |
-| --- | --- |
-| `@noob-naive-ui/registry` | Override registry, `useTheme`, font-size resolution |
-| `@noob-naive-ui/ui` | Reusable components (UiCard, CardTabs) |
-| `@noob-naive-ui/admin` | Admin shell: provider, shell, login page, stores |
-| `@noob-naive-ui/i18n` | Component i18n helpers |
-| `@noob-naive-ui/admin-vue-router` | Vue Router ↔ AdminShell adapter |
-| `apps/demo` | Runnable reference app (frontend-only login) |
-| `apps/admin-starter` | Placeholder (not yet scaffolded) |
+| Package                           | Role                                                |
+| --------------------------------- | --------------------------------------------------- |
+| `@noob-naive-ui/registry`         | Override registry, `useTheme`, font-size resolution |
+| `@noob-naive-ui/ui`               | Reusable components (UiCard, CardTabs)              |
+| `@noob-naive-ui/admin`            | Admin shell: provider, shell, login page, stores    |
+| `@noob-naive-ui/i18n`             | Component i18n helpers                              |
+| `@noob-naive-ui/admin-vue-router` | Vue Router ↔ AdminShell adapter                     |
+| `apps/demo`                       | Runnable reference app (frontend-only login)        |
+| `apps/admin-starter`              | Placeholder (not yet scaffolded)                    |
 
 ## Quickstart
 
@@ -77,3 +77,13 @@ Docs live in `docs/human/` in English and Simplified Chinese.
 This is a WIP starter template. The demo app (`apps/demo`) is the reference
 for how to use the framework. `apps/admin-starter` is a future template that
 copies the demo structure.
+
+## Acknowledgments
+
+Built on great open-source projects: [Vue](https://vuejs.org/),
+[naive-ui](https://www.naiveui.com/), and
+[pro-naive-ui](https://github.com/Zheng-Changfu/pro-naive-ui).
+
+## License
+
+MIT — see [LICENSE](LICENSE).
