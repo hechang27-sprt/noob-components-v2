@@ -73,16 +73,15 @@ Each library package has two files.
 aliases set `rootDir` to the workspace root.
 
 `tsconfig.build.json` serves the declaration emitters. It extends the
-package config, keeps the workspace `paths`, and spans the workspace with
-`rootDir` so unplugin-dts can resolve sibling packages **from source**
-(no prebuilt dependency `dist` needed):
+package config, keeps the workspace `paths` (unplugin-dts resolves
+sibling packages **from source** — no prebuilt dependency `dist` needed),
+and sets no `rootDir`:
 
 ```json
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": false,
-    "rootDir": "../..",
     "outDir": "dist"
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
@@ -90,13 +89,15 @@ package config, keeps the workspace `paths`, and spans the workspace with
 }
 ```
 
-The Vite config passes three options to `unplugin-dts`:
+The Vite config passes two options to `unplugin-dts`:
 
 ```ts
 dts({
   tsconfigPath: "./tsconfig.build.json",
-  // Emit paths relative to this package's src, so declarations land at
-  // dist/index.d.ts instead of mirroring the workspace root (rootDir ../..).
+  // Map output paths relative to this package's src, so declarations land
+  // at dist/index.d.ts. Without it the plugin derives the root from the
+  // whole program — sibling sources pulled in by paths widen it to the
+  // workspace — and mirrors the tree under dist/packages/<pkg>/src/….
   entryRoot: "./src",
   // Keep alias specifiers verbatim in emitted declarations. The default
   // pathsToAliases rewrites tsconfig paths targets into relative sibling
@@ -106,11 +107,11 @@ dts({
 })
 ```
 
-`paths` stays inherited. The alias pulls sibling `.ts` sources into the
-program for type checking; `rootDir: "../.."` keeps them legal program
-members. `entryRoot` and the plugin's `include` filter scope the *output*
-to this package's own files, so sibling sources are checked but never
-emitted into `dist`.
+`paths` stays inherited, so the alias pulls sibling `.ts` sources into the
+program for type checking; the compiler's implicit program root already
+spans the workspace, so nothing falls outside it. `entryRoot` and the
+plugin's `include` filter scope the *output* to this package's own files:
+sibling sources are checked but never emitted into `dist`.
 
 Emitted declarations keep the alias specifier as written, for example
 `@noob-naive-ui/registry`. Consumers resolve it through node_modules.

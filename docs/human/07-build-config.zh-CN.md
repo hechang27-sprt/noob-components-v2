@@ -64,15 +64,14 @@ pnpm format                     # oxfmt
 `tsconfig.json` 服务于编辑器和 typecheck。它扩展 `tsconfig.library.json`。需要经由路径别名访问兄弟源码的包，会把 `rootDir` 设为工作区根。
 
 `tsconfig.build.json` 服务于声明输出器。它扩展包配置，保留 workspace 的
-`paths`，并用 `rootDir` 覆盖整个 workspace，让 unplugin-dts 直接从源码解析
-兄弟包（不需要预先构建依赖的 `dist`）：
+`paths`（unplugin-dts 直接从源码解析兄弟包——不需要预先构建依赖的
+`dist`），并且不设置 `rootDir`：
 
 ```json
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": false,
-    "rootDir": "../..",
     "outDir": "dist"
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
@@ -80,13 +79,14 @@ pnpm format                     # oxfmt
 }
 ```
 
-Vite 配置给 `unplugin-dts` 传三个选项：
+Vite 配置给 `unplugin-dts` 传两个选项：
 
 ```ts
 dts({
   tsconfigPath: "./tsconfig.build.json",
-  // 输出路径相对本包 src，声明落在 dist/index.d.ts，而不是镜像 workspace 根
-  // （rootDir 是 ../..）。
+  // 输出路径相对本包 src 映射，声明落在 dist/index.d.ts。如果不设，
+  // 插件会从整个程序推导根目录——paths 拉入的兄弟源码会把根扩大到
+  // workspace——于是镜像出 dist/packages/<pkg>/src/…。
   entryRoot: "./src",
   // 输出声明中原样保留别名说明符。默认的 pathsToAliases 会把 tsconfig paths
   // 的目标改写成相对兄弟源码的导入（例如 ../../../registry/src/index.ts），
@@ -95,9 +95,9 @@ dts({
 })
 ```
 
-`paths` 保持继承。别名把兄弟 `.ts` 源码拉进程序用于类型检查；
-`rootDir: "../.."` 让它们成为合法的程序成员。`entryRoot` 和插件的
-`include` 过滤把输出限定为本包自己的文件，兄弟源码只被检查、不会输出到
+`paths` 保持继承，别名把兄弟 `.ts` 源码拉进程序用于类型检查；编译器隐式的
+程序根已经覆盖整个 workspace，所以不会有文件越界。`entryRoot` 和插件的
+`include` 过滤把输出限定为本包自己的文件：兄弟源码只被检查、不会输出到
 `dist`。
 
 输出的声明会按原样保留别名说明符，例如 `@noob-naive-ui/registry`。
