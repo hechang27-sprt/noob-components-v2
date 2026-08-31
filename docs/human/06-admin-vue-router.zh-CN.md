@@ -209,3 +209,4 @@ const app = createApp(App).use(pinia).use(i18n).use(adminRouter);
 ## 下一步
 
 - [架构](04-architecture.zh-CN.md) — 包的作用与数据流
+- [构建配置](07-build-config.zh-CN.md) — TS 与 Vite 配置、tooling 插件

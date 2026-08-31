@@ -66,6 +66,7 @@ pnpm lint           # 代码检查（oxlint）
 - [架构](docs/human/04-architecture.zh-CN.md)
 - [组件编写](docs/human/05-authoring-components.zh-CN.md)
 - [Admin 路由](docs/human/06-admin-vue-router.zh-CN.md)
+- [构建配置](docs/human/07-build-config.zh-CN.md)
 
 ## 状态
 

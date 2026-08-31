@@ -238,3 +238,4 @@ path collisions. `ADMIN_DISPOSE_KEY` provides the cleanup function.
 ## What's next
 
 - [Architecture](04-architecture.md) — package roles and data flow
+- [Build Configuration](07-build-config.md) — TS and Vite configs, tooling plugins

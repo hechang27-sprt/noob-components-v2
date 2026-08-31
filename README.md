@@ -71,6 +71,7 @@ Docs live in `docs/human/` in English and Simplified Chinese.
 - [Architecture](docs/human/04-architecture.md)
 - [Authoring Components](docs/human/05-authoring-components.md)
 - [Admin Router](docs/human/06-admin-vue-router.md)
+- [Build Configuration](docs/human/07-build-config.md)
 
 ## Status
 
