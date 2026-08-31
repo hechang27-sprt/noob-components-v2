@@ -130,9 +130,39 @@ export const demoRouteRegistry = defineAdminRouteRegistry({
 });
 ```
 
-### 历史状态
+### 通过 state 携带的变量
 
-`encode` 可以添加 `state` 字段。适配器还会在历史状态中用一个保留键保存自己的标签页元数据。不要使用那个保留键；如果 codec 使用了，运行时就会抛出错误。
+当变量不应出现在 URL 中时，使用 `state`。载荷改由历史 API 携带。这适合大载荷、不便于映射到 URL 的数据，或者希望保持干净的 URL。历史状态对客户端可见，因此绝不要在其中存储敏感数据。
+
+```ts
+const composePayloadSchema = z.object({
+  draftId: z.string().min(1).optional(),
+});
+
+export const demoRouteRegistry = defineAdminRouteRegistry({
+  compose: {
+    route: { path: "compose", component: ComposeDemoPage, props: false },
+    codec: defineAdminRouteUrlCodec(composePayloadSchema, {
+      encode(payload) {
+        return { state: { _composeDraft: payload.draftId } };
+      },
+      decode(_route, state) {
+        const draftId = state?._composeDraft;
+        return draftId === undefined
+          ? {}
+          : { draftId: typeof draftId === "string" ? draftId : "" };
+      },
+    }),
+  },
+});
+```
+
+`encode` 把字段放在 `state` 下返回。`decode` 从 `state` 参数中读回它。`state` 参数是完整的历史状态对象。
+
+两个注意点：
+
+- 适配器会在历史状态中用保留键保存自己的标签页元数据。不要在 codec 中使用这个键；运行时遇到会抛出错误。
+- 直接访问 URL 时没有历史状态。`decode` 必须处理缺失，结构体也必须容忍它。示例把 `draftId` 标记为可选，因此无状态的访问会产生空载荷。浏览器的后退和前进会恢复该条目的状态。
 
 ## 端到端流程
 

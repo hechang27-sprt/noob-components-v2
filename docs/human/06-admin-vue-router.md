@@ -146,11 +146,48 @@ export const demoRouteRegistry = defineAdminRouteRegistry({
 });
 ```
 
-### History state
+### State-carried variables
 
-`encode` may add `state` fields. The adapter also stores its own tab
-metadata in history state under a reserved key. Do not use that reserved
-key; the runtime throws if a codec does.
+Use `state` when a variable must not appear in the URL. The payload
+travels through the history API instead. This suits large payloads,
+data that does not map cleanly to a URL, or a clean route shape.
+History state is client-visible, so never store sensitive data there.
+
+```ts
+const composePayloadSchema = z.object({
+  draftId: z.string().min(1).optional(),
+});
+
+export const demoRouteRegistry = defineAdminRouteRegistry({
+  compose: {
+    route: { path: "compose", component: ComposeDemoPage, props: false },
+    codec: defineAdminRouteUrlCodec(composePayloadSchema, {
+      encode(payload) {
+        return { state: { _composeDraft: payload.draftId } };
+      },
+      decode(_route, state) {
+        const draftId = state?._composeDraft;
+        return draftId === undefined
+          ? {}
+          : { draftId: typeof draftId === "string" ? draftId : "" };
+      },
+    }),
+  },
+});
+```
+
+`encode` returns the field under `state`. `decode` reads it back from the
+`state` argument, which is the full history-state object.
+
+Two caveats:
+
+- The adapter stores its own tab metadata in history state under a
+  reserved key. Do not use that key in your codec; the runtime throws if
+  you do.
+- A direct visit to the URL has no history state. `decode` must handle
+  the absence, and the schema must tolerate it. The example marks
+  `draftId` optional so a state-less visit yields an empty payload.
+  Browser back and forward restore the entry's state.
 
 ## End-to-end flow
 
