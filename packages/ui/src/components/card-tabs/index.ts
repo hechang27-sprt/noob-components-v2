@@ -17,8 +17,10 @@
 import { Root } from "./root";
 import { Tab } from "./tab";
 
-// module augmentation requires imports
-import "./theme";
+// Re-export the augmentation module (type-only): see example/index.ts —
+// bare side-effect imports are stripped from emitted d.ts, orphaning the
+// CardTabs themeVar augmentation for consumers.
+export type * from "./theme";
 
 export const CardTabs = {
   Root,

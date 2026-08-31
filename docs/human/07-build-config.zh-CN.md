@@ -63,27 +63,60 @@ pnpm format                     # oxfmt
 
 `tsconfig.json` 服务于编辑器和 typecheck。它扩展 `tsconfig.library.json`。需要经由路径别名访问兄弟源码的包，会把 `rootDir` 设为工作区根。
 
-`tsconfig.build.json` 服务于声明输出器。它扩展包配置，并把输出重置为包本地形态：
+`tsconfig.build.json` 服务于声明输出器。它扩展包配置，保留 workspace 的
+`paths`，并用 `rootDir` 覆盖整个 workspace，让 unplugin-dts 直接从源码解析
+兄弟包（不需要预先构建依赖的 `dist`）：
 
 ```json
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": false,
-    "rootDir": "src",
-    "outDir": "dist",
-    "paths": {}
+    "rootDir": "../..",
+    "outDir": "dist"
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["tests"]
 }
 ```
 
-清空 `paths` 是为了让输出程序保持在本包的 `src` 范围内。路径别名指向兄弟包的源码文件。如果保留 `paths`，别名会把那些 `.ts` 文件拉进程序，而 `rootDir: "src"` 会拒绝它们（TS6059）。清空后，别名解析到 node_modules 中已安装的包（pnpm workspace 的符号链接）及其声明文件，构建因此通过。
+Vite 配置给 `unplugin-dts` 传三个选项：
 
-输出的声明会按原样保留别名说明符，例如 `@noob-naive-ui/registry`。消费者通过 node_modules 解析它。
+```ts
+dts({
+  tsconfigPath: "./tsconfig.build.json",
+  // 输出路径相对本包 src，声明落在 dist/index.d.ts，而不是镜像 workspace 根
+  // （rootDir 是 ../..）。
+  entryRoot: "./src",
+  // 输出声明中原样保留别名说明符。默认的 pathsToAliases 会把 tsconfig paths
+  // 的目标改写成相对兄弟源码的导入（例如 ../../../registry/src/index.ts），
+  // 把源码路径泄露进发布产物。
+  pathsToAliases: false,
+})
+```
 
-跨包导入必须使用这些包别名。相对兄弟导入，例如 `../../../registry/src/index.ts`，会绕过 `paths`，把兄弟源码拉进程序，并原样泄露到输出的声明中。由于别名解析读取的是已安装的类型，需要先构建依赖包；根构建脚本遵循 workspace 的依赖顺序。测试被排除在构建之外。
+`paths` 保持继承。别名把兄弟 `.ts` 源码拉进程序用于类型检查；
+`rootDir: "../.."` 让它们成为合法的程序成员。`entryRoot` 和插件的
+`include` 过滤把输出限定为本包自己的文件，兄弟源码只被检查、不会输出到
+`dist`。
+
+输出的声明会按原样保留别名说明符，例如 `@noob-naive-ui/registry`。
+消费者通过 node_modules 解析它。
+
+跨包导入必须使用这些包别名。相对兄弟导入，例如 `../../../registry/src/index.ts`，
+会绕过 `paths`，把兄弟源码拉进程序，并原样泄露到输出的声明中。由于解析基于
+源码，包构建随时可以独立运行；根构建脚本另外遵循 workspace 的依赖顺序。
+
+模块增强（`declare module "@noob-naive-ui/…"`）必须能从输出的声明中触达。
+unplugin-dts 会从 `.d.ts` 输出中剔除纯副作用导入（`import "./theme"`），
+这会使增强孤立，消费者的 `keyof` schema 退化为 `never`。请改为仅类型再导出
+增强模块：
+
+```ts
+export type * from "./theme";
+```
+
+测试被排除在构建之外。
 
 demo 应用改为继承 `tsconfig.vite.json`，而不是库树：它不输出任何内容。
 

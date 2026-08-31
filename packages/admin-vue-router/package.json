@@ -1,7 +1,6 @@
 {
   "name": "@noob-naive-ui/admin-vue-router",
   "version": "0.0.0",
-  "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -16,7 +15,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "vite build",
+    "build": "pnpm run clean && vite build",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -29,5 +28,10 @@
     "vue": "catalog:",
     "vue-router": "catalog:",
     "zod": "catalog:"
-  }
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Type-safe admin router: route registry, payload codecs, and guards."
 }

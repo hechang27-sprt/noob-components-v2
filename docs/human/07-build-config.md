@@ -73,28 +73,44 @@ Each library package has two files.
 aliases set `rootDir` to the workspace root.
 
 `tsconfig.build.json` serves the declaration emitters. It extends the
-package config and resets emit to a package-local shape:
+package config, keeps the workspace `paths`, and spans the workspace with
+`rootDir` so unplugin-dts can resolve sibling packages **from source**
+(no prebuilt dependency `dist` needed):
 
 ```json
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": false,
-    "rootDir": "src",
-    "outDir": "dist",
-    "paths": {}
+    "rootDir": "../..",
+    "outDir": "dist"
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["tests"]
 }
 ```
 
-`paths` is cleared so the emit program stays scoped to this package's
-`src`. Path aliases point at sibling source files. With `paths` present,
-the alias pulls those `.ts` files into the program, and `rootDir: "src"`
-rejects them (TS6059). With `paths` cleared, the alias resolves to the
-installed package in node_modules (the pnpm workspace symlink) and its
-declaration file instead, so the build passes.
+The Vite config passes three options to `unplugin-dts`:
+
+```ts
+dts({
+  tsconfigPath: "./tsconfig.build.json",
+  // Emit paths relative to this package's src, so declarations land at
+  // dist/index.d.ts instead of mirroring the workspace root (rootDir ../..).
+  entryRoot: "./src",
+  // Keep alias specifiers verbatim in emitted declarations. The default
+  // pathsToAliases rewrites tsconfig paths targets into relative sibling
+  // source imports (e.g. ../../../registry/src/index.ts), which would leak
+  // source paths into published packages.
+  pathsToAliases: false,
+})
+```
+
+`paths` stays inherited. The alias pulls sibling `.ts` sources into the
+program for type checking; `rootDir: "../.."` keeps them legal program
+members. `entryRoot` and the plugin's `include` filter scope the *output*
+to this package's own files, so sibling sources are checked but never
+emitted into `dist`.
 
 Emitted declarations keep the alias specifier as written, for example
 `@noob-naive-ui/registry`. Consumers resolve it through node_modules.
@@ -102,9 +118,21 @@ Emitted declarations keep the alias specifier as written, for example
 Cross-package imports must use these package aliases. A relative sibling
 import such as `../../../registry/src/index.ts` bypasses `paths`, drags
 the sibling source into the program, and leaks verbatim into the emitted
-declaration. Because alias resolution reads installed types, build the
-dependency packages first; the root build script follows the workspace
-dependency order. Tests are excluded from the build.
+declaration. Because resolution is source-based, a package build works
+standalone at any time; the root build script additionally follows the
+workspace dependency order.
+
+Module augmentations (`declare module "@noob-naive-ui/…"`) must be
+reachable from the emitted declarations. unplugin-dts strips bare
+side-effect imports (`import "./theme"`) from `.d.ts` output, which
+orphans augmentations and collapses `keyof` schemas to `never` for
+consumers. Re-export the augmentation module type-only instead:
+
+```ts
+export type * from "./theme";
+```
+
+Tests are excluded from the build.
 
 The demo app extends `tsconfig.vite.json` instead of the library tree:
 it emits nothing.

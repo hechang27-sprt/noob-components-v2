@@ -1,7 +1,6 @@
 {
   "name": "@noob-naive-ui/admin",
   "version": "0.0.0",
-  "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -20,7 +19,7 @@
     "**/*.css"
   ],
   "scripts": {
-    "build": "vite build",
+    "build": "pnpm run clean && vite build",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -40,5 +39,10 @@
     "es-toolkit": "^1.42.0",
     "zod": "catalog:",
     "@noob-naive-ui/registry": "workspace:*"
-  }
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Admin application shell, providers, theme presets, and preference stores for @noob-naive-ui."
 }
