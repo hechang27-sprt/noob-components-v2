@@ -89,8 +89,13 @@ package config and resets emit to a package-local shape:
 }
 ```
 
-`paths` is cleared so emitted declarations use relative imports instead
-of aliases. Tests are excluded from the build.
+`paths` is cleared so the declaration emitter resolves cross-package
+aliases to the real installed packages (the pnpm workspace symlinks in
+node_modules). The emitted declarations then keep the stable package
+specifier, for example `@noob-naive-ui/registry`. With `paths` present,
+the emitter resolves the alias to the sibling source file and rewrites
+the import into a relative path such as `../../../registry/src/index.ts`,
+which breaks packaged consumers. Tests are excluded from the build.
 
 The demo app extends `tsconfig.vite.json` instead of the library tree:
 it emits nothing.

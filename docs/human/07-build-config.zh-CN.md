@@ -79,7 +79,7 @@ pnpm format                     # oxfmt
 }
 ```
 
-`paths` 被清空，这样输出的声明使用相对导入而不是别名。测试被排除在构建之外。
+清空 `paths` 后，声明输出器会把跨包别名解析为真正安装的包（node_modules 中 pnpm workspace 的符号链接）。输出的声明因此保留稳定的包说明符，例如 `@noob-naive-ui/registry`。如果保留 `paths`，输出器会把别名解析到兄弟包的源码文件，并把导入改写成相对路径，例如 `../../../registry/src/index.ts`，这会破坏打包后的消费者。测试被排除在构建之外。
 
 demo 应用改为继承 `tsconfig.vite.json`，而不是库树：它不输出任何内容。
 
