@@ -66,9 +66,10 @@ pnpm lint           # lint (oxlint)
 Docs live in `docs/human/` in English and Simplified Chinese.
 
 - [Getting Started](docs/human/01-getting-started.md)
-- [Theming](docs/human/02-theming.md)
-- [i18n](docs/human/03-i18n.md)
+- [Theming (host side)](docs/human/02-theming.md)
+- [i18n (host side)](docs/human/03-i18n.md)
 - [Architecture](docs/human/04-architecture.md)
+- [Authoring Components](docs/human/05-authoring-components.md)
 
 ## Status
 

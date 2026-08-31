@@ -61,9 +61,10 @@ pnpm lint           # 代码检查（oxlint）
 文档位于 `docs/human/`，提供英文和简体中文版本。
 
 - [快速开始](docs/human/01-getting-started.zh-CN.md)
-- [主题](docs/human/02-theming.zh-CN.md)
-- [i18n](docs/human/03-i18n.zh-CN.md)
+- [主题（宿主侧）](docs/human/02-theming.zh-CN.md)
+- [i18n（宿主侧）](docs/human/03-i18n.zh-CN.md)
 - [架构](docs/human/04-architecture.zh-CN.md)
+- [组件编写](docs/human/05-authoring-components.zh-CN.md)
 
 ## 状态
 

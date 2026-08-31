@@ -31,7 +31,7 @@ declare module "@noob-naive-ui/registry" {
 
 派生类型都来自这一处声明。它们产生 i18n 覆盖树（`RegistryI18nOverrides`）和主题覆盖树（`RegistryThemeOverrides`）。注册表没有字符串索引，因此派生投影保持按库有类型。
 
-运行时，`AdminConfigProvider` 构建一个 computed 注册表值，并通过 `libraryOverridesKey` 提供。组件读取自己库的片段。
+运行时，各包的配置 provider（`AdminConfigProvider`、`AdminUiConfigProvider`）构建 computed 注册表值，并通过 `libraryOverridesKey` 提供。组件读取自己库的片段。
 
 ## 主题数据流
 
@@ -39,15 +39,20 @@ declare module "@noob-naive-ui/registry" {
 2. `AdminProvider` 从偏好设置 store 读取当前预设。
 3. naive-ui 配置合并用 `toMerged` 构建主题和覆盖。
 4. `NGlobalStyle` 根据合并后的主题写入页面背景。
-5. ui 包中的 `useUiTheme` 绑定组件的 CSS 自定义属性。
+5. 组件把自己的局部默认值传给 `useTheme` / `useUiTheme`。
+6. 辅助函数把默认值和任何宿主覆盖片段映射为 CSS 自定义属性。
+
+这里没有主题 store。默认值来自组件源码。详见[组件编写](05-authoring-components.zh-CN.md)。
 
 ## i18n 数据流
 
 1. 宿主把消息注入全局的 vue-i18n composer。
-2. 包组件调用 `createComponentI18n`。
-3. 函数用包默认消息构建局部 composer。
+2. 包组件调用 `createComponentI18n` 并传入包默认消息。
+3. 函数用这些默认消息构建局部 composer。
 4. 它从注册表合并组件的覆盖片段。
 5. 缺失的 key 通过根 composer 回退到宿主消息。
+
+包默认消息来自组件的语言 JSON。这里没有包级消息 store。详见[组件编写](05-authoring-components.zh-CN.md)。
 
 ## 外壳与路由
 

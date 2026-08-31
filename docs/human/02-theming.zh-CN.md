@@ -1,6 +1,6 @@
-# 主题
+# 主题（宿主侧）
 
-框架的主题分为两层。naive-ui 负责组件颜色。`@noob-naive-ui/registry` 包负责框架组件的 CSS 自定义属性。
+本指南从应用开发者的角度介绍主题：主题预设、Provider 配置和字号。如果你要编写读取主题值的组件，请参见[组件编写](05-authoring-components.zh-CN.md)。
 
 ## 主题预设
 
@@ -29,47 +29,38 @@ const preset: AdminThemePreset = {
 
 demo 提供亮色预设（`default`）和暗色预设（`midnight`）。当存储的模式为 `"system"` 时，浏览器配色方案会选择其中之一。
 
-外壳在偏好设置控件中展示预设列表。切换预设会同时更新 naive-ui 主题和 CSS 自定义属性。
-
-## 框架组件的 CSS 自定义属性
-
-框架组件从 CSS 自定义属性读取值。示例：
-
-```css
---noob-ui-card-tabs-background-color: #fff;
-```
-
-组件通过三种方式绑定这些属性：
-
-- **默认值** — 由每个组件提供（`useUiTheme` getter）。
-- **Provider 覆盖** — 来自应用配置 provider 的部分值。
-- **计算值** — 由默认值推导而来（例如 CardTabs 的 col-template 字符串）。
-
-getter 形式很重要。`useTheme` 接受普通对象或 getter 函数。当默认值依赖响应式来源（例如 naive-ui 的 `useThemeVars()`）时，请使用 getter：
-
-```ts
-const getDefaults = () => ({
-  backgroundColor: nThemeVars.value.bodyColor,
-  activeCardColor: nThemeVars.value.cardColor,
-});
-const vars = useUiTheme("CardTabs", getDefaults);
-```
-
-getter 在 computed 内部运行，因此响应式来源变化时会重新求值。
-
-## 配色方案与页面背景
-
-naive-ui 的 `NGlobalStyle` 会根据合并后的主题写入页面背景。admin 的覆盖合并不能修改基础覆盖表。框架为此使用 `es-toolkit` 的 `toMerged`，因此从暗色预设切回亮色时，亮色页面背景会恢复。
+外壳在偏好设置控件中展示预设列表。切换预设会更新 naive-ui 主题。
 
 ## 字号分级
 
-naive-ui 静态设置 `body { font-size: 14px }`。框架增加了按字号分级的数值，以便内容缩放：
+naive-ui 静态设置 `body { font-size: 14px }`。框架增加了按字号分级的数值，以便内容缩放。数值可以携带按字号分级的配置：
 
 ```ts
 padding: { small: "0.75rem", medium: "1rem", large: "1.25rem" }
 ```
 
 叶子值可以是普通字符串，也可以是以字号为键的记录。当前字号会在运行时解析叶子值。
+
+## 按库覆盖
+
+宿主可以为整个库覆盖主题值。使用各包的配置 provider：
+
+```tsx
+import { AdminUiConfigProvider } from "@noob-naive-ui/ui";
+
+<AdminUiConfigProvider
+  themeOverride={{
+    CardTabs: { backgroundColor: "#fafafa" },
+  }}>
+  {/* 应用树 */}
+</AdminUiConfigProvider>
+```
+
+provider 会把你的片段合并到共享覆盖注册表中。子树内最近的 provider 生效。
+
+## 配色方案与页面背景
+
+naive-ui 的 `NGlobalStyle` 会根据合并后的主题写入页面背景。admin 的覆盖合并不能修改基础覆盖表。框架为此使用 `es-toolkit` 的 `toMerged`，因此从暗色预设切回亮色时，亮色页面背景会恢复。
 
 ## Tailwind 与单一导入规则
 
@@ -84,5 +75,5 @@ padding: { small: "0.75rem", medium: "1rem", large: "1.25rem" }
 
 ## 下一步
 
-- [i18n](03-i18n.zh-CN.md) — 组件级语言模式
-- [架构](04-architecture.zh-CN.md) — 包的作用与数据流
+- [i18n（宿主侧）](03-i18n.zh-CN.md) — 宿主语言消息
+- [组件编写](05-authoring-components.zh-CN.md) — 组件内部的主题变量和 i18n

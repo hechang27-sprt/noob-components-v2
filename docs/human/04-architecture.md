@@ -37,9 +37,9 @@ override tree (`RegistryI18nOverrides`) and the theme override tree
 (`RegistryThemeOverrides`). The registry has no string index, so the
 derived projections stay per-library typed.
 
-At runtime, `AdminConfigProvider` builds a computed registry value and
-provides it under `libraryOverridesKey`. Components read their own
-library's slice.
+At runtime, the per-package config providers (`AdminConfigProvider`,
+`AdminUiConfigProvider`) build a computed registry value and provide it
+under `libraryOverridesKey`. Components read their own library's slice.
 
 ## Theming data flow
 
@@ -47,15 +47,24 @@ library's slice.
 2. `AdminProvider` reads the active preset from the preferences store.
 3. The naive-ui config merge builds theme + overrides with `toMerged`.
 4. `NGlobalStyle` writes the body background from the merged theme.
-5. `useUiTheme` in the ui package binds component CSS custom properties.
+5. A component passes its local defaults to `useTheme` / `useUiTheme`.
+6. The helper maps defaults plus any host override slice to CSS custom
+   properties.
+
+There is no theme store. Defaults come from component source. See
+[Authoring Components](05-authoring-components.md) for details.
 
 ## i18n data flow
 
 1. The host seeds its messages into the global vue-i18n composer.
-2. A package component calls `createComponentI18n`.
-3. The function builds a local composer with packaged defaults.
+2. A package component calls `createComponentI18n` with packaged defaults.
+3. The function builds a local composer from those defaults.
 4. It merges the component's override slice from the registry.
 5. Missing keys fall back to host messages through the root composer.
+
+Packaged defaults come from the component's locale JSON. There is no
+package-wide message store. See
+[Authoring Components](05-authoring-components.md) for details.
 
 ## Shell and router
 
