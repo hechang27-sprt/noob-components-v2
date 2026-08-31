@@ -5,14 +5,7 @@ import {
   readdirSync,
   writeFileSync,
 } from "node:fs";
-import {
-  dirname,
-  extname,
-  isAbsolute,
-  join,
-  relative,
-  resolve,
-} from "node:path";
+import { dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Plugin } from "vite";
 
@@ -225,55 +218,16 @@ export function regenerateLocaleTypes(
   return true;
 }
 
-/** True when `id` is a `*.json` file inside `dir`. */
-function isJsonUnderDir(id: string, dir: string): boolean {
-  const rel = relative(dir, id);
-  return (
-    rel !== "" &&
-    !rel.startsWith("..") &&
-    !isAbsolute(rel) &&
-    extname(id) === ".json"
-  );
-}
-
-/**
- * Logs a regeneration failure through the Vite plugin context instead of
- * failing the dev server; the next change event retries.
- *
- * @param context - Vite plugin context exposing `warn`.
- * @param trigger - Description of what triggered the attempt.
- * @param dir - Locale JSON scan directory.
- * @param outFile - Generated TS module path.
- * @param options - Naming options forwarded to the generator.
- */
-function regenerateOrWarn(
-  context: { warn: (message: string) => void },
-  trigger: string,
-  dir: string,
-  outFile: string,
-  options: { typeName?: (stem: string) => string; mapName?: string },
-): void {
-  try {
-    regenerateLocaleTypes(dir, outFile, options);
-  } catch (error) {
-    context.warn(
-      `[json-locale-types] Failed to regenerate "${outFile}" after "${trigger}": ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-    );
-  }
-}
-
 /**
  * Creates the build-time JSON → TS type plugin: on `buildStart` it scans
  * `dir` for JSON files, generates the type module, and writes `outFile`
  * before the module graph (and any declaration emitter) is processed.
  *
- * Build-time only — it does not watch for changes; dev servers register
- * {@link createJsonLocaleTypesWatcherPlugin} for live regeneration. The
- * output file is committed: plain `tsc --noEmit` and CI typechecks read it
- * without running Vite. Parse errors and name collisions fail the build
- * naming the offending file.
+ * Build-time only — it does not watch for changes. Locale JSON edits during
+ * dev hot-reload at runtime; the committed output file refreshes on the next
+ * server start or build. The output file is committed: plain `tsc --noEmit`
+ * and CI typechecks read it without running Vite. Parse errors and name
+ * collisions fail the build naming the offending file.
  *
  * @param options - Scan directory, output path, and naming options.
  * @returns The Vite plugin.
@@ -292,41 +246,6 @@ export function createJsonLocaleTypesPlugin(
         );
       }
       regenerateLocaleTypes(dir, outFile, { typeName, mapName });
-    },
-  };
-}
-
-/**
- * Creates the dev-server JSON → TS type watcher plugin: regenerates
- * `outFile` at `buildStart` (initial freshness) and whenever a `*.json`
- * under `dir` changes (`watchChange`), so tsserver and watch-mode test
- * runs stay current while the dev surface runs.
- *
- * Register this in dev-facing apps (e.g. `apps/demo`) pointed at the
- * library's locale directory and generated file; the library's own build
- * registers {@link createJsonLocaleTypesPlugin} instead. Failures
- * (mid-save parse errors, empty directories) are logged, not fatal — the
- * next change event retries.
- *
- * @param options - Scan directory, output path, and naming options.
- * @returns The Vite plugin.
- */
-export function createJsonLocaleTypesWatcherPlugin(
-  options: CreateJsonLocaleTypesPluginOptions,
-): Plugin {
-  const { dir, outFile, typeName, mapName } = options;
-  return {
-    name: "noob-json-locale-types-watcher",
-    enforce: "pre",
-    async buildStart() {
-      regenerateOrWarn(this, "server start", dir, outFile, {
-        typeName,
-        mapName,
-      });
-    },
-    watchChange(id) {
-      if (!isJsonUnderDir(id, dir)) return;
-      regenerateOrWarn(this, id, dir, outFile, { typeName, mapName });
     },
   };
 }

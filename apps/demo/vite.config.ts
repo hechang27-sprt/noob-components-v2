@@ -5,7 +5,6 @@ import vue from "@vitejs/plugin-vue";
 import vueJsxVapor from "vue-jsx-vapor/vite";
 import vueDevTools from "vite-plugin-vue-devtools";
 import { createWorkspaceVueI18nPlugin } from "../../tooling/vite/vue-i18n";
-import { createJsonLocaleTypesWatcherPlugin } from "../../tooling/vite/json-locale-types";
 import { defineConfig } from "vite";
 
 export default defineConfig({
@@ -18,16 +17,6 @@ export default defineConfig({
     // Without it, the dev server and production build must still work; built
     // package consumers configure nothing.
     createWorkspaceVueI18nPlugin(),
-    // Regenerates the admin package's generated locale types when its JSON
-    // resources change during dev, so tsserver/watch-mode typechecks stay
-    // fresh without an admin rebuild.
-    createJsonLocaleTypesWatcherPlugin({
-      dir: resolve(__dirname, "../../packages/admin/src/locales"),
-      outFile: resolve(
-        __dirname,
-        "../../packages/admin/src/locales/locale-types.generated.ts",
-      ),
-    }),
   ],
   resolve: {
     // Vite 8 reads tsconfig.json paths — replaces manual JS/TS aliases.
