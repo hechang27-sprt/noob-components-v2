@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 
 import { defineConfig } from "vitest/config";
-import { dtsForBuild } from "@noob/tooling-vite/dts-build";
+import { dtsForBuild } from "@noob/tooling-vite";
 
 export default defineConfig({
   plugins: [

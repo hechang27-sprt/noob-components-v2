@@ -4,9 +4,9 @@ import tailwindcss from "@tailwindcss/vite";
 import vueJsxVapor from "vue-jsx-vapor/vite";
 import { defineConfig } from "vitest/config";
 import vue from "@vitejs/plugin-vue";
-import { dtsForBuild } from "@noob/tooling-vite/dts-build";
+import { dtsForBuild } from "@noob/tooling-vite";
 import vueI18n from "@intlify/unplugin-vue-i18n/vite";
-import { createJsonLocaleTypesPlugin } from "@noob/tooling-vite/json-locale-types";
+import { createJsonLocaleTypesPlugin } from "@noob/tooling-vite";
 
 export default defineConfig({
   plugins: [

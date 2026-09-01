@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import vue from "@vitejs/plugin-vue";
 import vueJsxVapor from "vue-jsx-vapor/vite";
 import vueDevTools from "vite-plugin-vue-devtools";
-import { createWorkspaceVueI18nPlugin } from "@noob/tooling-vite/vue-i18n";
+import { createWorkspaceVueI18nPlugin } from "@noob/tooling-vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
