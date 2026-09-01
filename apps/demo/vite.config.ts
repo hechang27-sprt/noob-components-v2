@@ -20,6 +20,64 @@ export default defineConfig({
   ],
   build: {
     cssMinify: false,
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          minSize: 50000, // 50KB minimum chunk size
+          groups: [
+            {
+              name: "vue",
+              test: /[\\/]node_modules[\\/]vue[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "vue-i18n",
+              test: /[\\/]node_modules[\\/]vue-i18n[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "vue-router",
+              test: /[\\/]node_modules[\\/]vue-router[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "naive-ui",
+              test: /[\\/]node_modules[\\/]naive-ui[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "pro-naive-ui",
+              test: /[\\/]node_modules[\\/]pro-naive-ui[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "pinia",
+              test: /[\\/]node_modules[\\/]pinia[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "vendor",
+              test: /[\\/]node_modules[\\/]/,
+              // Keep vendor at the same priority as the named groups; at a
+              // lower priority rolldown folds its module set into whichever
+              // group chunk references it and no vendor chunk is emitted.
+              priority: 20,
+            },
+            {
+              // Workspace libs resolve FROM SOURCE via tsconfigPaths
+              // (packages/<pkg>/src/...), so a node_modules-anchored test
+              // never matches; also match the package directories. Declaring
+              // this group LAST keeps rolldown's tie handling from absorbing
+              // the earlier named chunks.
+              name: "@noob-naive-ui",
+              test: /[\\/](?:node_modules[\\/](?:@noob|@noob-naive-ui)|packages[\\/](?:registry|i18n|ui|admin|admin-vue-router))[\\/]/,
+              priority: 20,
+              minSize: 0,
+            },
+          ],
+        },
+      },
+    },
   },
   resolve: {
     // Vite 8 reads tsconfig.json paths — replaces manual JS/TS aliases.
