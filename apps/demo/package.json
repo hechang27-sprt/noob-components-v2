@@ -7,7 +7,7 @@
     "build": "vite build",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "dev": "vite",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc6 -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@noob-naive-ui/admin": "workspace:*",

@@ -1,19 +1,22 @@
 # 构建配置
 
-本指南介绍 monorepo 的构建环境：TypeScript 配置、Vite 配置，以及 `tooling/vite` 中的自定义插件。
+本指南介绍 monorepo 的构建环境：TypeScript 配置、Vite 配置，以及 `@noob/tooling-vite` 辅助包。
 
 ## 概览
 
 工作区是 pnpm monorepo。根脚本驱动所有包：
 
 ```bash
-pnpm -r --if-present build      # 构建每个包
-pnpm -r --if-present typecheck  # 检查每个包的类型
+pnpm -r --if-present build      # 构建每个包（拓扑顺序）
+pnpm typecheck                  # 全仓库类型门禁 + tooling 类型检查
+pnpm typecheck:all              # 仅全仓库类型门禁
 pnpm lint                       # oxlint
 pnpm format                     # oxfmt
 ```
 
-每个包拥有一个 Vite 配置和两个 TypeScript 配置。共享设置位于三个根配置中。
+每个库包拥有一个 Vite 配置和**一个** TypeScript 配置。共享设置位于三个根配置中。
+
+声明文件由 `rolldown-plugin-dts`（tsc 生成器，融合为单文件输出）生成，由项目引用结构驱动。编译器是 TypeScript 6，通过 `tsc6` 调用。
 
 ## TypeScript 配置
 
@@ -34,11 +37,12 @@ pnpm format                     # oxfmt
       "@noob-naive-ui/admin": ["./packages/admin/src/index.ts"],
       "@noob-naive-ui/ui": ["./packages/ui/src/index.ts"]
     }
-  }
+  },
+  "include": ["packages/*/src/**/*.ts", "packages/*/tests/**/*.ts", "apps/demo/src/**/*.ts"]
 }
 ```
 
-每个工作区包出现两次：一次带 `@noob-naive-ui/*` 前缀，一次带更短的 `@noob/*` 前缀。
+每个工作区包出现两次：一次带 `@noob-naive-ui/*` 前缀，一次带更短的 `@noob/*` 前缀。别名指向**源码**，因此所有工具（编辑器、vitest、vite `tsconfigPaths`、声明插件）都从源码解析兄弟包——不需要预先构建依赖的 `dist`，独立构建单个包也保持完整类型。
 
 `tsconfig.vite.json` 扩展基础配置，并把 `types` 设为 `node` 和 `vite/client`。应用继承它。
 
@@ -59,97 +63,164 @@ pnpm format                     # oxfmt
 
 ### 包配置
 
-每个库包有两个文件。
-
-`tsconfig.json` 服务于编辑器和 typecheck。它扩展 `tsconfig.library.json`。需要经由路径别名访问兄弟源码的包，会把 `rootDir` 设为工作区根。
-
-`tsconfig.build.json` 服务于声明输出器。它扩展包配置，保留 workspace 的
-`paths`（unplugin-dts 直接从源码解析兄弟包——不需要预先构建依赖的
-`dist`），并且不设置 `rootDir`：
+每个库包只有一个 `tsconfig.json`：
 
 ```json
 {
-  "extends": "./tsconfig.json",
+  "extends": "../../tsconfig.library.json",
   "compilerOptions": {
     "noEmit": false,
-    "outDir": "dist"
+    "rootDir": "src",
+    "outDir": "dist",
+    "declarationDir": "dist",
+    "composite": true,
+    "emitDeclarationOnly": true
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["tests"]
+  "exclude": ["tests"],
+  "references": [
+    { "path": "../registry/tsconfig.json" },
+    { "path": "../i18n/tsconfig.json" },
+    { "path": "../ui/tsconfig.json" }
+  ]
 }
 ```
 
-Vite 配置给 `unplugin-dts` 传两个选项：
+`composite: true` 加上 `references` 声明包的依赖图。同一份文件同时服务于编辑器、全仓库类型门禁和声明插件——不再有单独的 `tsconfig.build.json`。
+
+引用图：
+
+| 包 | 引用 |
+| --- | --- |
+| `registry` | — |
+| `i18n` | `registry` |
+| `ui` | `registry`、`i18n` |
+| `admin` | `registry`、`i18n`、`ui` |
+| `admin-vue-router` | `admin`、`i18n` |
+
+demo 应用继承 `tsconfig.vite.json` 而非库树：它不输出任何文件。
+
+## 编译器：TypeScript 6
+
+仓库的编译器是 TypeScript 6，通过工作区目录（catalog）中的 npm 别名引入：
+
+```yaml
+# pnpm-workspace.yaml
+catalog:
+  typescript: npm:@typescript/typescript6@^6.0.2
+```
+
+根目录和每个工作区包都声明 `"typescript": "catalog:"`，因此共享单一版本，pnpm 也在单一的 peer 上下文（peer context）中安装包。选择它的两个原因：
+
+- 官方 `typescript@7` 包只是 API 桩（仅版本字段，没有编译器 API）；tsgo 生成器没有声明融合能力，且会拒绝 `tsc` 生成器。
+- TypeScript 5.x 缺少本仓库使用的库特性（`Map.getOrInsertComputed`），并会在测试里产生误报的 DOM/zod 类型错误。
+
+`@typescript/typescript6` 提供完整编译器 API，但只提供 `tsc6` 二进制（没有 `tsc`），所以所有脚本都调用 `tsc6`。
+
+插件的 `typescript` 从 `tooling/vite` 自己的依赖解析，因此 `tooling/vite` 必须保持相同的别名——否则生成器会静默选择 tsgo（TypeScript 7）。
+
+## 声明构建
+
+库的 Vite 配置通过共享辅助函数安装声明插件：
 
 ```ts
-dts({
-  tsconfigPath: "./tsconfig.build.json",
-  // 输出路径相对本包 src 映射，声明落在 dist/index.d.ts。如果不设，
-  // 插件会从整个程序推导根目录——paths 拉入的兄弟源码会把根扩大到
-  // workspace——于是镜像出 dist/packages/<pkg>/src/…。
-  entryRoot: "./src",
-  // 输出声明中原样保留别名说明符。默认的 pathsToAliases 会把 tsconfig paths
-  // 的目标改写成相对兄弟源码的导入（例如 ../../../registry/src/index.ts），
-  // 把源码路径泄露进发布产物。
-  pathsToAliases: false,
+import { dtsForBuild } from "@noob/tooling-vite";
+
+dtsForBuild({
+  tsconfig: "./tsconfig.json",
 })
 ```
 
-`paths` 保持继承，别名把兄弟 `.ts` 源码拉进程序用于类型检查；编译器隐式的
-程序根已经覆盖整个 workspace，所以不会有文件越界。`entryRoot` 和插件的
-`include` 过滤把输出限定为本包自己的文件：兄弟源码只被检查、不会输出到
-`dist`。
+`dtsForBuild` 包装 `rolldown-plugin-dts` 的 `dts()`，并对返回的每个插件应用 `apply: "build"`，使声明管线永不进入 Vitest 的 dev server（其 `buildStart` 在没有构建输入时会崩溃）。
 
-输出的声明会按原样保留别名说明符，例如 `@noob-naive-ui/registry`。
-消费者通过 node_modules 解析它。
+插件使用 `tsc` 生成器和包的 composite 配置。每个包的输出是**融合的单文件** `dist/index.d.ts`（含 map）：入口图的自身声明合并进一个模块，兄弟包和依赖保持外部说明符（`import { … } from "@noob-naive-ui/registry"`）——这是声明了这些依赖的发布包的正确契约。
 
-跨包导入必须使用这些包别名。相对兄弟导入，例如 `../../../registry/src/index.ts`，
-会绕过 `paths`，把兄弟源码拉进程序，并原样泄露到输出的声明中。由于解析基于
-源码，包构建随时可以独立运行；根构建脚本另外遵循 workspace 的依赖顺序。
+### 为什么不用 `build: true`
 
-模块增强（`declare module "@noob-naive-ui/…"`）必须能从输出的声明中触达。
-unplugin-dts 会从 `.d.ts` 输出中剔除纯副作用导入（`import "./theme"`），
-这会使增强孤立，消费者的 `keyof` schema 退化为 `never`。请改为仅类型再导出
-增强模块：
+`build: true` 已经过评估并放弃。`composite` 强制开启插件的增量模式（`incremental: false` 无法关闭），它会调用 `tsc -b`，并把**逐文件声明**输出到 `dist`——这是 tsc -b 的布局，不是融合包。该模式还会持久化缓存；`dist` 被清空或编译器切换后缓存会失效（可复现的 "Unable to read file …/dist/index.d.ts" 失败），并在 `pnpm -r` 下与 rolldown 的分块逻辑竞争。单程序路径则确定性地融合：两次干净的顺序构建字节级一致。
+
+### 声明构建的 Vite 配套
+
+库配置共享三个保持融合输出完整的设置：
 
 ```ts
-export type * from "./theme";
+oxc: {
+  // vite 的 oxc 转换会剥离虚拟 .d.ts 模块。
+  exclude: [/\.js$/, /\.d\.[cm]?ts$/],
+},
+build: {
+  lib: {
+    fileName: (_format, name) =>
+      name.endsWith(".d") ? `${name}.ts` : `${name}.js`,
+  },
+},
 ```
 
-测试被排除在构建之外。
+`fileName` 映射让声明块输出为 `index.d.ts` 而不是 `index.ts`。
 
-demo 应用改为继承 `tsconfig.vite.json`，而不是库树：它不输出任何内容。
+`ui` 和 `admin` 还会把生成的 locale-types 文件（`locale-types.generated.ts` 及其 `.d.ts` 孪生）从 `@intlify/unplugin-vue-i18n` 的资源转换中排除。
+
+## 外部化依赖
+
+`externalFromPackageJson` 从包自己的 `package.json` 构建 `rolldownOptions.external` 谓词：
+
+```ts
+import { externalFromPackageJson } from "@noob/tooling-vite";
+
+build: {
+  rolldownOptions: {
+    external: externalFromPackageJson(
+      resolve(import.meta.dirname, "package.json"),
+    ),
+  },
+},
+```
+
+它把 `dependencies`、`peerDependencies`、`optionalDependencies` 中的每一项（精确匹配或子路径）以及 Node 内建模块外部化。`devDependencies`（构建工具）仍可被打包。这取代了旧的手写 external 数组。
+
+## 类型检查
+
+只有一个全仓库类型门禁：
+
+```bash
+pnpm typecheck   # tsc6 -p tsconfig.json --noEmit
+                 # + pnpm --filter @noob/tooling-vite run typecheck
+```
+
+根程序包含每个包的 `src` 和 `tests` 以及 demo 源码，通过 `paths` 别名解析兄弟包，因此一次遍历检查整个跨包图。
+
+每个包单独跑 `tsc -b` 刻意不用于类型检查：它的逐文件声明输出会落在 `dist` 内，与融合包冲突（TS6305 "output file has not been built from source"）；而在两种模式下，引用校验都要求 `dist` 持有符合 tsc 形状的输出。
+
+`tooling/**` 被排除在根程序之外（tooling 使用 `allowImportingTsExtensions` 以支持 Node ESM-TS 加载），由自己的 `tsconfig.json` 和脚本检查。
 
 ## Vite 配置
 
-库包使用 `vitest/config` 的 `defineConfig`，因此一个配置同时覆盖构建和测试。
+库包使用 `vitest/config` 的 `defineConfig`，一份配置同时覆盖构建和测试运行。
 
 ### 库构建形态
 
 ```ts
 export default defineConfig({
+  plugins: [dtsForBuild({ tsconfig: "./tsconfig.json" })],
+  oxc: { exclude: [/\.js$/, /\.d\.[cm]?ts$/] },
   build: {
     lib: {
-      entry: resolve(__dirname, "src/index.ts"),
+      entry: resolve(import.meta.dirname, "src/index.ts"),
       formats: ["es"],
-      fileName: "index",
+      fileName: (_format, name) =>
+        name.endsWith(".d") ? `${name}.ts` : `${name}.js`,
     },
     rolldownOptions: {
-      external: [
-        "@noob-naive-ui/i18n",
-        "naive-ui",
-        "vue",
-        "vue-i18n",
-        "zod",
-      ],
+      external: externalFromPackageJson(
+        resolve(import.meta.dirname, "package.json"),
+      ),
     },
   },
+  resolve: { tsconfigPaths: true },
 });
 ```
 
-`external` 列出 peer 依赖。包打包自己的代码，但把框架和兄弟包保持在外部。
-
-输出 CSS 的包（`ui`、`admin`）会加上 `cssFileName: "style"`。
+带 CSS 的包（`ui`、`admin`）额外设置 `cssFileName: "style"` 和 `cssMinify: false`。
 
 ### 路径解析
 
@@ -161,39 +232,59 @@ resolve: {
 }
 ```
 
-这取代了手写的 JS 和 TS 别名。CSS 子路径导入仍需要显式别名，因为 `tsconfigPaths` 不解析 CSS：
+CSS 子路径导入仍需要显式别名，因为 `tsconfigPaths` 不解析 CSS：
 
 ```ts
 alias: [
   {
     find: "@noob-naive-ui/ui/style.css",
-    replacement: resolve(__dirname, "../ui/src/style.css"),
+    replacement: resolve(import.meta.dirname, "../ui/src/style.css"),
   },
 ],
 ```
 
-### 各包的插件栈
+### 各包插件栈
 
 | 包 | 插件 | 测试环境 |
 | --- | --- | --- |
-| `registry` | `dts` | node |
-| `i18n` | `vueJsxVapor`、`dts` | node |
-| `admin-vue-router` | `vueJsxVapor`、`dts` | node |
-| `ui` | locale 类型、`tailwindcss`、`vueJsxVapor`、`vueI18n`、`dts` | happy-dom |
-| `admin` | locale 类型、`tailwindcss`、`vueJsxVapor`、`vueI18n`、`dts` | node |
-| `demo` | `tailwindcss`、`vue`、`vueJsxVapor`、devtools、工作区 vue-i18n | — |
+| `registry` | `dtsForBuild` | node |
+| `i18n` | `vueJsxVapor`、`dtsForBuild` | node |
+| `admin-vue-router` | `vueJsxVapor`、`dtsForBuild` | node |
+| `ui` | locale types、`tailwindcss`、`vueJsxVapor`、`vueI18n`、`dtsForBuild` | happy-dom |
+| `admin` | locale types、`tailwindcss`、`vueJsxVapor`、`vueI18n`、`dtsForBuild` | node |
+| `demo` | `tailwindcss`、`vue`、`vueJsxVapor`、devtools、workspace vue-i18n | — |
 
-所有库配置都运行 `unplugin-dts`，并用 `tsconfigPath: "./tsconfig.build.json"` 输出声明。
+所有库配置都运行 `dtsForBuild({ tsconfig: "./tsconfig.json" })`。
 
-demo 配置还设置了 `server.fs.allow` 为工作区根，这样开发服务器可以服务兄弟包的源码。
+demo 配置还设置了 `server.fs.allow` 指向工作区根，让 dev server 可以服务兄弟包源码。
+
+### 应用里的框架单例
+
+应用必须以**单一实例**渲染每个框架单例（vue、vue-router、pinia、vue-i18n、naive-ui、pro-naive-ui）。已发布的库 dist 按名称导入这些依赖，pnpm 可能在不同的 peer-context 变体下安装多个物理副本；如果应用的直接依赖与库解析到不同变体，包里就会出现重复实例，注入键在边界处失效（白屏，vue-router 的 RouterView 内报 `Cannot read properties of undefined (reading 'value')`）。有两道防线：
+
+- `apps/demo` 与所有包一样声明 `"typescript": "catalog:"`，使它的整个导入图共享同一个 peer context。
+- demo 配置固定单例：
+
+```ts
+resolve: {
+  dedupe: ["vue", "vue-router", "pinia", "vue-i18n", "naive-ui", "pro-naive-ui"],
+},
+```
 
 ## `tooling/vite` 中的自定义插件
 
-两个工作区自有的插件位于 `tooling/vite` 下。
+`tooling/vite` 是内部包 `@noob/tooling-vite`（永不发布）。它的 `package.json` 遵循内部包模式：`"type": "module"`，`main`/`types`/`exports` 通过 `index.ts` 指向原始 `.ts` 源码，消费者按包名导入。本地 `tsconfig.json`（`noEmit` + `allowImportingTsExtensions`）负责它的类型检查，因为 Node 的 ESM 加载器要求再导出中使用显式 `.ts` 扩展名。
+
+导出项：
+
+- `json-locale-types` — `createJsonLocaleTypesPlugin`，locale-types 生成（见下文）。
+- `vue-i18n` — `createWorkspaceVueI18nPlugin`（见下文）。
+- `dts-build` — `dtsForBuild`。
+- `external` — `externalFromPackageJson`。
 
 ### `json-locale-types.ts`
 
-在构建时从 locale JSON 生成 TypeScript 类型。它扫描目录中的 JSON 文件，为每个文件输出一个接口，并输出从文件 stem 到类型的 `LocaleFileMap`：
+在构建时从 locale JSON 生成 TypeScript 类型。它扫描目录中的 JSON 文件，为每个文件发出一个接口，再加一个从文件主名到类型的 `LocaleFileMap`：
 
 ```ts
 // packages/ui/src/locales/locale-types.generated.ts
@@ -207,25 +298,30 @@ export interface LocaleFileMap {
 }
 ```
 
-输出仅包含类型，运行时会被擦除。
+输出仅包含类型，因此在运行时被擦除。
 
-`createJsonLocaleTypesPlugin({ dir, outFile })` 把生成器接入 Vite。ui 和 admin 配置在模块图和声明输出器运行之前安装它。
+`createJsonLocaleTypesPlugin({ dir, outFile })` 把生成器接入 Vite。ui 和 admin 配置在模块图与声明输出器运行之前安装它。
 
 ### `vue-i18n.ts`
 
-`createWorkspaceVueI18nPlugin()` 把 `@intlify/unplugin-vue-i18n` 预编译器与仅 Vite 的 HMR 伴生插件组合在一起。伴生插件能识别 `apps/*/src/locales` 和 `packages/*/src/locales` 下的 JSON 修改，因此 locale 资源变化可以热更新，而无需完整刷新。
+`createWorkspaceVueI18nPlugin()` 把 `@intlify/unplugin-vue-i18n` 预编译器与一个仅限 Vite 的 HMR 伴侣打包。伴侣识别 `apps/*/src/locales` 与 `packages/*/src/locales` 下的 JSON 编辑，因此 locale 资源变化无需完整重载即可热更新。
 
-demo 安装这个预设。已构建的包消费者不需要它。
+demo 安装此预设。已发布包的消费者不需要它。
 
-## 添加一个包
+## 构建确定性
+
+- 干净的顺序构建（`pnpm -r build`）在多次运行之间**字节级一致**；`dist` 只包含 `index.d.ts(+map)`、`index.js(+map)`，可选 `style.css`。
+- 独立构建单个包仍保持完整类型，因为 `paths` 别名从源码解析兄弟包；仍然推荐按顺序的 `-r` 构建，保证发布包始终一起校验。
+
+## 新增包
 
 1. 把目录加入 `pnpm-workspace.yaml`。
-2. 创建 `tsconfig.json`（继承 `tsconfig.library.json`）和 `tsconfig.build.json`。
-3. 创建带库构建形态、externals 和插件的 `vite.config.ts`。
-4. 在根 `tsconfig.json` 中添加该包的 `paths` 条目。
-5. 运行 `pnpm install`，然后 `pnpm -r typecheck`。
+2. 创建单个 `tsconfig.json`（继承 `tsconfig.library.json`，`composite: true`，`rootDir: "src"`，`outDir: "dist"`，`emitDeclarationOnly: true`，`references` 指向兄弟包）。
+3. 在根 `tsconfig.json` 中为该包添加 `paths` 条目。
+4. 创建带库构建形态、`dtsForBuild`、`externalFromPackageJson` 和插件的 `vite.config.ts`。
+5. 运行 `pnpm install`，然后 `pnpm typecheck` 和 `pnpm -r --if-present build`。
 
 ## 下一步
 
-- [架构](04-architecture.zh-CN.md) — 包的作用与数据流
-- [Admin 路由](06-admin-vue-router.zh-CN.md) — 动态路由与载荷 codec
+- [架构](04-architecture.zh-CN.md) — 包角色与数据流
+- [Admin Router](06-admin-vue-router.zh-CN.md) — 动态路由与载荷编解码
