@@ -2,23 +2,27 @@ import { resolve } from "node:path";
 
 import vueJsxVapor from "vue-jsx-vapor/vite";
 import { defineConfig } from "vitest/config";
-import dts from "unplugin-dts/vite";
+import { dts } from "rolldown-plugin-dts";
 
 export default defineConfig({
-  plugins: [vueJsxVapor({ interop: true, macros: true }), dts({
-      tsconfigPath: "./tsconfig.build.json",
-      // Monorepo: entries are package src; deps resolve via tsconfig
-      // paths from source (no prebuilt dep dist needed).
-      entryRoot: "./src",
-      // Keep emitted specifiers verbatim (@noob-naive-ui/*) instead of
-      // rewriting paths targets into relative sibling-source imports.
-      pathsToAliases: false,
-    })],
+  plugins: [
+    vueJsxVapor({ interop: true, macros: true }),
+    ...dts({
+      tsconfig: "./tsconfig.build.json",
+      build: true,
+    }),
+  ],
+  oxc: {
+    // Keep generated declarations intact: vite's oxc transform would
+    // otherwise strip the virtual .d.ts modules served by rolldown-plugin-dts.
+    exclude: [/\.js$/, /\.d\.[cm]?ts$/],
+  },
   build: {
     lib: {
-      entry: resolve(__dirname, "src/index.ts"),
+      entry: resolve(import.meta.dirname, "src/index.ts"),
       formats: ["es"],
-      fileName: "index",
+      fileName: (_format: string, name: string) =>
+        name.endsWith(".d") ? `${name}.ts` : `${name}.js`,
     },
     rolldownOptions: {
       external: [
@@ -38,7 +42,7 @@ export default defineConfig({
     alias: [
       {
         find: "@noob-naive-ui/ui/style.css",
-        replacement: resolve(__dirname, "../ui/src/style.css"),
+        replacement: resolve(import.meta.dirname, "../ui/src/style.css"),
       },
     ],
   },

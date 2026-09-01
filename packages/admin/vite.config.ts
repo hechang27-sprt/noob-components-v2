@@ -5,7 +5,7 @@ import tailwindcss from "@tailwindcss/vite";
 import vueJsxVapor from "vue-jsx-vapor/vite";
 import { defineConfig } from "vitest/config";
 import vue from "@vitejs/plugin-vue";
-import dts from "unplugin-dts/vite";
+import { dts } from "rolldown-plugin-dts";
 
 import { createJsonLocaleTypesPlugin } from "../../tooling/vite/json-locale-types";
 
@@ -14,31 +14,39 @@ export default defineConfig({
     // Generates src/locales/locale-types.generated.ts from the locale JSON
     // resources before the module graph (and the declaration emitter) runs.
     createJsonLocaleTypesPlugin({
-      dir: resolve(__dirname, "src/locales"),
-      outFile: resolve(__dirname, "src/locales/locale-types.generated.ts"),
+      dir: resolve(import.meta.dirname, "src/locales"),
+      outFile: resolve(
+        import.meta.dirname,
+        "src/locales/locale-types.generated.ts",
+      ),
     }),
     tailwindcss(),
     vue(),
     vueJsxVapor({ interop: true, macros: true }),
     vueI18n({
-      include: [resolve(__dirname, "src/locales/**")],
+      include: [resolve(import.meta.dirname, "src/locales/**")],
+      exclude: [
+        resolve(import.meta.dirname, "src/locales/locale-types.generated.ts"),
+        resolve(import.meta.dirname, "src/locales/locale-types.generated.d.ts"),
+      ],
     }),
-    dts({
-      tsconfigPath: "./tsconfig.build.json",
-      // Monorepo: entries are package src; deps resolve via tsconfig
-      // paths from source (no prebuilt dep dist needed).
-      entryRoot: "./src",
-      // Keep emitted specifiers verbatim (@noob-naive-ui/*) instead of
-      // rewriting paths targets into relative sibling-source imports.
-      pathsToAliases: false,
+    ...dts({
+      tsconfig: "./tsconfig.build.json",
+      build: true,
     }),
   ],
+  oxc: {
+    // Keep generated declarations intact: vite's oxc transform would
+    // otherwise strip the virtual .d.ts modules served by rolldown-plugin-dts.
+    exclude: [/\.js$/, /\.d\.[cm]?ts$/],
+  },
   build: {
     cssMinify: false,
     lib: {
-      entry: resolve(__dirname, "src/index.ts"),
+      entry: resolve(import.meta.dirname, "src/index.ts"),
       formats: ["es"],
-      fileName: "index",
+      fileName: (_format: string, name: string) =>
+        name.endsWith(".d") ? `${name}.ts` : `${name}.js`,
       cssFileName: "style",
     },
     rolldownOptions: {
@@ -52,8 +60,8 @@ export default defineConfig({
         "vue",
         "vue-i18n",
         "zod",
-      "@noob-naive-ui/registry",
-    ],
+        "@noob-naive-ui/registry",
+      ],
     },
   },
   resolve: {
@@ -63,7 +71,7 @@ export default defineConfig({
     alias: [
       {
         find: "@noob-naive-ui/ui/style.css",
-        replacement: resolve(__dirname, "../ui/src/style.css"),
+        replacement: resolve(import.meta.dirname, "../ui/src/style.css"),
       },
     ],
   },

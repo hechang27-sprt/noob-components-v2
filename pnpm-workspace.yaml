@@ -17,3 +17,5 @@ catalog:
 allowBuilds:
   esbuild: true
   vue-demi: true
+minimumReleaseAgeExclude:
+  - rolldown-plugin-dts@0.28.4
