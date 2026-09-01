@@ -1,11 +1,11 @@
 import { resolve } from "node:path";
 
 import { defineConfig } from "vitest/config";
-import { dts } from "rolldown-plugin-dts";
+import { dtsForBuild } from "@noob/tooling-vite/dts-build";
 
 export default defineConfig({
   plugins: [
-    ...dts({
+    dtsForBuild({
       tsconfig: "./tsconfig.build.json",
       build: true,
     }),

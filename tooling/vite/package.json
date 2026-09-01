@@ -1,0 +1,28 @@
+{
+  "name": "@noob/tooling-vite",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Internal (never published) vite helper plugins for the monorepo.",
+  "type": "module",
+  "main": "./json-locale-types.ts",
+  "types": "./json-locale-types.ts",
+  "exports": {
+    "./json-locale-types": {
+      "types": "./json-locale-types.ts",
+      "default": "./json-locale-types.ts"
+    },
+    "./vue-i18n": {
+      "types": "./vue-i18n.ts",
+      "default": "./vue-i18n.ts"
+    },
+    "./dts-build": {
+      "types": "./dts-build.ts",
+      "default": "./dts-build.ts"
+    }
+  },
+  "devDependencies": {
+    "@intlify/unplugin-vue-i18n": "^11.2.4",
+    "vite": "^8.2.2",
+    "rolldown-plugin-dts": "^0.28.4"
+  }
+}

@@ -2,12 +2,12 @@ import { resolve } from "node:path";
 
 import vueJsxVapor from "vue-jsx-vapor/vite";
 import { defineConfig } from "vitest/config";
-import { dts } from "rolldown-plugin-dts";
+import { dtsForBuild } from "@noob/tooling-vite/dts-build";
 
 export default defineConfig({
   plugins: [
     vueJsxVapor({ interop: true, macros: true }),
-    ...dts({
+    dtsForBuild({
       tsconfig: "./tsconfig.build.json",
       build: true,
     }),

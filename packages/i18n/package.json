@@ -31,5 +31,8 @@
   "publishConfig": {
     "access": "public"
   },
-  "description": "Component-first i18n: createComponentI18n local composers, override selection, and text resolution."
+  "description": "Component-first i18n: createComponentI18n local composers, override selection, and text resolution.",
+  "devDependencies": {
+    "@noob/tooling-vite": "workspace:*"
+  }
 }

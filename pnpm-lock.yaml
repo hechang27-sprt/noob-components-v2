@@ -148,6 +148,10 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 4.4.3
+    devDependencies:
+      '@noob/tooling-vite':
+        specifier: workspace:*
+        version: link:../../tooling/vite
 
   packages/admin:
     dependencies:
@@ -184,6 +188,10 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 4.4.3
+    devDependencies:
+      '@noob/tooling-vite':
+        specifier: workspace:*
+        version: link:../../tooling/vite
 
   packages/admin-vue-router:
     dependencies:
@@ -205,6 +213,10 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 4.4.3
+    devDependencies:
+      '@noob/tooling-vite':
+        specifier: workspace:*
+        version: link:../../tooling/vite
 
   packages/i18n:
     dependencies:
@@ -220,6 +232,10 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 4.4.3
+    devDependencies:
+      '@noob/tooling-vite':
+        specifier: workspace:*
+        version: link:../../tooling/vite
 
   packages/registry:
     dependencies:
@@ -229,6 +245,10 @@ importers:
       vue:
         specifier: 'catalog:'
         version: 3.5.40(typescript@7.0.2)
+    devDependencies:
+      '@noob/tooling-vite':
+        specifier: workspace:*
+        version: link:../../tooling/vite
 
   packages/ui:
     dependencies:
@@ -253,6 +273,22 @@ importers:
       vue-i18n:
         specifier: 'catalog:'
         version: 11.4.8(vue@3.5.40(typescript@7.0.2))
+    devDependencies:
+      '@noob/tooling-vite':
+        specifier: workspace:*
+        version: link:../../tooling/vite
+
+  tooling/vite:
+    devDependencies:
+      '@intlify/unplugin-vue-i18n':
+        specifier: ^11.2.4
+        version: 11.2.4(@vue/compiler-dom@3.5.40)(eslint@10.8.0(jiti@2.7.0))(typescript@7.0.2)(vite@8.2.2(@types/node@26.1.1)(jiti@2.7.0)(yaml@2.9.0))(vue-i18n@11.4.8(vue@3.5.40(typescript@7.0.2)))(vue@3.5.40(typescript@7.0.2))
+      rolldown-plugin-dts:
+        specifier: ^0.28.4
+        version: 0.28.4(@volar/typescript@2.4.28)(rolldown@1.2.6)(typescript@7.0.2)
+      vite:
+        specifier: ^8.2.2
+        version: 8.2.2(@types/node@26.1.1)(jiti@2.7.0)(yaml@2.9.0)
 
 packages:
 

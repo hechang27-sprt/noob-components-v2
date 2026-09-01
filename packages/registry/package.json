@@ -29,5 +29,8 @@
   "publishConfig": {
     "access": "public"
   },
-  "description": "Shared override registry, theme/font-size helpers, and module-augmentation types for @noob-naive-ui packages."
+  "description": "Shared override registry, theme/font-size helpers, and module-augmentation types for @noob-naive-ui packages.",
+  "devDependencies": {
+    "@noob/tooling-vite": "workspace:*"
+  }
 }

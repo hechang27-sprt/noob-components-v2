@@ -5,9 +5,9 @@ import tailwindcss from "@tailwindcss/vite";
 import vueJsxVapor from "vue-jsx-vapor/vite";
 import { defineConfig } from "vitest/config";
 import vue from "@vitejs/plugin-vue";
-import { dts } from "rolldown-plugin-dts";
+import { dtsForBuild } from "@noob/tooling-vite/dts-build";
 
-import { createJsonLocaleTypesPlugin } from "../../tooling/vite/json-locale-types";
+import { createJsonLocaleTypesPlugin } from "@noob/tooling-vite/json-locale-types";
 
 export default defineConfig({
   plugins: [
@@ -30,7 +30,7 @@ export default defineConfig({
         resolve(import.meta.dirname, "src/locales/locale-types.generated.d.ts"),
       ],
     }),
-    ...dts({
+    dtsForBuild({
       tsconfig: "./tsconfig.build.json",
       build: true,
     }),

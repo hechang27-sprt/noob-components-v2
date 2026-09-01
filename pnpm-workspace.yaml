@@ -6,6 +6,7 @@ packages:
   - apps/admin-starter
   - packages/admin-vue-router
   - apps/demo
+  - tooling/vite
 catalog:
   naive-ui: ^2.44.1
   pinia: ^3.0.4

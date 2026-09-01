@@ -40,5 +40,8 @@
   "publishConfig": {
     "access": "public"
   },
-  "description": "Theme-var-driven UI primitives (UiCardTabs, proof components) for @noob-naive-ui."
+  "description": "Theme-var-driven UI primitives (UiCardTabs, proof components) for @noob-naive-ui.",
+  "devDependencies": {
+    "@noob/tooling-vite": "workspace:*"
+  }
 }

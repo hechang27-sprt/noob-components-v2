@@ -33,5 +33,8 @@
   "publishConfig": {
     "access": "public"
   },
-  "description": "Type-safe admin router: route registry, payload codecs, and guards."
+  "description": "Type-safe admin router: route registry, payload codecs, and guards.",
+  "devDependencies": {
+    "@noob/tooling-vite": "workspace:*"
+  }
 }

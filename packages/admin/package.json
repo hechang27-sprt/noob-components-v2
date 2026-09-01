@@ -44,5 +44,8 @@
   "publishConfig": {
     "access": "public"
   },
-  "description": "Admin application shell, providers, theme presets, and preference stores for @noob-naive-ui."
+  "description": "Admin application shell, providers, theme presets, and preference stores for @noob-naive-ui.",
+  "devDependencies": {
+    "@noob/tooling-vite": "workspace:*"
+  }
 }

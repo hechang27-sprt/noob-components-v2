@@ -20,5 +20,8 @@
     "vue-i18n": "catalog:",
     "vue-router": "catalog:",
     "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@noob/tooling-vite": "workspace:*"
   }
 }
