@@ -46,7 +46,7 @@ pnpm format                     # oxfmt
 
 `tsconfig.vite.json` 扩展基础配置，并把 `types` 设为 `node` 和 `vite/client`。应用继承它。
 
-`tsconfig.library.json` 扩展 Vite 树并启用声明输出：
+`tsconfig.library.json` 扩展 Vite 树，并承载共享的库构建块。每个路径都用 `${configDir}` 模板，使其相对各消费包自己的目录解析（TS 5.5+，本仓库使用 TS 6）：
 
 ```json
 {
@@ -54,8 +54,19 @@ pnpm format                     # oxfmt
   "compilerOptions": {
     "noEmit": false,
     "declaration": true,
-    "declarationMap": true
-  }
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "composite": true,
+    "rootDir": "${configDir}/src",
+    "outDir": "${configDir}/dist",
+    "declarationDir": "${configDir}/dist"
+  },
+  "include": [
+    "${configDir}/src/**/*.ts",
+    "${configDir}/src/**/*.tsx",
+    "${configDir}/src/**/*.json"
+  ],
+  "exclude": ["${configDir}/tests"]
 }
 ```
 
@@ -63,21 +74,11 @@ pnpm format                     # oxfmt
 
 ### 包配置
 
-每个库包只有一个 `tsconfig.json`：
+每个库包只有一个精简的 `tsconfig.json`：只声明 `references`，其余全部来自 `tsconfig.library.json`：
 
 ```json
 {
   "extends": "../../tsconfig.library.json",
-  "compilerOptions": {
-    "noEmit": false,
-    "rootDir": "src",
-    "outDir": "dist",
-    "declarationDir": "dist",
-    "composite": true,
-    "emitDeclarationOnly": true
-  },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["tests"],
   "references": [
     { "path": "../registry/tsconfig.json" },
     { "path": "../i18n/tsconfig.json" },
@@ -310,7 +311,7 @@ demo 安装此预设。已发布包的消费者不需要它。
 
 ## 构建确定性
 
-- 干净的顺序构建（`pnpm -r build`）在多次运行之间**字节级一致**；`dist` 只包含 `index.d.ts(+map)`、`index.js(+map)`，可选 `style.css`。
+- 干净的顺序构建（`pnpm -r build`）在 clean 状态包含 vite 配置包缓存（`node_modules/.vite-temp`、`node_modules/.vite`）时**字节级一致**；`dist` 只包含 `index.d.ts(+map)`、`index.js(+map)`，可选 `style.css`。（持久化的缓存可能翻转一个只出现在输出 `//#region virtual:intlify-i18n-*` 注释中的内部虚拟模块计数器。）
 - 独立构建单个包仍保持完整类型，因为 `paths` 别名从源码解析兄弟包；仍然推荐按顺序的 `-r` 构建，保证发布包始终一起校验。
 
 ## 新增包

@@ -1,18 +1,4 @@
 {
   "extends": "../../tsconfig.library.json",
-  "compilerOptions": {
-    "noEmit": false,
-    "rootDir": "src",
-    "outDir": "dist",
-    "declarationDir": "dist",
-    "composite": true,
-    "emitDeclarationOnly": true
-  },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx"
-  ],
-  "exclude": [
-    "tests"
-  ]
+  "references": []
 }

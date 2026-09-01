@@ -4,6 +4,18 @@
     "noEmit": false,
     "declaration": true,
     "declarationMap": true,
-    "emitDeclarationOnly": false
-  }
+    "emitDeclarationOnly": true,
+    "composite": true,
+    "rootDir": "${configDir}/src",
+    "outDir": "${configDir}/dist",
+    "declarationDir": "${configDir}/dist"
+  },
+  "include": [
+    "${configDir}/src/**/*.ts",
+    "${configDir}/src/**/*.tsx",
+    "${configDir}/src/**/*.json"
+  ],
+  "exclude": [
+    "${configDir}/tests"
+  ]
 }

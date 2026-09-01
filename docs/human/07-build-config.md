@@ -58,8 +58,10 @@ types.
 `tsconfig.vite.json` extends the base and sets `types` to `node` and
 `vite/client`. Applications extend this.
 
-`tsconfig.library.json` extends the Vite tree and enables declaration
-emit:
+`tsconfig.library.json` extends the Vite tree and carries the shared
+library build block. Every path uses the `${configDir}` template so it
+resolves relative to each consuming package's own directory
+(TS 5.5+, the repo uses TS 6):
 
 ```json
 {
@@ -67,8 +69,19 @@ emit:
   "compilerOptions": {
     "noEmit": false,
     "declaration": true,
-    "declarationMap": true
-  }
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "composite": true,
+    "rootDir": "${configDir}/src",
+    "outDir": "${configDir}/dist",
+    "declarationDir": "${configDir}/dist"
+  },
+  "include": [
+    "${configDir}/src/**/*.ts",
+    "${configDir}/src/**/*.tsx",
+    "${configDir}/src/**/*.json"
+  ],
+  "exclude": ["${configDir}/tests"]
 }
 ```
 
@@ -76,21 +89,13 @@ Library packages extend this.
 
 ### Package configs
 
-Each library package has a single `tsconfig.json`:
+Each library package has a single, minimal `tsconfig.json`: it only
+declares `references` — everything else comes from
+`tsconfig.library.json`:
 
 ```json
 {
   "extends": "../../tsconfig.library.json",
-  "compilerOptions": {
-    "noEmit": false,
-    "rootDir": "src",
-    "outDir": "dist",
-    "declarationDir": "dist",
-    "composite": true,
-    "emitDeclarationOnly": true
-  },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["tests"],
   "references": [
     { "path": "../registry/tsconfig.json" },
     { "path": "../i18n/tsconfig.json" },
@@ -391,8 +396,12 @@ The demo installs this preset. Built package consumers do not need it.
 ## Build determinism
 
 - Clean ordered builds (`pnpm -r build`) are **byte-identical** across
-  runs; `dist` contains only `index.d.ts(+map)`, `index.js(+map)`, and
-  optionally `style.css`.
+  runs when the vite config-bundle cache
+  (`node_modules/.vite-temp`, `node_modules/.vite`) is part of the clean
+  state; `dist` contains only `index.d.ts(+map)`, `index.js(+map)`, and
+  optionally `style.css`. (A persisted cache can flip an internal
+  virtual-module counter that only appears in an emitted
+  `//#region virtual:intlify-i18n-*` comment.)
 - Standalone package builds keep full types because the `paths` aliases
   resolve siblings from source; the ordered `-r` build is still
   recommended so published packages are always validated together.
