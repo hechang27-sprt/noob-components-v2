@@ -15,11 +15,10 @@
     "dist"
   ],
   "scripts": {
-    "build": "pnpm run clean && vite build",
-    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "vite build",
+    "clean": "node -e \"const fs=require('node:fs');fs.rmSync('dist',{recursive:true,force:true});fs.rmSync('tsconfig.tsbuildinfo',{force:true})\"",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "vue": "catalog:",
@@ -31,5 +30,9 @@
   "publishConfig": {
     "access": "public"
   },
-  "description": "Component-first i18n: createComponentI18n local composers, override selection, and text resolution."
+  "description": "Component-first i18n: createComponentI18n local composers, override selection, and text resolution.",
+  "devDependencies": {
+    "@noob/tooling-vite": "workspace:*",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
+  }
 }

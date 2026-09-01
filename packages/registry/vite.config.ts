@@ -1,26 +1,30 @@
 import { resolve } from "node:path";
 
 import { defineConfig } from "vitest/config";
-import dts from "unplugin-dts/vite";
+import { dtsForBuild, externalFromPackageJson } from "@noob/tooling-vite";
 
 export default defineConfig({
-  plugins: [dts({
-      tsconfigPath: "./tsconfig.build.json",
-      // Monorepo: entries are package src; deps resolve via tsconfig
-      // paths from source (no prebuilt dep dist needed).
-      entryRoot: "./src",
-      // Keep emitted specifiers verbatim (@noob-naive-ui/*) instead of
-      // rewriting paths targets into relative sibling-source imports.
-      pathsToAliases: false,
-    })],
+  plugins: [
+    dtsForBuild({
+      tsconfig: "./tsconfig.json",
+    }),
+  ],
+  oxc: {
+    // Keep generated declarations intact: vite's oxc transform would
+    // otherwise strip the virtual .d.ts modules served by rolldown-plugin-dts.
+    exclude: [/\.js$/, /\.d\.[cm]?ts$/],
+  },
   build: {
     lib: {
-      entry: resolve(__dirname, "src/index.ts"),
+      entry: resolve(import.meta.dirname, "src/index.ts"),
       formats: ["es"],
-      fileName: "index",
+      fileName: (_format: string, name: string) =>
+        name.endsWith(".d") ? `${name}.ts` : `${name}.js`,
     },
     rolldownOptions: {
-      external: ["vue", "naive-ui"],
+      external: externalFromPackageJson(
+        resolve(import.meta.dirname, "package.json"),
+      ),
     },
   },
   test: {

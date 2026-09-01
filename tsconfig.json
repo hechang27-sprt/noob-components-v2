@@ -35,8 +35,7 @@
     "packages/*/tests/**/*.ts",
     "packages/*/tests/**/*.tsx",
     "apps/demo/src/**/*.ts",
-    "apps/demo/src/**/*.tsx",
-    "tooling/**/*.ts"
+    "apps/demo/src/**/*.tsx"
   ],
   "exclude": ["node_modules", "dist", "**/dist"]
 }

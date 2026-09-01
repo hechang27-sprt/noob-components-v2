@@ -1,52 +1,57 @@
 import { resolve } from "node:path";
 
+import vueI18n from "@intlify/unplugin-vue-i18n/vite";
 import tailwindcss from "@tailwindcss/vite";
 import vueJsxVapor from "vue-jsx-vapor/vite";
 import { defineConfig } from "vitest/config";
 import vue from "@vitejs/plugin-vue";
-import dts from "unplugin-dts/vite";
-import vueI18n from "@intlify/unplugin-vue-i18n/vite";
-import { createJsonLocaleTypesPlugin } from "../../tooling/vite/json-locale-types";
+import {
+  createJsonLocaleTypesPlugin,
+  dtsForBuild,
+  externalFromPackageJson,
+} from "@noob/tooling-vite";
 
 export default defineConfig({
   plugins: [
+    // Generates src/locales/locale-types.generated.ts from the locale JSON
+    // resources before the module graph (and the declaration emitter) runs.
     createJsonLocaleTypesPlugin({
-      dir: resolve(__dirname, "src/locales"),
-      outFile: resolve(__dirname, "src/locales/locale-types.generated.ts"),
+      dir: resolve(import.meta.dirname, "src/locales"),
+      outFile: resolve(
+        import.meta.dirname,
+        "src/locales/locale-types.generated.ts",
+      ),
     }),
     tailwindcss(),
     vue(),
     vueJsxVapor({ interop: true, macros: true }),
     vueI18n({
-      include: [resolve(__dirname, "src/locales/**")],
+      include: [resolve(import.meta.dirname, "src/locales/**")],
+      exclude: [
+        resolve(import.meta.dirname, "src/locales/locale-types.generated.ts"),
+        resolve(import.meta.dirname, "src/locales/locale-types.generated.d.ts"),
+      ],
     }),
-    dts({
-      tsconfigPath: "./tsconfig.build.json",
-      // Monorepo: entries are package src; deps resolve via tsconfig
-      // paths from source (no prebuilt dep dist needed).
-      entryRoot: "./src",
-      // Keep emitted specifiers verbatim (@noob-naive-ui/*) instead of
-      // rewriting paths targets into relative sibling-source imports.
-      pathsToAliases: false,
+    dtsForBuild({
+      tsconfig: "./tsconfig.json",
     }),
   ],
+  oxc: {
+    exclude: [/\.js$/, /\.d\.[cm]?ts$/],
+  },
   build: {
     cssMinify: false,
     lib: {
-      entry: resolve(__dirname, "src/index.ts"),
+      entry: resolve(import.meta.dirname, "src/index.ts"),
       formats: ["es"],
-      fileName: "index",
+      fileName: (_format: string, name: string) =>
+        name.endsWith(".d") ? `${name}.ts` : `${name}.js`,
       cssFileName: "style",
     },
     rolldownOptions: {
-      external: [
-        "@noob-naive-ui/i18n",
-        "es-toolkit",
-        "naive-ui",
-        "vue",
-        "vue-i18n",
-        "@noob-naive-ui/registry",
-      ],
+      external: externalFromPackageJson(
+        resolve(import.meta.dirname, "package.json"),
+      ),
     },
   },
   resolve: {

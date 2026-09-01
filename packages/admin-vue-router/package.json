@@ -15,11 +15,10 @@
     "dist"
   ],
   "scripts": {
-    "build": "pnpm run clean && vite build",
-    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "vite build",
+    "clean": "node -e \"const fs=require('node:fs');fs.rmSync('dist',{recursive:true,force:true});fs.rmSync('tsconfig.tsbuildinfo',{force:true})\"",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "test:watch": "vitest"
   },
   "peerDependencies": {
     "@noob-naive-ui/admin": "workspace:*",
@@ -33,5 +32,9 @@
   "publishConfig": {
     "access": "public"
   },
-  "description": "Type-safe admin router: route registry, payload codecs, and guards."
+  "description": "Type-safe admin router: route registry, payload codecs, and guards.",
+  "devDependencies": {
+    "@noob/tooling-vite": "workspace:*",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
+  }
 }

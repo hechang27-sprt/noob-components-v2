@@ -1,0 +1,24 @@
+{
+  "name": "@noob/tooling-vite",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Internal (never published) vite helper plugins for the monorepo.",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    }
+  },
+  "devDependencies": {
+    "@intlify/unplugin-vue-i18n": "^11.2.4",
+    "vite": "^8.2.2",
+    "rolldown-plugin-dts": "^0.28.4",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
+  },
+  "scripts": {
+    "typecheck": "tsc6 -p tsconfig.json --noEmit"
+  }
+}
