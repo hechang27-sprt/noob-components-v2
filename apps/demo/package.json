@@ -22,6 +22,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@noob/tooling-vite": "workspace:*"
+    "@noob/tooling-vite": "workspace:*",
+    "typescript": "catalog:"
   }
 }

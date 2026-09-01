@@ -35,6 +35,6 @@
   "description": "Type-safe admin router: route registry, payload codecs, and guards.",
   "devDependencies": {
     "@noob/tooling-vite": "workspace:*",
-    "typescript": "npm:@typescript/typescript6@^6.0.2"
+    "typescript": "catalog:"
   }
 }

@@ -24,6 +24,18 @@ export default defineConfig({
   resolve: {
     // Vite 8 reads tsconfig.json paths — replaces manual JS/TS aliases.
     tsconfigPaths: true,
+    // Framework singletons must be single-instance in the bundle: the app's
+    // direct deps and the published library dists can otherwise resolve
+    // different physical copies (pnpm peer-context variants), which breaks
+    // injection keys across the boundary (e.g. vue-router RouterView).
+    dedupe: [
+      "vue",
+      "vue-router",
+      "pinia",
+      "vue-i18n",
+      "naive-ui",
+      "pro-naive-ui",
+    ],
     // CSS imports need explicit aliases (tsconfigPaths only handles JS/TS).
     alias: [
       {

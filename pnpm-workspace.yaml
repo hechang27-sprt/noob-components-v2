@@ -8,6 +8,7 @@ packages:
   - apps/demo
   - tooling/vite
 catalog:
+  typescript: npm:@typescript/typescript6@^6.0.2
   naive-ui: ^2.44.1
   pinia: ^3.0.4
   pro-naive-ui: ^3.2.3
