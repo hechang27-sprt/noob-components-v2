@@ -9,7 +9,6 @@ export default defineConfig({
     vueJsxVapor({ interop: true, macros: true }),
     dtsForBuild({
       tsconfig: "./tsconfig.build.json",
-      build: true,
     }),
   ],
   oxc: {

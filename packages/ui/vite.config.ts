@@ -29,7 +29,6 @@ export default defineConfig({
     }),
     dtsForBuild({
       tsconfig: "./tsconfig.build.json",
-      build: true,
     }),
   ],
   oxc: {

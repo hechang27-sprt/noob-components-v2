@@ -7,7 +7,6 @@ export default defineConfig({
   plugins: [
     dtsForBuild({
       tsconfig: "./tsconfig.build.json",
-      build: true,
     }),
   ],
   oxc: {
