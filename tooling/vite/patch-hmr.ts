@@ -115,7 +115,9 @@ export function hmrPatchServer(options: HmrPatchServerOptions): Plugin {
     if (!changed) return;
     // Invalidate every graph node for the file (absolute and /@fs forms)
     // so the patched content is re-transformed on any re-import.
-    for (const mod of [...server.moduleGraph.getModulesByFile(file) ?? []] as unknown as ModuleNode[]) {
+    for (const mod of [
+      ...(server.moduleGraph.getModulesByFile(file) ?? []),
+    ] as unknown as ModuleNode[]) {
       server.moduleGraph.invalidateModule(mod);
     }
     server.moduleGraph.invalidateModule(changed);
@@ -235,7 +237,6 @@ export function hmrPatchServer(options: HmrPatchServerOptions): Plugin {
         }
         return source;
       }
-      return undefined;
       return undefined;
     },
   };

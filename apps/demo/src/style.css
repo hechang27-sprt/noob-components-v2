@@ -6,14 +6,5 @@
 /* Defensively exclude locale json files */
 @source "./components/**/*.{ts,tsx}";
 @source "./pages/**/*.{ts,tsx}";
+@source "../vite.config.ts";
 @source not "**/locales/**/*.json";
-
-/* HMR-test card backgrounds: patched via in-memory module interception, so
-   these swap pairs must be statically present (identical to what tailwind
-   generates for the same utilities). */
-.bg-amber-100 { background-color: var(--color-amber-100); }
-.bg-sky-100 { background-color: var(--color-sky-100); }
-.bg-lime-100 { background-color: var(--color-lime-100); }
-.bg-pink-100 { background-color: var(--color-pink-100); }
-.bg-emerald-100 { background-color: var(--color-emerald-100); }
-.bg-orange-100 { background-color: var(--color-orange-100); }
