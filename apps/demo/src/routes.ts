@@ -5,6 +5,7 @@ import {
 import { z } from "zod";
 
 import { DashboardDemoPage } from "./pages/demo/dashboard-demo-page";
+import { HmrTestPage } from "./pages/demo/hmr-test-page";
 import { DetailDemoPage } from "./pages/demo/detail-demo-page";
 import { InternationalizationDemoPage } from "./pages/demo/internationalization-demo-page";
 import { ReportsDemoPage } from "./pages/demo/reports-demo-page";
@@ -28,6 +29,13 @@ export const demoRouteRegistry = defineAdminRouteRegistry({
     route: {
       path: "demo/internationalization",
       component: InternationalizationDemoPage,
+      props: false,
+    },
+  },
+  hmrTest: {
+    route: {
+      path: "demo/hmr-test",
+      component: HmrTestPage,
       props: false,
     },
   },
@@ -89,6 +97,11 @@ const tabPresentation: Record<
   /** Supplies the routed i18n demonstration tab presentation. */
   internationalization: () => ({
     label: { kind: "i18n", key: "tabs.internationalization" },
+    closable: true,
+  }),
+  /** Supplies the HMR showcase tab presentation. */
+  hmrTest: () => ({
+    label: { kind: "i18n", key: "tabs.hmrTest" },
     closable: true,
   }),
   /** Supplies the report-list tab presentation. */

@@ -23,10 +23,14 @@ export type AdminShellLocale = LocaleFileMap["AdminShell"]["en"];
 /** The complete AdminLoginPage message schema (en subtree of the resource). */
 export type AdminLoginPageLocale = LocaleFileMap["AdminLoginPage"]["en"];
 
+/** The complete AdminLoginPage message schema (en subtree of the resource). */
+export type HMRTestLocale = LocaleFileMap["HMRTest"]["en"];
+
 /** The complete admin package message schema keyed by component. */
 export interface AdminLocale {
   AdminShell: AdminShellLocale;
   AdminLoginPage: AdminLoginPageLocale;
+  HMRTest: HMRTestLocale;
 }
 
 /**

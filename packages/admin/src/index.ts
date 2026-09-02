@@ -69,3 +69,4 @@ export {
 } from "./components/use-admin-shell";
 
 export * from "./registry";
+export * from "./components/hmr-test";

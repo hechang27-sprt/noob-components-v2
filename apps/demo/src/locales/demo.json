@@ -6,14 +6,16 @@
       "reports": "Reports",
       "settings": "Settings",
       "demo": "Demo",
-      "workspace": "Workspace"
+      "workspace": "Workspace",
+      "hmrTest": "HMR test"
     },
     "tabs": {
       "dashboard": "Dashboard",
       "internationalization": "i18n",
       "reports": "Reports",
       "settings": "Settings",
-      "detail": "Report {id}"
+      "detail": "Report {id}",
+      "hmrTest": "HMR test"
     },
     "login": {
       "credentialsRequired": "Username and password are required."
@@ -48,6 +50,11 @@
         "title": "Report detail: {id}",
         "description": "Report {id} was opened by a page-owned action and has no sidebar menu item."
       }
+    },
+    "hmrTest": {
+      "pageTitle": "HMR test page",
+      "title": "Demo HMR test",
+      "status": "base"
     }
   },
   "zh-CN": {
@@ -57,14 +64,16 @@
       "reports": "报表",
       "settings": "设置",
       "demo": "演示",
-      "workspace": "工作区"
+      "workspace": "工作区",
+      "hmrTest": "HMR 测试"
     },
     "tabs": {
       "dashboard": "仪表盘",
       "internationalization": "国际化",
       "reports": "报表",
       "settings": "设置",
-      "detail": "报表 {id}"
+      "detail": "报表 {id}",
+      "hmrTest": "HMR 测试"
     },
     "login": {
       "credentialsRequired": "请输入用户名和密码。"
@@ -99,6 +108,11 @@
         "title": "报表详情：{id}",
         "description": "报表 {id} 由页面自身的操作打开，且没有侧边栏菜单项。"
       }
+    },
+    "hmrTest": {
+      "pageTitle": "HMR 测试页",
+      "title": "Demo HMR 测试",
+      "status": "原始"
     }
   }
 }

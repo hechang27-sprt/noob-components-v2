@@ -48,6 +48,7 @@ function createDemoMenu(): MenuOption[] {
       label: () => i18n.global.t("nav.demo"),
       children: [
         createMenuOption("internationalization", "nav.internationalization"),
+        createMenuOption("hmrTest", "nav.hmrTest"),
       ],
     },
     {

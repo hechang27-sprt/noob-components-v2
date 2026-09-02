@@ -1,0 +1,10 @@
+{
+  "en": {
+    "title": "UI HMR test",
+    "status": "base"
+  },
+  "zh-CN": {
+    "title": "UI HMR 测试",
+    "status": "原始"
+  }
+}

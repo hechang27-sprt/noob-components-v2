@@ -4,6 +4,6 @@
 @import "@noob-naive-ui/admin/style.css";
 
 /* Defensively exclude locale json files */
-@source "./components/"
-@source "./pages/"
+@source "./components/**/*.{ts,tsx}";
+@source "./pages/**/*.{ts,tsx}";
 @source not "**/locales/**/*.json";

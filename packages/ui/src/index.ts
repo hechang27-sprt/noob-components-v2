@@ -23,3 +23,4 @@ export * from "./registry";
 // Components
 export * from "./components/example";
 export * from "./components/card-tabs";
+export * from "./components/hmr-test";

@@ -12,7 +12,19 @@ export interface Example {
   };
 }
 
+export interface HMRTest {
+  en: {
+    title: string;
+    status: string;
+  };
+  "zh-CN": {
+    title: string;
+    status: string;
+  };
+}
+
 /** Maps each locale file's relative stem to its generated message type. */
 export interface LocaleFileMap {
   "Example": Example;
+  "HMRTest": HMRTest;
 }
