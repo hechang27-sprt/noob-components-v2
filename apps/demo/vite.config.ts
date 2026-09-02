@@ -16,6 +16,9 @@ export default defineConfig({
     vueDevTools(),
     hmrPatchServer({
       root: resolve(import.meta.dirname, "../.."),
+      // Self-generated ambient types for the virtual client (committed so
+      // plain tsc gates work without the dev server).
+      dtsFile: "apps/demo/src/env.d.ts",
       targets: [
         {
           patchId: "uiSource",
