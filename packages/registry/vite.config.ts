@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 
 import { defineConfig } from "vitest/config";
-import { dtsForBuild, externalFromPackageJson } from "@noob/tooling-vite";
+import { dtsForBuild, externalFromPackageJson } from "@noob/tooling-vite/vite";
 
 export default defineConfig({
   plugins: [

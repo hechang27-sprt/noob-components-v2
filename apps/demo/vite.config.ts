@@ -5,8 +5,79 @@ import tailwindcss from "@tailwindcss/vite";
 import vue from "@vitejs/plugin-vue";
 import vueJsxVapor from "vue-jsx-vapor/vite";
 import vueDevTools from "vite-plugin-vue-devtools";
-import { hmrPatchServer } from "@noob/tooling-vite";
+import { hmrPatchServer } from "@noob/tooling-vite/vite";
 import { defineConfig } from "vite";
+
+const hmrTargets = [
+  {
+    patchId: "uiSource",
+    file: "packages/ui/src/components/hmr-test/root.tsx",
+    patches: [
+      { find: '"ui:base"', replace: '"ui:edited"' },
+      { find: "bg-amber-100", replace: "bg-sky-100" },
+    ],
+  },
+  {
+    patchId: "uiLocale",
+    file: "packages/ui/src/locales/HMRTest.json",
+    patches: [
+      {
+        find: '"status": "base"',
+        replace: '"status": "edited"',
+      },
+      {
+        find: '"status": "原始"',
+        replace: '"status": "已编辑"',
+      },
+    ],
+  },
+  {
+    patchId: "adminSource",
+    file: "packages/admin/src/components/hmr-test/root.tsx",
+    patches: [
+      { find: '"admin:base"', replace: '"admin:edited"' },
+      { find: "bg-lime-100", replace: "bg-pink-100" },
+    ],
+  },
+  {
+    patchId: "adminLocale",
+    file: "packages/admin/src/locales/HMRTest.json",
+    patches: [
+      {
+        find: '"status": "base"',
+        replace: '"status": "edited"',
+      },
+      {
+        find: '"status": "原始"',
+        replace: '"status": "已编辑"',
+      },
+    ],
+  },
+  {
+    patchId: "demoSource",
+    file: "apps/demo/src/components/hmr-test/root.tsx",
+    patches: [
+      { find: '"demo:base"', replace: '"demo:edited"' },
+      { find: "bg-emerald-100", replace: "bg-orange-100" },
+    ],
+  },
+  {
+    patchId: "demoLocale",
+    file: "apps/demo/src/components/hmr-test/root.tsx",
+    patches: [
+      {
+        file: "apps/demo/src/locales/demo.json",
+        find: '"status": "base"',
+        replace: '"status": "edited"',
+      },
+      {
+        file: "apps/demo/src/locales/demo.json",
+        find: '"status": "原始"',
+        replace: '"status": "已编辑"',
+      },
+    ],
+  },
+];
 
 export default defineConfig({
   plugins: [
@@ -14,82 +85,13 @@ export default defineConfig({
     vue(),
     vueJsxVapor({ interop: true, macros: true }),
     vueDevTools(),
+
     hmrPatchServer({
       root: resolve(import.meta.dirname, "../.."),
       // Self-generated ambient types for the virtual client (committed so
       // plain tsc gates work without the dev server).
       dtsFile: "apps/demo/src/env.d.ts",
-      targets: [
-        {
-          patchId: "uiSource",
-          file: "packages/ui/src/components/hmr-test/root.tsx",
-          patches: [
-            { find: '"ui:base"', replace: '"ui:edited"' },
-            { find: "bg-amber-100", replace: "bg-sky-100" },
-          ],
-        },
-        {
-          patchId: "uiLocale",
-          file: "packages/ui/src/components/hmr-test/root.tsx",
-          patches: [
-            {
-              find: 'HMR_TEST_STATUS = "base"',
-              replace: 'HMR_TEST_STATUS = "edited"',
-            },
-            {
-              file: "packages/ui/src/locales/HMRTest.json",
-              find: '"status": "base"',
-              replace: '"status": "edited"',
-            },
-          ],
-        },
-        {
-          patchId: "adminSource",
-          file: "packages/admin/src/components/hmr-test/root.tsx",
-          patches: [
-            { find: '"admin:base"', replace: '"admin:edited"' },
-            { find: "bg-lime-100", replace: "bg-pink-100" },
-          ],
-        },
-        {
-          patchId: "adminLocale",
-          file: "packages/admin/src/components/hmr-test/root.tsx",
-          patches: [
-            {
-              find: 'HMR_TEST_STATUS = "base"',
-              replace: 'HMR_TEST_STATUS = "edited"',
-            },
-            {
-              file: "packages/admin/src/locales/HMRTest.json",
-              find: '"status": "base"',
-              replace: '"status": "edited"',
-            },
-          ],
-        },
-        {
-          patchId: "demoSource",
-          file: "apps/demo/src/components/hmr-test/root.tsx",
-          patches: [
-            { find: '"demo:base"', replace: '"demo:edited"' },
-            { find: "bg-emerald-100", replace: "bg-orange-100" },
-          ],
-        },
-        {
-          patchId: "demoLocale",
-          file: "apps/demo/src/components/hmr-test/root.tsx",
-          patches: [
-            {
-              find: 'HMR_TEST_STATUS = "base"',
-              replace: 'HMR_TEST_STATUS = "edited"',
-            },
-            {
-              file: "apps/demo/src/locales/demo.json",
-              find: '"status": "base"',
-              replace: '"status": "edited"',
-            },
-          ],
-        },
-      ],
+      targets: hmrTargets,
     }),
   ],
   build: {

@@ -1,10 +1,11 @@
 import { defineComponent } from "vue";
 import { HMRTest as UiHMRTest } from "@noob-naive-ui/ui";
 import { HMRTest as AdminHMRTest } from "@noob-naive-ui/admin";
-import hmrPatch from "virtual:noob-hmr-patch";
+import { client } from "virtual:noob-hmr-patch";
 
 import { DemoHMRTest } from "../../components/hmr-test";
 import { i18n } from "../../i18n";
+import { NH1 } from "naive-ui";
 
 /**
  * HMR showcase page. Each card renders one package-owned HMRTest component;
@@ -16,25 +17,25 @@ import { i18n } from "../../i18n";
 export const HmrTestPage = defineComponent(
   () => () => (
     <div class="p-6 space-y-4">
-      <h1 class="text-lg font-bold">{i18n.global.t("hmrTest.pageTitle")}</h1>
+      <NH1>{i18n.global.t("hmrTest.pageTitle")}</NH1>
       <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
         <UiHMRTest
-          applySource={hmrPatch.applyUiSource}
-          restoreSource={hmrPatch.restoreUiSource}
-          applyLocale={hmrPatch.applyUiLocale}
-          restoreLocale={hmrPatch.restoreUiLocale}
+          applySource={() => void client.runPatch("uiSource", "apply")}
+          restoreSource={() => void client.runPatch("uiSource", "restore")}
+          applyLocale={() => void client.runPatch("uiLocale", "apply")}
+          restoreLocale={() => void client.runPatch("uiLocale", "restore")}
         />
         <AdminHMRTest
-          applySource={hmrPatch.applyAdminSource}
-          restoreSource={hmrPatch.restoreAdminSource}
-          applyLocale={hmrPatch.applyAdminLocale}
-          restoreLocale={hmrPatch.restoreAdminLocale}
+          applySource={() => void client.runPatch("adminSource", "apply")}
+          restoreSource={() => void client.runPatch("adminSource", "restore")}
+          applyLocale={() => void client.runPatch("adminLocale", "apply")}
+          restoreLocale={() => void client.runPatch("adminLocale", "restore")}
         />
         <DemoHMRTest
-          applySource={hmrPatch.applyDemoSource}
-          restoreSource={hmrPatch.restoreDemoSource}
-          applyLocale={hmrPatch.applyDemoLocale}
-          restoreLocale={hmrPatch.restoreDemoLocale}
+          applySource={() => void client.runPatch("demoSource", "apply")}
+          restoreSource={() => void client.runPatch("demoSource", "restore")}
+          applyLocale={() => void client.runPatch("demoLocale", "apply")}
+          restoreLocale={() => void client.runPatch("demoLocale", "restore")}
         />
       </div>
     </div>

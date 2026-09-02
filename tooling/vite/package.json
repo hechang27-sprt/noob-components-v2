@@ -4,20 +4,25 @@
   "private": true,
   "description": "Internal (never published) vite helper plugins for the monorepo.",
   "type": "module",
-  "main": "./index.ts",
-  "types": "./index.ts",
   "exports": {
-    ".": {
-      "types": "./index.ts",
-      "default": "./index.ts"
+    "./vite": {
+      "types": "./vite/index.ts",
+      "default": "./vite/index.ts"
+    },
+    "./client": {
+      "types": "./client/index.ts",
+      "default": "./client/index.ts"
     }
   },
   "devDependencies": {
-    "vite": "^8.2.2",
     "rolldown-plugin-dts": "^0.28.4",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vite": "^8.2.2"
   },
   "scripts": {
     "typecheck": "tsc6 -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "ofetch": "^1.5.1"
   }
 }

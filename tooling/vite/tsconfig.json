@@ -4,5 +4,8 @@
     "noEmit": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["*.ts"]
+  "include": [
+    "vite/**/*.ts",
+    "client/**/*.ts"
+  ]
 }

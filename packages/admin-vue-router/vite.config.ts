@@ -2,7 +2,7 @@ import { resolve } from "node:path";
 
 import vueJsxVapor from "vue-jsx-vapor/vite";
 import { defineConfig } from "vitest/config";
-import { dtsForBuild, externalFromPackageJson } from "@noob/tooling-vite";
+import { dtsForBuild, externalFromPackageJson } from "@noob/tooling-vite/vite";
 
 export default defineConfig({
   plugins: [

@@ -17,7 +17,7 @@ import {
   regenerateLocaleTypes,
   scanJsonLocaleFiles,
   type JsonLocaleTypeFile,
-} from "../../../tooling/vite/json-locale-types";
+} from "../../../tooling/vite/vite/json-locale-types";
 
 /** Absolute path of the admin package's committed generated locale types. */
 const generatedFile = new URL(
