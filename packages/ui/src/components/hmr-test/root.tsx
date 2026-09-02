@@ -3,34 +3,28 @@ import { NButton } from "naive-ui";
 import { createComponentI18n } from "@noob-naive-ui/i18n";
 import hmrTestMessages from "../../locales/HMRTest.json";
 
-/** Tag rendered from module scope — a source edit must hot-swap this value. */
+
+/**
+ * Ui-package HMR showcase card. Buttons call the optional
+ * host-provided handlers (ui: apply/restore source + locale), wired by
+ * the demo page to the `virtual:noob-hmr-patch` client.
+ */
+/** Display binding patched in-memory together with the locale JSON. */
+export const HMR_TEST_STATUS = "base" as const;
+
 export const HMR_TEST_TAG = "ui:base" as const;
 
 /** The component's locale resource file stem (registry slice key). */
 export const COMPONENT_ID = "HMRTest" as const;
 
-/**
- * Dev showcase component: proves workspace-source HMR. The buttons ask the
- * demo dev server (`POST /__hmr-test`, demo-only middleware) to rewrite this
- * file (tag + tailwind class) or its locale resource; Vite then hot-updates
- * the module. If HMR degrades to a full reload, the e2e's shell-state
- * assertions fail.
- */
 export const HMRTest = defineComponent(
-  () => {
+  (props) => {
     const { t } = createComponentI18n({
       messages: hmrTestMessages,
       libraryId: "noob-naive-ui:ui",
       componentId: "HMRTest",
     });
 
-    async function post(slot: "source" | "locale", action: "edit" | "restore") {
-      await fetch("/__hmr-test", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ pkg: "ui", slot, action }),
-      });
-    }
 
     return () => (
       <div
@@ -38,27 +32,35 @@ export const HMRTest = defineComponent(
         class="rounded-lg border border-gray-200 p-4 bg-amber-100">
         <h3 class="font-bold">{t("title")}</h3>
         <p>
-          status: <span data-hmr-status>{t("status")}</span>
+          status: <span data-hmr-status>{HMR_TEST_STATUS}</span>
         </p>
         <p>
           source tag: <span data-hmr-tag>{HMR_TEST_TAG}</span>
         </p>
         <div class="mt-2 flex flex-wrap gap-2">
-          <NButton size="small" onClick={() => void post("source", "edit")}>
+          <NButton size="small" onClick={() => void props.applySource?.()}>
             Edit source
           </NButton>
-          <NButton size="small" onClick={() => void post("source", "restore")}>
+          <NButton size="small" onClick={() => void props.restoreSource?.()}>
             Restore source
           </NButton>
-          <NButton size="small" onClick={() => void post("locale", "edit")}>
+          <NButton size="small" onClick={() => void props.applyLocale?.()}>
             Edit locale
           </NButton>
-          <NButton size="small" onClick={() => void post("locale", "restore")}>
+          <NButton size="small" onClick={() => void props.restoreLocale?.()}>
             Restore locale
           </NButton>
         </div>
       </div>
     );
   },
-  { name: "UiHMRTest" },
+  {
+    name: "UiHMRTest",
+    props: {
+      applySource: { type: Function, default: undefined },
+      restoreSource: { type: Function, default: undefined },
+      applyLocale: { type: Function, default: undefined },
+      restoreLocale: { type: Function, default: undefined },
+    },
+  },
 );

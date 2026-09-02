@@ -281,6 +281,7 @@ resolve: {
 - `json-locale-types` — `createJsonLocaleTypesPlugin`，locale-types 生成（见下文）。
 - `dts-build` — `dtsForBuild`。
 - `external` — `externalFromPackageJson`。
+- `patch-hmr` — `hmrPatchServer`：仅限开发的存内补丁拦截（虚拟模块客户端 + 通过 self-accept 边界重新导入模块；不写磁盘）。demo HMR 测试页使用。
 
 ### `json-locale-types.ts`
 

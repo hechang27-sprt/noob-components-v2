@@ -144,17 +144,18 @@ test("HMR test page: source, tailwind css, and locale updates without reload", a
     expect(afterReload.scopeId).not.toEqual(before.scopeId);
     expect(afterReload.marker).toBeNull();
   } finally {
-    // Guarantee the workspace files are back to their originals even when
-    // a step failed (the dev server captures originals on first edit).
-    for (const pkg of PKGS) {
-      for (const slot of ["source", "locale"] as const) {
-        await page
-          .request
-          .post("http://127.0.0.1:5199/__hmr-test", {
-            data: { pkg, slot, action: "restore" },
-          })
-          .catch(() => undefined);
-      }
+    // In-memory patches: clear every target so repeated runs start pristine.
+    const ids = [
+      "uiSource", "uiLocale",
+      "adminSource", "adminLocale",
+      "demoSource", "demoLocale",
+    ];
+    for (const id of ids) {
+      await page.request
+        .post("http://127.0.0.1:5199/__hmr-patch", {
+          data: { id, action: "restore" },
+        })
+        .catch(() => undefined);
     }
   }
 });

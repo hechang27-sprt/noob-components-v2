@@ -14,3 +14,10 @@ export {
   externalFromPackageJson,
   type ExternalFromPackageJsonOptions,
 } from "./external.ts";
+
+export {
+  hmrPatchServer,
+  HMR_PATCH_VIRTUAL_ID,
+  type HmrPatchTarget,
+  type HmrPatchServerOptions,
+} from "./patch-hmr.ts";
