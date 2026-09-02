@@ -315,7 +315,7 @@ alias: [
 | `admin-vue-router` | `vueJsxVapor`, `dtsForBuild` | node |
 | `ui` | locale types, `tailwindcss`, `vueJsxVapor`, `vueI18n`, `dtsForBuild` | happy-dom |
 | `admin` | locale types, `tailwindcss`, `vueJsxVapor`, `vueI18n`, `dtsForBuild` | node |
-| `demo` | `tailwindcss`, `vue`, `vueJsxVapor`, devtools, workspace vue-i18n | — |
+| `demo` | `tailwindcss`, `vue`, `vueJsxVapor`, devtools | — |
 
 All library configs run `dtsForBuild({ tsconfig: "./tsconfig.json" })`.
 
@@ -356,7 +356,6 @@ Exports:
 
 - `json-locale-types` — `createJsonLocaleTypesPlugin`, locale-types
   generation (see below).
-- `vue-i18n` — `createWorkspaceVueI18nPlugin` (see below).
 - `dts-build` — `dtsForBuild`.
 - `external` — `externalFromPackageJson`.
 
@@ -383,15 +382,6 @@ The output is type-only, so it erases at runtime.
 `createJsonLocaleTypesPlugin({ dir, outFile })` wires the generator into
 Vite. The ui and admin configs install it before the module graph and
 the declaration emitter run.
-
-### `vue-i18n.ts`
-
-`createWorkspaceVueI18nPlugin()` bundles the `@intlify/unplugin-vue-i18n`
-precompiler with a Vite-only HMR companion. The companion recognizes JSON
-edits under `apps/*/src/locales` and `packages/*/src/locales`, so locale
-resource changes hot-update without a full reload.
-
-The demo installs this preset. Built package consumers do not need it.
 
 ## Build determinism
 

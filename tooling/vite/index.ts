@@ -9,7 +9,6 @@ export {
   type GenerateJsonLocaleTypesOptions,
   type JsonLocaleTypeFile,
 } from "./json-locale-types.ts";
-export { createWorkspaceVueI18nPlugin } from "./vue-i18n.ts";
 export { dtsForBuild } from "./dts-build.ts";
 export {
   externalFromPackageJson,

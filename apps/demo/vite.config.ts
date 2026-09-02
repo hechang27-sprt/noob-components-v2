@@ -4,7 +4,6 @@ import { resolve } from "node:path";
 import vue from "@vitejs/plugin-vue";
 import vueJsxVapor from "vue-jsx-vapor/vite";
 import vueDevTools from "vite-plugin-vue-devtools";
-import { createWorkspaceVueI18nPlugin } from "@noob/tooling-vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
@@ -13,10 +12,6 @@ export default defineConfig({
     vue(),
     vueJsxVapor({ interop: true, macros: true }),
     vueDevTools(),
-    // Optional monorepo tooling for source-locale transforms and HMR.
-    // Without it, the dev server and production build must still work; built
-    // package consumers configure nothing.
-    createWorkspaceVueI18nPlugin(),
   ],
   build: {
     cssMinify: false,

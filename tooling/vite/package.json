@@ -13,7 +13,6 @@
     }
   },
   "devDependencies": {
-    "@intlify/unplugin-vue-i18n": "^11.2.4",
     "vite": "^8.2.2",
     "rolldown-plugin-dts": "^0.28.4",
     "typescript": "catalog:"

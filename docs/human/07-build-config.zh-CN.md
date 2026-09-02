@@ -253,7 +253,7 @@ alias: [
 | `admin-vue-router` | `vueJsxVapor`、`dtsForBuild` | node |
 | `ui` | locale types、`tailwindcss`、`vueJsxVapor`、`vueI18n`、`dtsForBuild` | happy-dom |
 | `admin` | locale types、`tailwindcss`、`vueJsxVapor`、`vueI18n`、`dtsForBuild` | node |
-| `demo` | `tailwindcss`、`vue`、`vueJsxVapor`、devtools、workspace vue-i18n | — |
+| `demo` | `tailwindcss`、`vue`、`vueJsxVapor`、devtools | — |
 
 所有库配置都运行 `dtsForBuild({ tsconfig: "./tsconfig.json" })`。
 
@@ -279,7 +279,6 @@ resolve: {
 导出项：
 
 - `json-locale-types` — `createJsonLocaleTypesPlugin`，locale-types 生成（见下文）。
-- `vue-i18n` — `createWorkspaceVueI18nPlugin`（见下文）。
 - `dts-build` — `dtsForBuild`。
 - `external` — `externalFromPackageJson`。
 
@@ -302,12 +301,6 @@ export interface LocaleFileMap {
 输出仅包含类型，因此在运行时被擦除。
 
 `createJsonLocaleTypesPlugin({ dir, outFile })` 把生成器接入 Vite。ui 和 admin 配置在模块图与声明输出器运行之前安装它。
-
-### `vue-i18n.ts`
-
-`createWorkspaceVueI18nPlugin()` 把 `@intlify/unplugin-vue-i18n` 预编译器与一个仅限 Vite 的 HMR 伴侣打包。伴侣识别 `apps/*/src/locales` 与 `packages/*/src/locales` 下的 JSON 编辑，因此 locale 资源变化无需完整重载即可热更新。
-
-demo 安装此预设。已发布包的消费者不需要它。
 
 ## 构建确定性
 
