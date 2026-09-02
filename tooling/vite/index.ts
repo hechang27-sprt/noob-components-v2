@@ -16,8 +16,8 @@ export {
 } from "./external.ts";
 
 export {
+  HMR_PATCH_VIRTUAL_ID,
   hmrPatchServer,
-  HMR_PATCH_VIRTUAL_IDS,
   type HmrPatch,
   type HmrPatchTarget,
   type HmrPatchServerOptions,

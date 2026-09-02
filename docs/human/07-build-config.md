@@ -359,7 +359,7 @@ Exports:
 - `dts-build` — `dtsForBuild`.
 - `external` — `externalFromPackageJson`.
 - `patch-hmr` — `hmrPatchServer`: dev-only in-memory patch interception
-  (virtual module clients (apply/restore split) + module re-import via the self-accept boundary; no
+  (virtual module client (single default export) + module re-import via the self-accept boundary; no
   disk writes). Demo HMR test page exercise.
 
 ### `json-locale-types.ts`

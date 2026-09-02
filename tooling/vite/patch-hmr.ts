@@ -3,19 +3,20 @@ import { resolve } from "node:path";
 import type { ModuleNode, Plugin, ViteDevServer } from "vite";
 
 /**
- * Reusable dev-server HMR patch tool.
+ * Reusable dev-server HMR patch tool (plugin preset).
  *
  * Instead of mutating files on disk, targets are patched **when served**:
- * the plugin's `load` hook returns the file content with every ACTIVE
+ * the patch plugin's `load` hook returns the file content with every ACTIVE
  * patch applied. Toggling a patch (apply/restore) only flips in-memory
  * state and re-imports the affected module, so code, tailwind classes, and
  * locale resources exercise the real HMR pipeline with no working-tree
  * writes.
  *
- * Two virtual modules expose the client API, one per concern:
- * `virtual:noob-hmr-apply` (applyX() methods) and
- * `virtual:noob-hmr-restore` (restoreX() methods). Each method wraps the
- * POST to the dev-server endpoint, hiding the transport details.
+ * Returns two plugins:
+ * - `noob:hmr-patch` — endpoint middleware + served-content interception;
+ * - `noob:hmr-patch-client` — the `virtual:noob-hmr-patch` module whose
+ *   DEFAULT export bundles every `applyX()` / `restoreX()` method (each
+ *   wraps the endpoint POST, hiding the transport details).
  */
 export interface HmrPatch {
   /** Optional file override; defaults to the target's `file`. */
@@ -49,10 +50,7 @@ export interface HmrPatchServerOptions {
   root?: string;
 }
 
-export const HMR_PATCH_VIRTUAL_IDS = {
-  apply: "virtual:noob-hmr-apply",
-  restore: "virtual:noob-hmr-restore",
-} as const;
+export const HMR_PATCH_VIRTUAL_ID = "virtual:noob-hmr-patch" as const;
 
 /** One patch, bound to the patchId of its owning target. */
 interface FilePatchEntry {
@@ -74,7 +72,7 @@ function methodName(patchId: string, action: "apply" | "restore"): string {
   return `${action}${pascal}`;
 }
 
-export function hmrPatchServer(options: HmrPatchServerOptions): Plugin {
+export function hmrPatchServer(options: HmrPatchServerOptions): Plugin[] {
   const targets = new Map(options.targets.map((t) => [t.patchId, t]));
   const applied = new Set<string>();
   let server: ViteDevServer | undefined;
@@ -166,9 +164,8 @@ export function hmrPatchServer(options: HmrPatchServerOptions): Plugin {
     return undefined;
   }
 
-  /** Generated client code for one virtual module. */
-  function virtualClientCode(forApply: boolean): string {
-    const action: "apply" | "restore" = forApply ? "apply" : "restore";
+  /** Generated virtual-module client (single default export). */
+  function virtualClientCode(): string {
     const endpoint = options.endpoint ?? "/__hmr-patch";
     const lines = [
       `const endpoint = ${JSON.stringify(endpoint)};`,
@@ -180,84 +177,83 @@ export function hmrPatchServer(options: HmrPatchServerOptions): Plugin {
       "  });",
       "  if (!res.ok) throw new Error(`hmr patch ${patchAction} ${patchId} failed: ${await res.text()}`);",
       "}",
+      "const client = {",
     ];
     for (const target of targets.values()) {
-      lines.push(
-        `export function ${methodName(target.patchId, action)}() { return patch(${JSON.stringify(target.patchId)}, ${JSON.stringify(action)}); }`,
-      );
+      for (const action of ["apply", "restore"] as const) {
+        lines.push(
+          `  ${methodName(target.patchId, action)}: () => patch(${JSON.stringify(target.patchId)}, ${JSON.stringify(action)}),`,
+        );
+      }
     }
+    lines.push("};", "export default client;");
     return lines.join("\n");
   }
 
-  return {
-    name: "noob:hmr-patch",
-    enforce: "pre",
-    // Keep resolveId/load active in production builds so the virtual modules
-    // resolve there too (the middleware is dev-only; the bundled clients are
-    // inert without it).
-    configureServer(viteServer) {
-      server = viteServer;
-      filePatches = buildFilePatches();
-      const endpoint = options.endpoint ?? "/__hmr-patch";
-      viteServer.middlewares.use(endpoint, (req, res) => {
-        if (req.method !== "POST") {
-          res.statusCode = 405;
-          res.end();
-          return;
-        }
-        let body = "";
-        req.on("data", (chunk) => (body += chunk));
-        req.on("end", () => {
-          try {
-            const { patchId, action } = JSON.parse(body || "{}") as {
-              patchId: string;
-              action: "apply" | "restore";
-            };
-            const target = targets.get(patchId);
-            if (!target) throw new Error(`unknown patch id ${patchId}`);
-            if (action === "apply") applied.add(patchId);
-            else if (action === "restore") applied.delete(patchId);
-            else throw new Error(`unknown action ${action}`);
-            pushUpdate(primaryFilePath(target));
-            res.statusCode = 200;
-            res.setHeader("content-type", "application/json");
-            res.end(JSON.stringify({ ok: true, patchId, action }));
-          } catch (error) {
-            res.statusCode = 500;
-            res.setHeader("content-type", "text/plain");
-            res.end(error instanceof Error ? error.message : String(error));
+  return [
+    {
+      name: "noob:hmr-patch",
+      enforce: "pre",
+      // Keep load active in production builds so patched content is served
+      // there too (the middleware is dev-only).
+      configureServer(viteServer) {
+        server = viteServer;
+        filePatches = buildFilePatches();
+        const endpoint = options.endpoint ?? "/__hmr-patch";
+        viteServer.middlewares.use(endpoint, (req, res) => {
+          if (req.method !== "POST") {
+            res.statusCode = 405;
+            res.end();
+            return;
           }
+          let body = "";
+          req.on("data", (chunk) => (body += chunk));
+          req.on("end", () => {
+            try {
+              const { patchId, action } = JSON.parse(body || "{}") as {
+                patchId: string;
+                action: "apply" | "restore";
+              };
+              const target = targets.get(patchId);
+              if (!target) throw new Error(`unknown patch id ${patchId}`);
+              if (action === "apply") applied.add(patchId);
+              else if (action === "restore") applied.delete(patchId);
+              else throw new Error(`unknown action ${action}`);
+              pushUpdate(primaryFilePath(target));
+              res.statusCode = 200;
+              res.setHeader("content-type", "application/json");
+              res.end(JSON.stringify({ ok: true, patchId, action }));
+            } catch (error) {
+              res.statusCode = 500;
+              res.setHeader("content-type", "text/plain");
+              res.end(error instanceof Error ? error.message : String(error));
+            }
+          });
         });
-      });
-    },
-    resolveId(id) {
-      if (
-        id === HMR_PATCH_VIRTUAL_IDS.apply ||
-        id === HMR_PATCH_VIRTUAL_IDS.restore
-      ) {
-        return id;
-      }
-      return undefined;
-    },
-    load(id) {
-      if (id === HMR_PATCH_VIRTUAL_IDS.apply) {
-        return virtualClientCode(true);
-      }
-      if (id === HMR_PATCH_VIRTUAL_IDS.restore) {
-        return virtualClientCode(false);
-      }
-      const entries = filePatches?.get(toSlashes(resolve(id)));
-      if (entries && entries.length > 0) {
-        const file = resolve(id);
-        let source = readFileSync(file, "utf8");
-        for (const { patch, patchId } of entries) {
-          if (applied.has(patchId)) {
-            source = source.replace(patch.find, patch.replace);
+      },
+      load(id) {
+        const entries = filePatches?.get(toSlashes(resolve(id)));
+        if (entries && entries.length > 0) {
+          const file = resolve(id);
+          let source = readFileSync(file, "utf8");
+          for (const { patch, patchId } of entries) {
+            if (applied.has(patchId)) {
+              source = source.replace(patch.find, patch.replace);
+            }
           }
+          return source;
         }
-        return source;
-      }
-      return undefined;
+        return undefined;
+      },
     },
-  };
+    {
+      name: "noob:hmr-patch-client",
+      resolveId(id) {
+        return id === HMR_PATCH_VIRTUAL_ID ? id : undefined;
+      },
+      load(id) {
+        return id === HMR_PATCH_VIRTUAL_ID ? virtualClientCode() : undefined;
+      },
+    },
+  ];
 }

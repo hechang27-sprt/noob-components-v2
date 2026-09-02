@@ -1,32 +1,17 @@
 import { defineComponent } from "vue";
 import { HMRTest as UiHMRTest } from "@noob-naive-ui/ui";
 import { HMRTest as AdminHMRTest } from "@noob-naive-ui/admin";
-import {
-  applyUiSource,
-  applyUiLocale,
-  applyAdminSource,
-  applyAdminLocale,
-  applyDemoSource,
-  applyDemoLocale,
-} from "virtual:noob-hmr-apply";
-import {
-  restoreUiSource,
-  restoreUiLocale,
-  restoreAdminSource,
-  restoreAdminLocale,
-  restoreDemoSource,
-  restoreDemoLocale,
-} from "virtual:noob-hmr-restore";
+import hmrPatch from "virtual:noob-hmr-patch";
 
 import { DemoHMRTest } from "../../components/hmr-test";
 import { i18n } from "../../i18n";
 
 /**
  * HMR showcase page. Each card renders one package-owned HMRTest component;
- * the buttons toggle in-memory patches (via the virtual HMR-patch clients,
- * which wrap the dev-server endpoint) on that component's own source file
- * and locale JSON. Vite must hot-update — code, tailwind classes, and
- * locale resources — without a full reload.
+ * the buttons toggle in-memory patches (via the `virtual:noob-hmr-patch`
+ * client, which wraps the dev-server endpoint) on that component's own
+ * source file and locale JSON. Vite must hot-update — code, tailwind
+ * classes, and locale resources — without a full reload.
  */
 export const HmrTestPage = defineComponent(
   () => () => (
@@ -34,22 +19,22 @@ export const HmrTestPage = defineComponent(
       <h1 class="text-lg font-bold">{i18n.global.t("hmrTest.pageTitle")}</h1>
       <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
         <UiHMRTest
-          applySource={applyUiSource}
-          restoreSource={restoreUiSource}
-          applyLocale={applyUiLocale}
-          restoreLocale={restoreUiLocale}
+          applySource={hmrPatch.applyUiSource}
+          restoreSource={hmrPatch.restoreUiSource}
+          applyLocale={hmrPatch.applyUiLocale}
+          restoreLocale={hmrPatch.restoreUiLocale}
         />
         <AdminHMRTest
-          applySource={applyAdminSource}
-          restoreSource={restoreAdminSource}
-          applyLocale={applyAdminLocale}
-          restoreLocale={restoreAdminLocale}
+          applySource={hmrPatch.applyAdminSource}
+          restoreSource={hmrPatch.restoreAdminSource}
+          applyLocale={hmrPatch.applyAdminLocale}
+          restoreLocale={hmrPatch.restoreAdminLocale}
         />
         <DemoHMRTest
-          applySource={applyDemoSource}
-          restoreSource={restoreDemoSource}
-          applyLocale={applyDemoLocale}
-          restoreLocale={restoreDemoLocale}
+          applySource={hmrPatch.applyDemoSource}
+          restoreSource={hmrPatch.restoreDemoSource}
+          applyLocale={hmrPatch.applyDemoLocale}
+          restoreLocale={hmrPatch.restoreDemoLocale}
         />
       </div>
     </div>

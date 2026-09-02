@@ -7,7 +7,7 @@ import hmrTestMessages from "../../locales/HMRTest.json";
 /**
  * Ui-package HMR showcase card. Buttons call the optional
  * host-provided handlers (ui: apply/restore source + locale), wired by
- * the demo page to the virtual HMR-patch clients (`virtual:noob-hmr-apply` / `-restore`).
+ * the demo page to the `virtual:noob-hmr-patch` client (default import).
  */
 /** Display binding patched in-memory together with the locale JSON. */
 export const HMR_TEST_STATUS = "base" as const;
