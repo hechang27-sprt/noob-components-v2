@@ -153,7 +153,7 @@ test("HMR test page: source, tailwind css, and locale updates without reload", a
     for (const id of ids) {
       await page.request
         .post("http://127.0.0.1:5199/__hmr-patch", {
-          data: { id, action: "restore" },
+          data: { patchId: id, action: "restore" },
         })
         .catch(() => undefined);
     }

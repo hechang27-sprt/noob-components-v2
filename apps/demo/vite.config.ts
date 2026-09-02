@@ -8,10 +8,9 @@ import vueDevTools from "vite-plugin-vue-devtools";
 import { hmrPatchServer } from "@noob/tooling-vite";
 import { defineConfig } from "vite";
 
-
 export default defineConfig({
   plugins: [
-    tailwindcss(),
+    tailwindcss({ optimize: { minify: true } }),
     vue(),
     vueJsxVapor({ interop: true, macros: true }),
     vueDevTools(),
@@ -19,7 +18,7 @@ export default defineConfig({
       root: resolve(import.meta.dirname, "../.."),
       targets: [
         {
-          id: "uiSource",
+          patchId: "uiSource",
           file: "packages/ui/src/components/hmr-test/root.tsx",
           patches: [
             { find: '"ui:base"', replace: '"ui:edited"' },
@@ -27,15 +26,22 @@ export default defineConfig({
           ],
         },
         {
-          id: "uiLocale",
+          patchId: "uiLocale",
           file: "packages/ui/src/components/hmr-test/root.tsx",
           patches: [
-            { find: 'HMR_TEST_STATUS = "base"', replace: 'HMR_TEST_STATUS = "edited"' },
-            { file: "packages/ui/src/locales/HMRTest.json", find: '"status": "base"', replace: '"status": "edited"' },
+            {
+              find: 'HMR_TEST_STATUS = "base"',
+              replace: 'HMR_TEST_STATUS = "edited"',
+            },
+            {
+              file: "packages/ui/src/locales/HMRTest.json",
+              find: '"status": "base"',
+              replace: '"status": "edited"',
+            },
           ],
         },
         {
-          id: "adminSource",
+          patchId: "adminSource",
           file: "packages/admin/src/components/hmr-test/root.tsx",
           patches: [
             { find: '"admin:base"', replace: '"admin:edited"' },
@@ -43,15 +49,22 @@ export default defineConfig({
           ],
         },
         {
-          id: "adminLocale",
+          patchId: "adminLocale",
           file: "packages/admin/src/components/hmr-test/root.tsx",
           patches: [
-            { find: 'HMR_TEST_STATUS = "base"', replace: 'HMR_TEST_STATUS = "edited"' },
-            { file: "packages/admin/src/locales/HMRTest.json", find: '"status": "base"', replace: '"status": "edited"' },
+            {
+              find: 'HMR_TEST_STATUS = "base"',
+              replace: 'HMR_TEST_STATUS = "edited"',
+            },
+            {
+              file: "packages/admin/src/locales/HMRTest.json",
+              find: '"status": "base"',
+              replace: '"status": "edited"',
+            },
           ],
         },
         {
-          id: "demoSource",
+          patchId: "demoSource",
           file: "apps/demo/src/components/hmr-test/root.tsx",
           patches: [
             { find: '"demo:base"', replace: '"demo:edited"' },
@@ -59,11 +72,18 @@ export default defineConfig({
           ],
         },
         {
-          id: "demoLocale",
+          patchId: "demoLocale",
           file: "apps/demo/src/components/hmr-test/root.tsx",
           patches: [
-            { find: 'HMR_TEST_STATUS = "base"', replace: 'HMR_TEST_STATUS = "edited"' },
-            { file: "apps/demo/src/locales/demo.json", find: '"status": "base"', replace: '"status": "edited"' },
+            {
+              find: 'HMR_TEST_STATUS = "base"',
+              replace: 'HMR_TEST_STATUS = "edited"',
+            },
+            {
+              file: "apps/demo/src/locales/demo.json",
+              find: '"status": "base"',
+              replace: '"status": "edited"',
+            },
           ],
         },
       ],

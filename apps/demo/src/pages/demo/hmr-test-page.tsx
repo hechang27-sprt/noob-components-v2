@@ -3,28 +3,30 @@ import { HMRTest as UiHMRTest } from "@noob-naive-ui/ui";
 import { HMRTest as AdminHMRTest } from "@noob-naive-ui/admin";
 import {
   applyUiSource,
-  restoreUiSource,
   applyUiLocale,
-  restoreUiLocale,
   applyAdminSource,
-  restoreAdminSource,
   applyAdminLocale,
-  restoreAdminLocale,
   applyDemoSource,
-  restoreDemoSource,
   applyDemoLocale,
+} from "virtual:noob-hmr-apply";
+import {
+  restoreUiSource,
+  restoreUiLocale,
+  restoreAdminSource,
+  restoreAdminLocale,
+  restoreDemoSource,
   restoreDemoLocale,
-} from "virtual:noob-hmr-patch";
+} from "virtual:noob-hmr-restore";
 
 import { DemoHMRTest } from "../../components/hmr-test";
 import { i18n } from "../../i18n";
 
 /**
  * HMR showcase page. Each card renders one package-owned HMRTest component;
- * the buttons toggle in-memory patches (via the `virtual:noob-hmr-patch`
- * client, which wraps the dev-server endpoint) on that component's own
- * source file and locale JSON. Vite must hot-update — code, tailwind
- * classes, and locale resources — without a full reload.
+ * the buttons toggle in-memory patches (via the virtual HMR-patch clients,
+ * which wrap the dev-server endpoint) on that component's own source file
+ * and locale JSON. Vite must hot-update — code, tailwind classes, and
+ * locale resources — without a full reload.
  */
 export const HmrTestPage = defineComponent(
   () => () => (

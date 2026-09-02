@@ -17,7 +17,8 @@ export {
 
 export {
   hmrPatchServer,
-  HMR_PATCH_VIRTUAL_ID,
+  HMR_PATCH_VIRTUAL_IDS,
+  type HmrPatch,
   type HmrPatchTarget,
   type HmrPatchServerOptions,
 } from "./patch-hmr.ts";

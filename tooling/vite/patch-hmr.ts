@@ -6,15 +6,16 @@ import type { ModuleNode, Plugin, ViteDevServer } from "vite";
  * Reusable dev-server HMR patch tool.
  *
  * Instead of mutating files on disk, targets are patched **when served**:
- * the plugin's `load` hook returns the file content with the active patch
- * applied. Toggling a patch (apply/restore) only flips in-memory state and
- * invalidates the module so Vite hot-updates the browser — code, tailwind
- * classes, and locale resources all exercise the real HMR pipeline with no
- * working-tree writes.
+ * the plugin's `load` hook returns the file content with every ACTIVE
+ * patch applied. Toggling a patch (apply/restore) only flips in-memory
+ * state and re-imports the affected module, so code, tailwind classes, and
+ * locale resources exercise the real HMR pipeline with no working-tree
+ * writes.
  *
- * A virtual module (`virtual:noob-hmr-patch`) exposes `applyX()` /
- * `restoreX()` per target; those methods wrap the POST calls to the
- * dev-server endpoint, hiding the transport details from components.
+ * Two virtual modules expose the client API, one per concern:
+ * `virtual:noob-hmr-apply` (applyX() methods) and
+ * `virtual:noob-hmr-restore` (restoreX() methods). Each method wraps the
+ * POST to the dev-server endpoint, hiding the transport details.
  */
 export interface HmrPatch {
   /** Optional file override; defaults to the target's `file`. */
@@ -27,20 +28,20 @@ export interface HmrPatch {
 
 export interface HmrPatchTarget {
   /**
-   * Unique id — also yields the virtual-module method names (`apply<Id>()`).
-   * One id groups the patches that should apply and restore TOGETHER (e.g.
-   * a component's tag literal + its tailwind class), so consumers call a
-   * single method per concern.
+   * Unique patch id — also yields the virtual-module method names
+   * (`apply<Id>()` / `restore<Id>()`). One id groups the patches that
+   * apply and restore TOGETHER (e.g. a component's tag literal + its
+   * tailwind class), so consumers call a single method per concern.
    */
-  id: string;
-  /** Workspace-root-relative file whose served module is patched on load. */
+  patchId: string;
+  /** Workspace-root-relative primary file whose served module is patched. */
   file: string;
   /** Patches applied in order while this target is active. */
   patches: HmrPatch[];
 }
 
 export interface HmrPatchServerOptions {
-  /** Targets to intercept; ids must be unique. */
+  /** Targets to intercept; patchIds must be unique. */
   targets: HmrPatchTarget[];
   /** Endpoint served by the middleware (default `/__hmr-patch`). */
   endpoint?: string;
@@ -48,11 +49,24 @@ export interface HmrPatchServerOptions {
   root?: string;
 }
 
-export const HMR_PATCH_VIRTUAL_ID = "virtual:noob-hmr-patch" as const;
+export const HMR_PATCH_VIRTUAL_IDS = {
+  apply: "virtual:noob-hmr-apply",
+  restore: "virtual:noob-hmr-restore",
+} as const;
+
+/** One patch, bound to the patchId of its owning target. */
+interface FilePatchEntry {
+  patch: HmrPatch;
+  patchId: string;
+}
+
+function toSlashes(path: string): string {
+  return path.replaceAll("\\", "/");
+}
 
 /** Derives an exported client method name: `apply<Id>` / `restore<Id>`. */
-function methodName(id: string, action: "apply" | "restore"): string {
-  const pascal = id
+function methodName(patchId: string, action: "apply" | "restore"): string {
+  const pascal = patchId
     .split(/[^A-Za-z0-9]+/)
     .filter(Boolean)
     .map((part) => part[0].toUpperCase() + part.slice(1))
@@ -60,21 +74,15 @@ function methodName(id: string, action: "apply" | "restore"): string {
   return `${action}${pascal}`;
 }
 
-function toSlashes(path: string): string {
-  return path.replaceAll("\\", "/");
-}
-
 export function hmrPatchServer(options: HmrPatchServerOptions): Plugin {
-  const targets = new Map(options.targets.map((t) => [t.id, t]));
+  const targets = new Map(options.targets.map((t) => [t.patchId, t]));
   const applied = new Set<string>();
   let server: ViteDevServer | undefined;
+  /** Inverse map: resolved file -> its patches (with owning patchIds). */
+  let filePatches: Map<string, FilePatchEntry[]> | undefined;
 
   function workspaceRoot(): string {
     return options.root ?? server?.config.root ?? process.cwd();
-  }
-
-  function filePath(target: HmrPatchTarget): string {
-    return resolve(workspaceRoot(), target.file);
   }
 
   /** Resolves the file a patch applies to (patch.file ?? target.file). */
@@ -82,32 +90,32 @@ export function hmrPatchServer(options: HmrPatchServerOptions): Plugin {
     return resolve(workspaceRoot(), patch.file ?? target.file);
   }
 
-  /**
-   * All targets that patch this module id. A file can belong to several
-   * targets (e.g. a component's source target and its locale target both
-   * patch root.tsx), so every active target's patches must apply.
-   */
-  function targetsForFileId(id: string): HmrPatchTarget[] {
-    const needle = toSlashes(resolve(id));
-    const matched: HmrPatchTarget[] = [];
+  /** The target's primary (default) file. */
+  function primaryFilePath(target: HmrPatchTarget): string {
+    return resolve(workspaceRoot(), target.file);
+  }
+
+  function buildFilePatches(): Map<string, FilePatchEntry[]> {
+    const map = new Map<string, FilePatchEntry[]>();
     for (const target of targets.values()) {
       for (const patch of target.patches) {
-        if (toSlashes(patchFilePath(target, patch)) === needle) {
-          matched.push(target);
-          break;
-        }
+        const file = toSlashes(patchFilePath(target, patch));
+        const entry: FilePatchEntry = { patch, patchId: target.patchId };
+        const list = map.get(file);
+        if (list) list.push(entry);
+        else map.set(file, [entry]);
       }
     }
-    return matched;
+    return map;
   }
 
   /**
-   * Invalidates the patched module and pushes the HMR update the same way
-   * Vite propagates a file change: re-import the changed module when it is
-   * self-accepting, otherwise re-import the nearest self-accepting importer
-   * (the component that owns the patched content). Pushing the whole
-   * importer chain would re-evaluate shell/entry modules and duplicate
-   * mounted singletons (naive-ui's NGlobalStyle warning).
+   * Invalidates the patched module and re-imports it like Vite's own
+   * file-change propagation: the changed module when it is self-accepting,
+   * otherwise the nearest self-accepting importer (the component that owns
+   * the patched content). Pushing the whole importer chain would re-evaluate
+   * shell/entry modules and duplicate mounted singletons (naive-ui's
+   * NGlobalStyle warning).
    */
   function pushUpdate(file: string): void {
     if (!server) return;
@@ -117,20 +125,21 @@ export function hmrPatchServer(options: HmrPatchServerOptions): Plugin {
     // so the patched content is re-transformed on any re-import.
     for (const mod of [
       ...(server.moduleGraph.getModulesByFile(file) ?? []),
-    ] as unknown as ModuleNode[]) {
+    ] as ModuleNode[]) {
       server.moduleGraph.invalidateModule(mod);
     }
     server.moduleGraph.invalidateModule(changed);
     const timestamp = Date.now();
     const boundary = nearestAccepting(changed) ?? changed;
+    if (boundary !== changed) server.moduleGraph.invalidateModule(boundary);
     // Self-accepting boundary (the usual case: the patched component): the
     // single proven entry. For non-self-accepting data modules that still
     // have importers, also bump the data module's own URL.
-    const entries: ModuleNode[] =
+    const updates: ModuleNode[] =
       boundary === changed ? [changed] : [boundary, changed];
     server.ws.send({
       type: "update",
-      updates: entries.map((mod) => ({
+      updates: updates.map((mod) => ({
         type: "js-update" as const,
         path: mod.url,
         acceptedPath: mod.url,
@@ -157,14 +166,38 @@ export function hmrPatchServer(options: HmrPatchServerOptions): Plugin {
     return undefined;
   }
 
+  /** Generated client code for one virtual module. */
+  function virtualClientCode(forApply: boolean): string {
+    const action: "apply" | "restore" = forApply ? "apply" : "restore";
+    const endpoint = options.endpoint ?? "/__hmr-patch";
+    const lines = [
+      `const endpoint = ${JSON.stringify(endpoint)};`,
+      "async function patch(patchId, patchAction) {",
+      "  const res = await fetch(endpoint, {",
+      '    method: "POST",',
+      '    headers: { "content-type": "application/json" },',
+      "    body: JSON.stringify({ patchId, action: patchAction }),",
+      "  });",
+      "  if (!res.ok) throw new Error(`hmr patch ${patchAction} ${patchId} failed: ${await res.text()}`);",
+      "}",
+    ];
+    for (const target of targets.values()) {
+      lines.push(
+        `export function ${methodName(target.patchId, action)}() { return patch(${JSON.stringify(target.patchId)}, ${JSON.stringify(action)}); }`,
+      );
+    }
+    return lines.join("\n");
+  }
+
   return {
     name: "noob:hmr-patch",
     enforce: "pre",
-    // Keep resolveId/load active in production builds so the virtual module
-    // resolves there too (the middleware is dev-only; the bundled client is
+    // Keep resolveId/load active in production builds so the virtual modules
+    // resolve there too (the middleware is dev-only; the bundled clients are
     // inert without it).
     configureServer(viteServer) {
       server = viteServer;
+      filePatches = buildFilePatches();
       const endpoint = options.endpoint ?? "/__hmr-patch";
       viteServer.middlewares.use(endpoint, (req, res) => {
         if (req.method !== "POST") {
@@ -176,19 +209,19 @@ export function hmrPatchServer(options: HmrPatchServerOptions): Plugin {
         req.on("data", (chunk) => (body += chunk));
         req.on("end", () => {
           try {
-            const { id, action } = JSON.parse(body || "{}") as {
-              id: string;
+            const { patchId, action } = JSON.parse(body || "{}") as {
+              patchId: string;
               action: "apply" | "restore";
             };
-            const target = targets.get(id);
-            if (!target) throw new Error(`unknown patch target ${id}`);
-            if (action === "apply") applied.add(id);
-            else if (action === "restore") applied.delete(id);
+            const target = targets.get(patchId);
+            if (!target) throw new Error(`unknown patch id ${patchId}`);
+            if (action === "apply") applied.add(patchId);
+            else if (action === "restore") applied.delete(patchId);
             else throw new Error(`unknown action ${action}`);
-            pushUpdate(filePath(target));
+            pushUpdate(primaryFilePath(target));
             res.statusCode = 200;
             res.setHeader("content-type", "application/json");
-            res.end(JSON.stringify({ ok: true, id, action }));
+            res.end(JSON.stringify({ ok: true, patchId, action }));
           } catch (error) {
             res.statusCode = 500;
             res.setHeader("content-type", "text/plain");
@@ -198,41 +231,28 @@ export function hmrPatchServer(options: HmrPatchServerOptions): Plugin {
       });
     },
     resolveId(id) {
-      if (id === HMR_PATCH_VIRTUAL_ID) return HMR_PATCH_VIRTUAL_ID;
+      if (
+        id === HMR_PATCH_VIRTUAL_IDS.apply ||
+        id === HMR_PATCH_VIRTUAL_IDS.restore
+      ) {
+        return id;
+      }
       return undefined;
     },
     load(id) {
-      if (id === HMR_PATCH_VIRTUAL_ID) {
-        const endpoint = options.endpoint ?? "/__hmr-patch";
-        const lines = [
-          `const endpoint = ${JSON.stringify(endpoint)};`,
-          "async function patch(id, action) {",
-          "  const res = await fetch(endpoint, {",
-          '    method: "POST",',
-          '    headers: { "content-type": "application/json" },',
-          "    body: JSON.stringify({ id, action }),",
-          "  });",
-          "  if (!res.ok) throw new Error(`hmr patch ${action} ${id} failed: ${await res.text()}`);",
-          "}",
-        ];
-        for (const target of targets.values()) {
-          lines.push(
-            `export function ${methodName(target.id, "apply")}() { return patch(${JSON.stringify(target.id)}, "apply"); }`,
-            `export function ${methodName(target.id, "restore")}() { return patch(${JSON.stringify(target.id)}, "restore"); }`,
-          );
-        }
-        return lines.join("\n");
+      if (id === HMR_PATCH_VIRTUAL_IDS.apply) {
+        return virtualClientCode(true);
       }
-      const matched = targetsForFileId(id);
-      if (matched.length > 0) {
+      if (id === HMR_PATCH_VIRTUAL_IDS.restore) {
+        return virtualClientCode(false);
+      }
+      const entries = filePatches?.get(toSlashes(resolve(id)));
+      if (entries && entries.length > 0) {
         const file = resolve(id);
         let source = readFileSync(file, "utf8");
-        for (const target of matched) {
-          if (!applied.has(target.id)) continue;
-          for (const patch of target.patches) {
-            if (toSlashes(patchFilePath(target, patch)) === toSlashes(file)) {
-              source = source.replace(patch.find, patch.replace);
-            }
+        for (const { patch, patchId } of entries) {
+          if (applied.has(patchId)) {
+            source = source.replace(patch.find, patch.replace);
           }
         }
         return source;
