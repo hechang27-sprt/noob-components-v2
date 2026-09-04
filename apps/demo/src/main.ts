@@ -15,6 +15,7 @@ import App from "./App";
 import { i18n } from "./i18n";
 import { demoRouteRegistry, describeDemoDestination } from "./routes";
 import "./style.css";
+import { PiniaColada } from "@pinia/colada";
 
 /** Creates the demo's application-owned Pinia instance before public stores resolve. */
 const pinia = createPinia();
@@ -87,7 +88,11 @@ const adminRouter = createAdminRouterPlugin({
 });
 
 /** Mounts the backend-free demonstration with the package-owned admin router. */
-const app = createApp(App).use(pinia).use(i18n).use(adminRouter);
+const app = createApp(App)
+  .use(pinia)
+  .use(PiniaColada)
+  .use(i18n)
+  .use(adminRouter);
 
 const meta = document.createElement("meta");
 meta.name = "naive-ui-style";

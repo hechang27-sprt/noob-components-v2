@@ -9,7 +9,7 @@ import {
   createJsonLocaleTypesPlugin,
   dtsForBuild,
   externalFromPackageJson,
-} from "@noob/tooling-vite";
+} from "@noob/tooling-vite/vite";
 
 export default defineConfig({
   plugins: [

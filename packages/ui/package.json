@@ -26,8 +26,9 @@
   },
   "dependencies": {
     "@noob-naive-ui/i18n": "workspace:*",
-    "es-toolkit": "^1.42.0",
     "@noob-naive-ui/registry": "workspace:*",
+    "@pinia/colada": "catalog:",
+    "es-toolkit": "catalog:",
     "tailwind-variants": "^3.3.1"
   },
   "peerDependencies": {

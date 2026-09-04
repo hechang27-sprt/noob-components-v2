@@ -1,6 +1,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import pathlib from "node:path";
-import type { ModuleNode, Plugin, ViteDevServer } from "vite";
+import type { ModuleNode, Plugin, Update, ViteDevServer } from "vite";
+import { filter as filterMap, mapValues } from "es-toolkit/map";
+import { isNotNil } from "es-toolkit";
 
 /**
  * Reusable dev-server HMR patch tool (plugin preset).
@@ -57,6 +59,17 @@ export interface HmrPatchServerOptions {
   dtsFile?: string;
 }
 
+type ModuleInfo = Pick<ModuleNode, "url" | "id" | "file"> & {
+  isRoot: boolean;
+};
+
+export interface HmrResult {
+  ok: boolean;
+  patchId: string;
+  action: "apply" | "restore";
+  boundaryMap: Record<string, ModuleInfo[]>;
+}
+
 export const HMR_PATCH_VIRTUAL_ID = "virtual:noob-hmr-patch" as const;
 
 /** One patch, bound to the patchId of its owning target. */
@@ -77,6 +90,7 @@ export function hmrPatchServer(options: HmrPatchServerOptions): Plugin[] {
   let server: ViteDevServer | undefined;
   /** Inverse map: resolved file -> its patches (with owning patchIds). */
   let byFile: Map<string, FilePatchEntry[]> | undefined;
+  const endpoint = options.endpoint ?? "/__hmr-patch";
 
   function workspaceRoot(): string {
     return options.root ?? server?.config.root ?? process.cwd();
@@ -88,14 +102,13 @@ export function hmrPatchServer(options: HmrPatchServerOptions): Plugin[] {
   }
 
   /** The target's primary (default) file. */
-  function targetFilePaths(target: HmrPatchTarget): Set<string> {
+  function targetFilePaths(target: HmrPatchTarget) {
     const primary = resolve(workspaceRoot(), target.file);
-    return new Set([
-      primary,
-      ...target.patches.flatMap((patch) =>
-        patch.file ? resolve(workspaceRoot(), patch.file) : [],
+    return new Set(
+      target.patches.map((patch) =>
+        patch.file ? resolve(workspaceRoot(), patch.file) : primary,
       ),
-    ]);
+    );
   }
 
   function buildFilePatches(): Map<string, FilePatchEntry[]> {
@@ -118,19 +131,20 @@ export function hmrPatchServer(options: HmrPatchServerOptions): Plugin[] {
    * shell/entry modules and duplicate mounted singletons (naive-ui's
    * NGlobalStyle warning).
    */
-  function pushUpdate(files: Iterable<string>): void {
+  function pushUpdate(files: Set<string>) {
     if (!server) return;
+
     const _server = server;
     const timestamp = Date.now();
 
-    const mods = new Set(
-      Iterator.from(files).flatMap(
-        (file) => _server.moduleGraph.getModulesByFile(file)?.values() ?? [],
-      ),
-    );
+    const mods = files
+      .values()
+      .map((file) => _server.moduleGraph.getModulesByFile(file))
+      .filter(isNotNil)
+      .reduce((acc, set) => acc.union(set));
 
     const invalidated = new Set<ModuleNode>();
-    const boundaries = findBoundaries(mods, (mod) => {
+    const { boundaryMap, boundaries } = findBoundaries(mods, (mod) => {
       // Invalidate every graph node for the file AND EVERY DEPENDENT MODULES UPTO THE SELF-ACCEPTING BOUNDARY
       _server.moduleGraph.invalidateModule(mod, invalidated, timestamp, true);
     });
@@ -141,23 +155,51 @@ export function hmrPatchServer(options: HmrPatchServerOptions): Plugin[] {
       else return "js-update" as const;
     };
 
+    const getModuleInfo = (mod: ModuleNode): ModuleInfo => ({
+      id: mod.id,
+      url: mod.url,
+      file: mod.file,
+      isRoot: mod.importers.size == 0,
+    });
+
+    const boundariesFrom = mapValues(
+      filterMap(_server.moduleGraph.fileToModulesMap, (_, key) =>
+        files.has(key),
+      ),
+      (mods) =>
+        new Set(
+          mods
+            .values()
+            .flatMap(
+              (mod) => boundaryMap.get(mod)?.values().map(getModuleInfo) ?? [],
+            ),
+        )
+          .values()
+          .toArray(),
+    );
+
     // Vite's own boundary emission: path = the re-imported boundary,
     // acceptedPath = the CHANGED module. The client imports the boundary
     // with the timestamp, and vite's import-analysis then stamps the
     // acceptedPath dependency with the same timestamp, forcing a fresh
     // fetch of the changed (patched) module — including locale JSON.
-    const msg = {
-      type: "update" as const,
-      updates: boundaries.map((mod) => ({
+    const updates: Update[] = boundaries
+      .values()
+      .map((mod) => ({
         type: getUpdateType(mod),
         path: mod.url,
         acceptedPath: mod.url,
         timestamp,
-      })),
+      }))
+      .toArray();
+
+    const msg = {
+      type: "update" as const,
+      updates,
     };
 
-    console.debug(msg);
     server.ws.send(msg);
+    return Object.fromEntries(boundariesFrom);
   }
 
   /** BFS over importers; returns the shallowest self-accepting module. */
@@ -165,26 +207,33 @@ export function hmrPatchServer(options: HmrPatchServerOptions): Plugin[] {
     starts: Iterable<ModuleNode>,
     cb?: (mod: ModuleNode) => void,
   ) {
-    const queue = [...starts];
-    const seen = new Set();
-    const boundaries: ModuleNode[] = [];
+    const queue = Iterator.from(starts)
+      .toArray()
+      .map((start) => ({ start, current: start }));
+    const boundaryMap = new Map<ModuleNode, Set<ModuleNode>>();
+    const boundaries = new Set<ModuleNode>();
+    const seen = new Map<ModuleNode, Set<ModuleNode>>();
 
     while (queue.length > 0) {
-      const current = queue.shift()!;
-      if (seen.has(current)) continue;
+      const { start, current } = queue.shift()!;
+      const seenFrom = seen.getOrInsertComputed(start, () => new Set());
+      if (seenFrom.has(current)) continue;
 
-      seen.add(current);
+      seenFrom.add(current);
       cb?.(current);
 
       if (current?.isSelfAccepting) {
-        boundaries.push(current);
+        boundaryMap.getOrInsertComputed(start, () => new Set()).add(current);
+        boundaries.add(current);
         continue;
       } else {
-        current?.importers?.forEach((mod) => queue.push(mod));
+        current?.importers?.forEach((mod) =>
+          queue.push({ start, current: mod }),
+        );
       }
     }
 
-    return boundaries;
+    return { boundaryMap, boundaries };
   }
 
   /** Generated ambient declaration for the virtual client. */
@@ -207,19 +256,19 @@ declare module ${JSON.stringify(HMR_PATCH_VIRTUAL_ID)} {
     .join("")};
 
   export const client: ReturnType<typeof useHmrPatchClient<PatchId>>;
+  export const HMR_ENDPOINT: ${JSON.stringify(endpoint)};
 }
 `;
   }
 
   /** Generated virtual-module client (single default export). */
   function virtualClientCode(): string {
-    const endpoint = options.endpoint ?? "/__hmr-patch";
-
     return `
 import { useHmrPatchClient } from "@noob/tooling-vite/client";
-const client = useHmrPatchClient(${JSON.stringify(endpoint)});
+const HMR_ENDPOINT = ${JSON.stringify(endpoint)};
+const client = useHmrPatchClient(HMR_ENDPOINT);
 
-export { client }; 
+export { client, HMR_ENDPOINT }; 
     `;
   }
 
@@ -285,15 +334,22 @@ export { client };
                 else throw new Error(`unknown action ${action}`);
 
                 const paths = targetFilePaths(target);
-                pushUpdate(paths);
+                const boundaryMap = pushUpdate(paths) ?? {};
 
-                return json({ ok: true, patchId, action });
+                return json({
+                  ok: true,
+                  patchId,
+                  action,
+                  boundaryMap,
+                } satisfies HmrResult);
               } catch (err) {
                 return error(500, err);
               }
             });
           } else if (req.method === "GET") {
-            const url = req.url ? new URL(req.url) : undefined;
+            const url = req.url
+              ? new URL(`http://${process.env.HOST ?? "localhost"}${req.url}`)
+              : undefined;
             if (!url) return error(400);
             const patchId = url.searchParams.get("patchId");
             if (!patchId) return error(400);

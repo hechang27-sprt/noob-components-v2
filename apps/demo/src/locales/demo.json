@@ -54,7 +54,9 @@
     "hmrTest": {
       "pageTitle": "HMR test page",
       "title": "Demo HMR test",
-      "status": "base"
+      "status": "base",
+      "sourceFile": "source file",
+      "i18nFile": "i18n JSON"
     }
   },
   "zh-CN": {
@@ -112,7 +114,9 @@
     "hmrTest": {
       "pageTitle": "HMR 测试页",
       "title": "Demo HMR 测试",
-      "status": "原始"
+      "status": "原始",
+      "sourceFile": "源文件",
+      "i18nFile": "i18n JSON"
     }
   }
 }

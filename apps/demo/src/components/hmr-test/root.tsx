@@ -1,11 +1,14 @@
 import { defineComponent } from "vue";
-import { NButton, NFlex, NH3, NP } from "naive-ui";
+import { NH3, NP } from "naive-ui";
 import { i18n } from "../../i18n";
 
 export const HMR_TEST_TAG = "demo:base" as const;
 
+type Slots = {
+  default?: () => unknown;
+};
 export const DemoHMRTest = defineComponent(
-  (props) => {
+  (_, { slots }: { slots: Slots }) => {
     return () => (
       <div
         data-hmr-test="demo"
@@ -17,34 +20,11 @@ export const DemoHMRTest = defineComponent(
         <NP>
           source tag: <span data-hmr-tag>{HMR_TEST_TAG}</span>
         </NP>
-        <NFlex justify="space-between">
-          <NFlex vertical>
-            <NButton size="small" onClick={() => void props.applySource?.()}>
-              Edit source
-            </NButton>
-            <NButton size="small" onClick={() => void props.restoreSource?.()}>
-              Restore source
-            </NButton>
-          </NFlex>
-          <NFlex vertical>
-            <NButton size="small" onClick={() => void props.applyLocale?.()}>
-              Edit locale
-            </NButton>
-            <NButton size="small" onClick={() => void props.restoreLocale?.()}>
-              Restore locale
-            </NButton>
-          </NFlex>
-        </NFlex>
+        {slots.default?.()}
       </div>
     );
   },
   {
     name: "DemoHMRTest",
-    props: {
-      applySource: { type: Function, default: undefined },
-      restoreSource: { type: Function, default: undefined },
-      applyLocale: { type: Function, default: undefined },
-      restoreLocale: { type: Function, default: undefined },
-    },
   },
 );

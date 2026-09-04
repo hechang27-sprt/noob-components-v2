@@ -34,6 +34,7 @@ export interface JsonLocaleTypeFile {
   name: string;
   /** Parsed JSON payload. */
   content: unknown;
+  path: string;
 }
 
 /** Options for {@link generateJsonLocaleTypes}. */
@@ -186,7 +187,11 @@ export function scanJsonLocaleFiles(dir: string): JsonLocaleTypeFile[] {
         }`,
       );
     }
-    files.push({ name: relativePath.replace(/\.json$/, ""), content });
+    files.push({
+      name: relativePath.replace(/\.json$/, ""),
+      content,
+      path: resolve(dir, relativePath),
+    });
   }
   return files.sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -223,12 +228,6 @@ export function regenerateLocaleTypes(
  * `dir` for JSON files, generates the type module, and writes `outFile`
  * before the module graph (and any declaration emitter) is processed.
  *
- * Build-time only — it does not watch for changes. Locale JSON edits during
- * dev hot-reload at runtime; the committed output file refreshes on the next
- * server start or build. The output file is committed: plain `tsc --noEmit`
- * and CI typechecks read it without running Vite. Parse errors and name
- * collisions fail the build naming the offending file.
- *
  * @param options - Scan directory, output path, and naming options.
  * @returns The Vite plugin.
  */
@@ -241,9 +240,10 @@ export function createJsonLocaleTypesPlugin(
     enforce: "pre",
     async buildStart() {
       if (scanJsonLocaleFiles(dir).length === 0) {
-        throw new Error(
+        console.warn(
           `[json-locale-types] No *.json files found under "${dir}".`,
         );
+        return;
       }
       regenerateLocaleTypes(dir, outFile, { typeName, mapName });
     },

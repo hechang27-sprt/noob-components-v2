@@ -1,0 +1,12 @@
+{
+  "en": {
+    "apply": "Emulate {label} edits",
+    "restore": "Restore {label} edits",
+    "error": "Unable to connect to vite dev server. Please check if you are in the dev mode."
+  },
+  "zh-CN": {
+    "apply": "模拟 {label} 改动",
+    "restore": "恢复 {label} 改动",
+    "error": "无法连接到 vite 开发服务器. 请检查 vite 是否运行在开发模式."
+  }
+}

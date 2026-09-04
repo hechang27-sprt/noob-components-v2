@@ -18,18 +18,29 @@ export function useHmrPatchClient<const PatchId extends string>(
     },
 
     async isApplied(patchId: PatchId) {
+      let res;
       try {
-        const res = await ofetch(endpoint, {
+        res = await ofetch(endpoint, {
           method: "GET",
           query: { patchId },
         });
-        return res.applied;
       } catch (error) {
         throw new Error(`get hmr patch ${patchId} status failed`, {
           cause: error,
         });
       }
-    },
 
+      if (
+        typeof res !== "object" ||
+        res.ok !== true ||
+        typeof res.applied !== "boolean"
+      ) {
+        throw new Error(
+          `get hmr patch ${patchId} status failed: Invalid response: \n${String(res)}`,
+        );
+      }
+
+      return res.applied as boolean;
+    },
   };
 }

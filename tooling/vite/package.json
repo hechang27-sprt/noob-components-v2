@@ -23,6 +23,7 @@
     "typecheck": "tsc6 -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "es-toolkit": "catalog:",
     "ofetch": "^1.5.1"
   }
 }

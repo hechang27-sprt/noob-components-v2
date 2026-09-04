@@ -35,7 +35,7 @@
     "@noob-naive-ui/i18n": "workspace:*",
     "@noob-naive-ui/ui": "workspace:*",
     "@vicons/ionicons5": "^0.13.0",
-    "es-toolkit": "^1.42.0",
+    "es-toolkit": "catalog:",
     "zod": "catalog:",
     "@noob-naive-ui/registry": "workspace:*"
   },

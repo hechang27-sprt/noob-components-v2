@@ -15,4 +15,5 @@ declare module "virtual:noob-hmr-patch" {
       | "demoLocale";
 
   export const client: ReturnType<typeof useHmrPatchClient<PatchId>>;
+  export const HMR_ENDPOINT: "/__hmr-patch";
 }
