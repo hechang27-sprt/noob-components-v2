@@ -13,7 +13,8 @@
     "stat:ELOC": "find . -type f -not -path \"*/node_modules/*\" -not -path \"./.omp/*\" -not -path \"./.trellis/*\" -not -path \"./.git/*\" -not -path \"./.jj/*\" -not -path \"*/dist/*\" \\( -path \"*.ts\" -or -path \"*.tsx\" \\) -not -path \"*.test.*\" -exec wc -l {} +",
     "build:clean": "pnpm -r --if-present clean && pnpm -r build",
     "typecheck:all": "tsc6 -p tsconfig.json --noEmit",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "deploy:gh-pages": "pnpm --filter demo exec vite build --base=/noob-components-v2/ --outDir=../../gh-pages && gh-pages -d ./gh-pages && jj git fetch"
   },
   "devDependencies": {
     "@intlify/unplugin-vue-i18n": "^11.2.4",
