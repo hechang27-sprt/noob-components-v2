@@ -79,7 +79,7 @@ auth.configure({ login, logout, restore });
  * stores and registers the router, so it must run after `app.use(pinia)`.
  */
 const adminRouter = createAdminRouterPlugin({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   registry: demoRouteRegistry,
   homeDestination: { navKey: "dashboard" },
   describeDestination: describeDemoDestination,
