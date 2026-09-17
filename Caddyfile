@@ -1,0 +1,6 @@
+http://localhost:3000 {
+	handle_path /noob-components-v2* {
+		root * .
+		file_server browse
+	}
+}
