@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@zod/mini";
 
 /**
  * Discriminated-union representation of one displayable text value.
@@ -16,9 +16,9 @@ export const i18nTextSchema = z.discriminatedUnion("kind", [
     key: z.string(),
     // Named interpolation values are persisted with history state, so they
     // must stay JSON-serializable primitives.
-    named: z
-      .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
-      .optional(),
+    named: z.optional(
+      z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
+    ),
   }),
 ]);
 

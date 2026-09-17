@@ -5,7 +5,7 @@ import type {
 import { describe, expect, it, vi } from "vitest";
 import { defineComponent } from "vue";
 import { createMemoryHistory, createRouter } from "vue-router";
-import { z } from "zod";
+import { z } from "@zod/mini";
 
 import {
   createAdminShellVueRouterRuntime,
@@ -26,7 +26,7 @@ function createPage() {
 function createRegistry() {
   const payloadSchema = z.object({
     reportId: z.string(),
-    section: z.string().default("summary"),
+    section: z.prefault(z.string(), "summary"),
   });
   return defineAdminRouteRegistry({
     dashboard: { route: { path: "/", component: createPage() } },

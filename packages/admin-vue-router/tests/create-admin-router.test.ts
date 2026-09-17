@@ -8,7 +8,7 @@ import {
 import { createPinia, setActivePinia, type Pinia } from "pinia";
 import { describe, expect, it, vi } from "vitest";
 import { createApp, defineComponent, inject, type App } from "vue";
-import { z } from "zod";
+import { z } from "@zod/mini";
 import { createMemoryHistory, type Router } from "vue-router";
 
 import {
@@ -814,7 +814,7 @@ describe("createAdminRouterPlugin — redirect reconstruction", () => {
       stateful: {
         route: { path: "stateful", component: createPage() },
         codec: defineAdminRouteUrlCodec(
-          z.object({ token: z.string() }).optional().default({ token: "" }),
+          z.prefault(z.optional(z.object({ token: z.string() })), { token: "" }),
           {
             encode: () => ({ state: { token: "saved" } }),
             decode: (_route, state) => {

@@ -28,8 +28,7 @@
     "@noob-naive-ui/i18n": "workspace:*",
     "@noob-naive-ui/registry": "workspace:*",
     "@pinia/colada": "catalog:",
-    "es-toolkit": "catalog:",
-    "tailwind-variants": "^3.3.1"
+    "es-toolkit": "catalog:"
   },
   "peerDependencies": {
     "naive-ui": "catalog:",

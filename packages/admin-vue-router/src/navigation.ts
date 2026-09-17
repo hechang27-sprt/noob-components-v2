@@ -11,7 +11,7 @@ import type {
   RouteLocationNamedRaw,
   Router,
 } from "vue-router";
-import { z } from "zod";
+import { z } from "@zod/mini";
 import type {
   AdminRouteDefinitions,
   AdminRouteRegistry,
@@ -26,18 +26,20 @@ const persistedAdminShellTabSchema = z.object({
   // The label persists as its I18nText representation, so `i18n` keys
   // survive restores and render in the current locale after refresh.
   label: i18nTextSchema,
-  closable: z.boolean().optional(),
+  closable: z.optional(z.boolean()),
 });
 
 /** Validates scope metadata while allowing absent tab reconstruction data. */
 const persistedAdminShellStateSchema = z.object({
   scopeId: z.string(),
-  tab: persistedAdminShellTabSchema.optional(),
+  tab: z.optional(persistedAdminShellTabSchema),
 });
 
 /** Requires complete tab metadata when restoring a persisted descriptor. */
-const persistedAdminShellTabStateSchema =
-  persistedAdminShellStateSchema.required({ tab: true });
+const persistedAdminShellTabStateSchema = z.required(
+  persistedAdminShellStateSchema,
+  { tab: true },
+);
 
 /** Describes validated adapter metadata stored in one history entry. */
 type PersistedAdminShellState = z.output<

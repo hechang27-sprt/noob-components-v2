@@ -5,7 +5,7 @@ import {
   createRouter,
   type HistoryState,
 } from "vue-router";
-import { z } from "zod";
+import { z } from "@zod/mini";
 
 import {
   defineAdminRouteRegistry,
@@ -48,7 +48,7 @@ function createRegistry() {
         props: true,
       },
       codec: defineAdminRouteUrlCodec(
-        z.object({ reportId: z.string().min(1) }),
+        z.object({ reportId: z.string().check(z.minLength(1)) }),
         {
           /** Maps canonical report payload into the route path. */
           encode(payload) {
@@ -66,7 +66,7 @@ function createRegistry() {
       route: { path: "/stateful", component: createPage() },
       codec: defineAdminRouteUrlCodec(
         z.object({
-          section: z.string().trim().default("summary"),
+          section: z.prefault(z.string().check(z.trim()), "summary"),
         }),
         {
           /** Stores canonical section data in history state. */
@@ -105,7 +105,7 @@ function createRegistry() {
     optional: {
       route: { path: "/optional", component: createPage() },
       codec: defineAdminRouteUrlCodec(
-        z.object({ filter: z.string() }).optional(),
+        z.optional(z.object({ filter: z.string() })),
         {
           /** Emits optional payload as query state when supplied. */
           encode(payload) {
@@ -258,14 +258,14 @@ describe("defineAdminRouteRegistry", () => {
 
     expect(() =>
       registry.toLocation({ navKey: "detail", payload: { reportId: "" } }),
-    ).toThrow(z.ZodError);
-    expect(() => registry.toLocation({ navKey: "detail" })).toThrow(z.ZodError);
+    ).toThrow(z.core.$ZodError);
+    expect(() => registry.toLocation({ navKey: "detail" })).toThrow(z.core.$ZodError);
     const malformedDetail: RouteReadInput = {
       ...resolveRoute(registry, "/detail/valid"),
       params: { reportId: "" },
     };
     expect(() => registry.fromRoute(malformedDetail, emptyState)).toThrow(
-      z.ZodError,
+      z.core.$ZodError,
     );
   });
 });

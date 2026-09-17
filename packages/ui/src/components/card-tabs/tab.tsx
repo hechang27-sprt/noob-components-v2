@@ -6,9 +6,9 @@ import {
   ref,
   toValue,
 } from "vue";
-import { tv } from "tailwind-variants";
 import { useUiCssVarsFor } from "../../theme";
 import { useTabController } from "./runtime";
+import { isMatch } from "es-toolkit/compat";
 
 /** Reserved, non-selectable tab keys for the default head/tail sentinels. */
 export const HEAD_TAB_KEY = "__noob-ui-card-tabs-head__";
@@ -18,6 +18,13 @@ type TabMode = "tab" | "head" | "tail";
 
 /** Which side carries the fillet cut-out on the bottom segment. */
 type Neighbor = "none" | "left" | "right";
+
+/** Variant selection consumed by {@link resolveTabClasses}; defaults apply to missing keys. */
+type TabClassState = {
+  status?: "active" | "inactive";
+  mode?: TabMode;
+  neighbor?: Neighbor;
+};
 
 type Props = {
   tabKey: string;
@@ -29,9 +36,9 @@ type Props = {
  * a `grid-cols-subgrid grid-rows-subgrid` card placed at
  * `--noob-ui-card-tabs-col-start` (4·index+1), spanning 5 rows.
  *
- * The class matrix is organized with `tailwind-variants` across three axes:
- * `status` (active/inactive), `mode` (tab/head/tail), and `neighbor`
- * (relative to the active tab, i.e. `left` neighbor shows the right fillet etc.)
+ * The class matrix is organized across three axes: `status` (active/inactive),
+ * `mode` (tab/head/tail), and `neighbor` (relative to the active tab, i.e.
+ * `left` neighbor shows the right fillet etc.)
  * Conditional children (body pill, active-tab border, bottom segment) follow the
  * demo's card anatomy.
  *
@@ -49,132 +56,154 @@ export const Tab = defineComponent(
     // NOTE: `defineOptions` is not part of the vue-jsx-vapor macro set (left
     // bare in the output, crashes at setup); the name comes from the fn name.
     const { $css, $tw } = useUiCssVarsFor("CardTabs");
-    const styles = tv({
-      slots: {
-        outer: [
-          "grid",
-          "grid-cols-subgrid",
-          "grid-rows-subgrid",
-          "col-span-5",
-          "row-span-full",
-          $tw("col-start-(--noob-ui-card-tabs-col-start)"),
-          $tw("row-start-(--noob-ui-card-tabs-row-start)"),
-          "before:content-['']",
-        ],
-        body: [
-          "z-30",
-          "col-start-2",
-          "-col-end-2",
-          "row-start-2",
-          "-row-end-2",
-          "flex",
-          "items-center",
-          "justify-center",
-          "min-w-0",
-          "overflow-hidden",
-          "transition-colors",
-          "duration-200",
-          $tw("rounded-t-(--noob-ui-card-tabs-inner-radii-top)"),
-          $tw("rounded-b-(--noob-ui-card-tabs-inner-radii-bottom)"),
-          $tw<"px">("px-(--noob-ui-card-tabs-content-padding-x)"),
-          $tw<"pt">("pt-(--noob-ui-card-tabs-content-padding-top)"),
-          $tw<"pb">("pb-(--noob-ui-card-tabs-content-padding-bottom)"),
-        ],
-      },
-      variants: {
-        status: {
-          active: {
-            outer: [
-              "z-20",
-              "bg-transparent!",
-              "before:col-start-2",
-              "before:-col-end-2",
-              "before:row-start-2",
-              "before:-row-end-3",
-              $tw("before:rounded-t-(--noob-ui-card-tabs-inner-radii-top)"),
-              $tw<"before:shadow">(
-                "before:shadow-(--noob-ui-card-tabs-active-tab-border)",
-              ),
-            ],
-            body: [
-              $tw("bg-(--noob-ui-card-tabs-active-card-color)"),
-              $tw("text-(--noob-ui-card-tabs-active-card-text-color)"),
-            ],
-          },
-          inactive: {
-            outer: [
-              "z-10",
-              $tw("bg-(--noob-ui-card-tabs-background-color)"),
-              "before:border-b",
-              "before:col-span-full",
-              "before:-row-start-3",
-              "before:row-span-2",
-              $tw("before:border-(--noob-ui-card-tabs-border-color)"),
-            ],
-            body: [$tw("text-(--noob-ui-card-tabs-inactive-card-text-color)")],
-          },
-        },
-        mode: {
-          // Interactive affordances only on real tabs (sentinels are inert).
-          tab: {
-            outer: [
-              "cursor-pointer",
-              "select-none",
-              "focus-visible:outline-2",
-              $tw("focus-visible:outline-(--noob-ui-card-tabs-border-color)"),
-            ],
-          },
-          head: {},
-          tail: {},
-        },
-        neighbor: {
-          none: {},
-          left: {},
-          right: {},
-        },
-      },
-      compoundVariants: [
-        {
-          neighbor: "left",
-          status: "inactive",
-          class: {
-            outer: [
-              $tw("rounded-br-(--noob-ui-card-tabs-fillet-radii)"),
-              $tw("before:rounded-br-(--noob-ui-card-tabs-fillet-radii)"),
-              "before:border-r",
-            ],
-          },
-        },
-        {
-          neighbor: "right",
-          status: "inactive",
-          class: {
-            outer: [
-              $tw("rounded-bl-(--noob-ui-card-tabs-fillet-radii)"),
-              $tw("before:rounded-bl-(--noob-ui-card-tabs-fillet-radii)"),
-              "before:border-l",
-            ],
-          },
-        },
-        {
-          status: "inactive",
-          mode: "tab",
-          class: {
-            body: [
-              $tw("hover:bg-(--noob-ui-card-tabs-card-color-on-hover)"),
-              $tw("hover:text-(--noob-ui-card-tabs-card-text-color-on-hover)"),
-            ],
-          },
-        },
+    // The class matrix is organized across three axes: `status`
+    // (active/inactive), `mode` (tab/head/tail), and `neighbor` (relative to
+    // the active tab). It was previously built with tailwind-variants; it is
+    // now a tiny local resolver with the same matrix (base slots + variant
+    // slots + compound matches), so the UI package ships no library-class
+    // dependency.
+    const TAB_BASE_CLASSES = {
+      outer: [
+        "grid",
+        "grid-cols-subgrid",
+        "grid-rows-subgrid",
+        "col-span-5",
+        "row-span-full",
+        $tw("col-start-(--noob-ui-card-tabs-col-start)"),
+        $tw("row-start-(--noob-ui-card-tabs-row-start)"),
+        "before:content-['']",
       ],
-      defaultVariants: {
-        status: "inactive",
-        mode: "tab",
-        neighbor: "none",
-      },
-    });
+      body: [
+        "z-30",
+        "col-start-2",
+        "-col-end-2",
+        "row-start-2",
+        "-row-end-2",
+        "flex",
+        "items-center",
+        "justify-center",
+        "min-w-0",
+        "overflow-hidden",
+        "transition-colors",
+        "duration-200",
+        $tw("rounded-t-(--noob-ui-card-tabs-inner-radii-top)"),
+        $tw("rounded-b-(--noob-ui-card-tabs-inner-radii-bottom)"),
+        $tw<"px">("px-(--noob-ui-card-tabs-content-padding-x)"),
+        $tw<"pt">("pt-(--noob-ui-card-tabs-content-padding-top)"),
+        $tw<"pb">("pb-(--noob-ui-card-tabs-content-padding-bottom)"),
+      ],
+    } as const;
 
-    const state = computed(() => {
+    const TAB_CLASSES: readonly {
+      match: TabClassState;
+      class: { outer?: readonly string[]; body?: readonly string[] };
+    }[] = [
+      {
+        match: { status: "active" },
+        class: {
+          outer: [
+            "z-20",
+            "bg-transparent!",
+            "before:col-start-2",
+            "before:-col-end-2",
+            "before:row-start-2",
+            "before:-row-end-3",
+            $tw("before:rounded-t-(--noob-ui-card-tabs-inner-radii-top)"),
+            $tw<"before:shadow">(
+              "before:shadow-(--noob-ui-card-tabs-active-tab-border)",
+            ),
+          ],
+          body: [
+            $tw("bg-(--noob-ui-card-tabs-active-card-color)"),
+            $tw("text-(--noob-ui-card-tabs-active-card-text-color)"),
+          ],
+        },
+      },
+      {
+        match: { status: "inactive" },
+        class: {
+          outer: [
+            "z-10",
+            $tw("bg-(--noob-ui-card-tabs-background-color)"),
+            "before:border-b",
+            "before:col-span-full",
+            "before:-row-start-3",
+            "before:row-span-2",
+            $tw("before:border-(--noob-ui-card-tabs-border-color)"),
+          ],
+          body: [$tw("text-(--noob-ui-card-tabs-inactive-card-text-color)")],
+        },
+      },
+      {
+        match: { mode: "tab" },
+        class: {
+          outer: [
+            "cursor-pointer",
+            "select-none",
+            "focus-visible:outline-2",
+            $tw("focus-visible:outline-(--noob-ui-card-tabs-border-color)"),
+          ],
+        },
+      },
+      {
+        match: { neighbor: "left", status: "inactive" },
+        class: {
+          outer: [
+            $tw("rounded-br-(--noob-ui-card-tabs-fillet-radii)"),
+            $tw("before:rounded-br-(--noob-ui-card-tabs-fillet-radii)"),
+            "before:border-r",
+          ],
+        },
+      },
+      {
+        match: { neighbor: "right", status: "inactive" },
+        class: {
+          outer: [
+            $tw("rounded-bl-(--noob-ui-card-tabs-fillet-radii)"),
+            $tw("before:rounded-bl-(--noob-ui-card-tabs-fillet-radii)"),
+            "before:border-l",
+          ],
+        },
+      },
+      {
+        match: { status: "inactive", mode: "tab" },
+        class: {
+          body: [
+            $tw("hover:bg-(--noob-ui-card-tabs-card-color-on-hover)"),
+            $tw("hover:text-(--noob-ui-card-tabs-card-text-color-on-hover)"),
+          ],
+        },
+      },
+    ];
+
+    const TAB_DEFAULT_STATE: TabClassState = {
+      status: "inactive",
+      mode: "tab",
+      neighbor: "none",
+    };
+
+    /** Merges base, variant, and compound classes for the current tab state. */
+    function resolveTabClasses(state?: TabClassState) {
+      const merged: Record<"outer" | "body", string[]> = {
+        outer: [...TAB_BASE_CLASSES.outer],
+        body: [...TAB_BASE_CLASSES.body],
+      };
+
+      for (const compound of TAB_CLASSES) {
+        const {
+          match,
+          class: { outer, body },
+        } = compound;
+
+        if (isMatch(state ?? TAB_DEFAULT_STATE, match)) {
+          if (outer) merged.outer.push(...outer);
+          if (body) merged.body.push(...body);
+        }
+      }
+      return merged;
+    }
+
+    const state = computed<TabClassState>(() => {
       const activeKey = toValue(controller.activeKey);
       const mode = props.mode ?? "tab";
 
@@ -195,11 +224,14 @@ export const Tab = defineComponent(
         neighbor = "right";
       }
 
+      const status: "active" | "inactive" =
+        activeKey === props.tabKey ? "active" : "inactive";
+
       return {
-        status: activeKey === props.tabKey ? "active" : "inactive",
+        status,
         mode,
         neighbor,
-      } satisfies Parameters<typeof styles>[0];
+      };
     });
 
     const colStart = computed(() => {
@@ -260,54 +292,62 @@ export const Tab = defineComponent(
       }
     };
 
-    return () => (
-      <div
-        ref={rootEl}
-        role={tabMode.value === "tab" ? "tab" : undefined}
-        aria-selected={tabMode.value === "tab" ? isActiveTab.value : undefined}
-        aria-current={
-          tabMode.value === "tab" && isActiveTab.value ? "page" : undefined
-        }
-        data-card-tab-key={props.tabKey}
-        data-card-tab-role={tabMode.value}
-        data-admin-tab-key={tabMode.value === "tab" ? props.tabKey : undefined}
-        data-admin-tab-active={
-          tabMode.value === "tab" && isActiveTab.value ? true : undefined
-        }
-        // Roving tabindex: only the active tab is a Tab stop; arrows move the
-        // active tab and carry focus with it. Sentinels are not focusable.
-        tabindex={
-          tabMode.value === "tab" ? (isActiveTab.value ? 0 : -1) : undefined
-        }
-        onKeydown={tabMode.value === "tab" ? onKeydown : undefined}
-        style={{
-          [$css("--noob-ui-card-tabs-col-start")]: String(colStart.value),
-          [$css("--noob-ui-card-tabs-row-start")]: "1",
-        }}
-        class={styles(state.value).outer()}
-        onClick={
-          tabMode.value === "tab"
-            ? () => {
-                controller.handleClick(props.tabKey);
-                // Clicking a tab must move focus to it (divs are not focusable
-                // on click), otherwise the next Arrow key is swallowed by body.
-                rootEl.value?.focus({ preventScroll: true });
-                // Activation may navigate and remount the bar (old node
-                // detached): re-resolve next frame so keyboard entry survives
-                // navigation and the clicked tab stays focused.
-                requestAnimationFrame(() => {
-                  const el = controller.elementOf(props.tabKey);
-                  el?.focus({ preventScroll: true });
-                  el?.scrollIntoView({ block: "nearest", inline: "nearest" });
-                });
-              }
-            : undefined
-        }>
-        {slots.default != null ? (
-          <div class={styles(state.value).body()}>{slots.default?.()}</div>
-        ) : null}
-      </div>
-    );
+    return () => {
+      const { outer, body } = resolveTabClasses(state.value);
+
+      return (
+        <div
+          ref={rootEl}
+          role={tabMode.value === "tab" ? "tab" : undefined}
+          aria-selected={
+            tabMode.value === "tab" ? isActiveTab.value : undefined
+          }
+          aria-current={
+            tabMode.value === "tab" && isActiveTab.value ? "page" : undefined
+          }
+          data-card-tab-key={props.tabKey}
+          data-card-tab-role={tabMode.value}
+          data-admin-tab-key={
+            tabMode.value === "tab" ? props.tabKey : undefined
+          }
+          data-admin-tab-active={
+            tabMode.value === "tab" && isActiveTab.value ? true : undefined
+          }
+          // Roving tabindex: only the active tab is a Tab stop; arrows move the
+          // active tab and carry focus with it. Sentinels are not focusable.
+          tabindex={
+            tabMode.value === "tab" ? (isActiveTab.value ? 0 : -1) : undefined
+          }
+          onKeydown={tabMode.value === "tab" ? onKeydown : undefined}
+          style={{
+            [$css("--noob-ui-card-tabs-col-start")]: String(colStart.value),
+            [$css("--noob-ui-card-tabs-row-start")]: "1",
+          }}
+          class={outer}
+          onClick={
+            tabMode.value === "tab"
+              ? () => {
+                  controller.handleClick(props.tabKey);
+                  // Clicking a tab must move focus to it (divs are not focusable
+                  // on click), otherwise the next Arrow key is swallowed by body.
+                  rootEl.value?.focus({ preventScroll: true });
+                  // Activation may navigate and remount the bar (old node
+                  // detached): re-resolve next frame so keyboard entry survives
+                  // navigation and the clicked tab stays focused.
+                  requestAnimationFrame(() => {
+                    const el = controller.elementOf(props.tabKey);
+                    el?.focus({ preventScroll: true });
+                    el?.scrollIntoView({ block: "nearest", inline: "nearest" });
+                  });
+                }
+              : undefined
+          }>
+          {slots.default != null ? (
+            <div class={body}>{slots.default?.()}</div>
+          ) : null}
+        </div>
+      );
+    };
   },
   {
     name: "CardTabsTab",

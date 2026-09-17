@@ -23,10 +23,10 @@
   "peerDependencies": {
     "@noob-naive-ui/admin": "workspace:*",
     "@noob-naive-ui/i18n": "workspace:*",
+    "@zod/mini": "catalog:",
     "pinia": "catalog:",
     "vue": "catalog:",
-    "vue-router": "catalog:",
-    "zod": "catalog:"
+    "vue-router": "catalog:"
   },
   "license": "MIT",
   "publishConfig": {
@@ -36,5 +36,6 @@
   "devDependencies": {
     "@noob/tooling-vite": "workspace:*",
     "typescript": "catalog:"
-  }
+  },
+  "dependencies": {}
 }

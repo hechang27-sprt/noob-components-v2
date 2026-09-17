@@ -21,10 +21,10 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@noob-naive-ui/registry": "workspace:*",
+    "@zod/mini": "catalog:",
     "vue": "catalog:",
-    "vue-i18n": "catalog:",
-    "zod": "catalog:",
-    "@noob-naive-ui/registry": "workspace:*"
+    "vue-i18n": "catalog:"
   },
   "license": "MIT",
   "publishConfig": {

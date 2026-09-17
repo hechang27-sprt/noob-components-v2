@@ -5,7 +5,7 @@ import type {
   RouteLocationResolved,
   RouteRecordRaw,
 } from "vue-router";
-import { z } from "zod";
+import { z } from "@zod/mini";
 
 /** Describes the route fields shared by resolved (synthetic) and loaded routes. */
 export type RouteReadInput = Pick<
@@ -24,7 +24,7 @@ export type RouteReadInput = Pick<
 type AdminRoutePayload = AdminShellDestination["payload"];
 
 /** Describes a Zod contract whose normalized output remains a shell destination payload. */
-type AdminRoutePayloadSchema = z.ZodType<AdminRoutePayload, unknown>;
+type AdminRoutePayloadSchema = z.ZodMiniType<AdminRoutePayload, unknown>;
 
 /** Describes concrete Vue Router fields emitted by one registered admin destination. */
 export type VueRouterNavParams = {

@@ -13,6 +13,7 @@
     "@noob-naive-ui/admin": "workspace:*",
     "@noob-naive-ui/admin-vue-router": "workspace:*",
     "@noob-naive-ui/i18n": "workspace:*",
+    "@zod/mini": "catalog:",
     "naive-ui": "catalog:",
     "pinia": "catalog:",
     "pro-naive-ui": "catalog:",

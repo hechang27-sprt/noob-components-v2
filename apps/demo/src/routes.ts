@@ -2,7 +2,7 @@ import {
   defineAdminRouteRegistry,
   defineAdminRouteUrlCodec,
 } from "@noob-naive-ui/admin-vue-router";
-import { z } from "zod";
+import { z } from "@zod/mini";
 
 import { DashboardDemoPage } from "./pages/demo/dashboard-demo-page";
 import { HmrTestPage } from "./pages/demo/hmr-test-page";
@@ -14,7 +14,9 @@ import { AdminShellTabDescriptor } from "@noob-naive-ui/admin";
 import { AdminShellDestination } from "@noob-naive-ui/admin";
 
 /** Validates the router-neutral payload for a report-detail destination. */
-const detailPayloadSchema = z.object({ reportId: z.string().min(1) });
+const detailPayloadSchema = z.object({
+  reportId: z.string().check(z.minLength(1)),
+});
 
 /** Binds demo page routes and URL codecs to the shared AdminShell/Vue Router adapter. */
 export const demoRouteRegistry = defineAdminRouteRegistry({

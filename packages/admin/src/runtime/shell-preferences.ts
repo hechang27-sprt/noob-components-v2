@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@zod/mini";
 
 import type {
   AdminFontSize,
@@ -39,78 +39,79 @@ const fontSizeValues = [
   "large",
 ] as const satisfies readonly AdminFontSize[];
 
+/**
+ * Mini-schema surface for normalization. Persisted values are `unknown`;
+ * each field normalizes tolerantly (matching the previous
+ * `catch(...).default(...)` pipeline) so one corrupt field never discards the
+ * rest of the stored preferences.
+ */
 const themeModeSchema = z.enum(themeModeValues);
 const fontSizeSchema = z.enum(fontSizeValues);
-const trimmedStringSchema = z.preprocess(
-  (value) => (typeof value === "string" ? value.trim() : value),
-  z.string(),
-);
-const nonEmptyStringSchema = trimmedStringSchema.pipe(z.string().min(1));
+/**
+ * Trims first, then requires a non-empty result — the mini equivalent of the
+ * previous `preprocess(trim).pipe(z.string().min(1))`: `"  "` fails while
+ * `" x "` becomes `"x"`.
+ */
+const trimmedNonEmptyStringSchema = z.string().check(z.trim(), z.minLength(1));
 const localeOptionSchema = z.object({
-  key: nonEmptyStringSchema,
-  label: nonEmptyStringSchema,
-});
-const localeOptionsSchema = z
-  .array(z.unknown())
-  .catch([])
-  .transform((items) =>
-    items.flatMap((item) => {
-      const parsed = localeOptionSchema.safeParse(item);
-      return parsed.success ? [parsed.data] : [];
-    }),
-  );
-const themeModeInputSchema = themeModeSchema
-  .catch(DEFAULT_THEME_MODE)
-  .default(DEFAULT_THEME_MODE);
-/** Missing/corrupt themeKey collapses to `""` (no preset picked yet). */
-const themeKeyInputSchema = z
-  .string()
-  .catch(DEFAULT_THEME_KEY)
-  .default(DEFAULT_THEME_KEY);
-const fontSizeInputSchema = fontSizeSchema
-  .catch(DEFAULT_FONT_SIZE)
-  .default(DEFAULT_FONT_SIZE);
-const localeInputSchema = z
-  .union([nonEmptyStringSchema, z.undefined()])
-  .catch(undefined);
-const sidebarCollapsedInputSchema = z.boolean().catch(false).default(false);
-const normalizedShellPreferencesSchema = z
-  .object({
-    themeMode: themeModeInputSchema,
-    themeKey: themeKeyInputSchema,
-    fontSize: fontSizeInputSchema,
-    locale: localeInputSchema,
-    availableLocales: localeOptionsSchema.default([]),
-    sidebarCollapsed: sidebarCollapsedInputSchema,
-  })
-  .transform(
-    ({
-      themeMode,
-      themeKey,
-      fontSize,
-      locale,
-      availableLocales,
-      sidebarCollapsed,
-    }): AdminShellPreferences => ({
-      themeMode,
-      themeKey,
-      fontSize,
-      locale: locale ?? availableLocales[0]?.key ?? DEFAULT_LOCALE,
-      availableLocales,
-      sidebarCollapsed,
-    }),
-  );
-const persistedShellPreferencesSchema = z.object({
-  themeMode: themeModeInputSchema,
-  themeKey: themeKeyInputSchema,
-  fontSize: fontSizeInputSchema,
-  locale: nonEmptyStringSchema,
-  sidebarCollapsed: z.boolean(),
+  key: trimmedNonEmptyStringSchema,
+  label: trimmedNonEmptyStringSchema,
 });
 
-type PersistedShellPreferences = z.infer<
-  typeof persistedShellPreferencesSchema
->;
+/** The persisted field inventory (must match {@link persistAdminShellPreferences}). */
+type PersistedShellPreferences = {
+  themeMode: AdminThemeMode;
+  themeKey: string;
+  fontSize: AdminFontSize;
+  locale: string;
+  sidebarCollapsed: boolean;
+};
+
+/** Normalizes an unknown enum input to the documented polarity default. */
+function parseThemeMode(input: unknown): AdminThemeMode {
+  const parsed = themeModeSchema.safeParse(input);
+  return parsed.success ? parsed.data : DEFAULT_THEME_MODE;
+}
+
+/** Normalizes an unknown enum input to the default size tier. */
+function parseFontSize(input: unknown): AdminFontSize {
+  const parsed = fontSizeSchema.safeParse(input);
+  return parsed.success ? parsed.data : DEFAULT_FONT_SIZE;
+}
+
+/** Missing/corrupt themeKey collapses to `""` (no preset picked yet). */
+function parseThemeKey(input: unknown): string {
+  return typeof input === "string" ? input : DEFAULT_THEME_KEY;
+}
+
+/** Tolerant locale normalization: undefined and invalid values become undefined. */
+function parseLocale(input: unknown): string | undefined {
+  if (input === undefined) return undefined;
+  const parsed = trimmedNonEmptyStringSchema.safeParse(input);
+  return parsed.success ? parsed.data : undefined;
+}
+
+/** Filters storage locale options down to valid entries; non-arrays become `[]`. */
+function parseLocaleOptions(input: unknown): AdminLocaleOption[] {
+  if (!Array.isArray(input)) return [];
+  const valid: AdminLocaleOption[] = [];
+  for (const item of input) {
+    const parsed = localeOptionSchema.safeParse(item);
+    if (parsed.success) valid.push(parsed.data);
+  }
+  return valid;
+}
+
+/** Boolean preference values collapse to `false` unless exactly `true`/`false`. */
+function parseBoolean(input: unknown): boolean {
+  return typeof input === "boolean" ? input : false;
+}
+
+/** Restored locale must be a non-empty string (the strict persisted field). */
+function parsePersistedLocale(input: unknown): string | null {
+  const parsed = trimmedNonEmptyStringSchema.safeParse(input);
+  return parsed.success ? parsed.data : null;
+}
 
 export function createDefaultAdminShellPreferences(
   defaults?: Partial<AdminShellPreferences>,
@@ -196,14 +197,44 @@ export function persistAdminShellPreferences(
 export function normalizeShellPreferences(
   input: Partial<AdminShellPreferences>,
 ): AdminShellPreferences {
-  return normalizedShellPreferencesSchema.parse(input);
+  const themeMode = parseThemeMode(input.themeMode);
+  const themeKey = parseThemeKey(input.themeKey);
+  const fontSize = parseFontSize(input.fontSize);
+  const availableLocales = parseLocaleOptions(input.availableLocales);
+  const locale =
+    parseLocale(input.locale) ?? availableLocales[0]?.key ?? DEFAULT_LOCALE;
+  const sidebarCollapsed = parseBoolean(input.sidebarCollapsed);
+  return {
+    themeMode,
+    themeKey,
+    fontSize,
+    locale,
+    availableLocales,
+    sidebarCollapsed,
+  };
 }
 
 function parsePersistedShellPreferences(
   input: unknown,
 ): PersistedShellPreferences | null {
-  const parsed = persistedShellPreferencesSchema.safeParse(input);
-  return parsed.success ? parsed.data : null;
+  if (typeof input !== "object" || input === null) {
+    return null;
+  }
+  const record = input as Record<string, unknown>;
+  const locale = parsePersistedLocale(record.locale);
+  if (locale === null) {
+    return null;
+  }
+  if (typeof record.sidebarCollapsed !== "boolean") {
+    return null;
+  }
+  return {
+    themeMode: parseThemeMode(record.themeMode),
+    themeKey: parseThemeKey(record.themeKey),
+    fontSize: parseFontSize(record.fontSize),
+    locale,
+    sidebarCollapsed: record.sidebarCollapsed,
+  };
 }
 
 function cloneShellPreferences(
